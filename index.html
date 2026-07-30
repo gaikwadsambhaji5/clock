@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Desk Clock</title>
 
+<!-- iOS Fullscreen / Web App Support -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Desk Clock">
+<meta name="mobile-web-app-capable" content="yes">
+
 <style>
 
 *{
@@ -39,7 +45,7 @@ transition:transform 3s ease-in-out;
 }
 
 #time{
-font-size:30vw;
+font-size:20vw;
 font-weight:bold;
 letter-spacing:2px;
 line-height:1;
@@ -322,12 +328,25 @@ document.addEventListener("visibilitychange",()=>{
 });
 
 // =====================
-// FULLSCREEN CONTROLS
+// FULLSCREEN CONTROLS (with iPhone support)
 // =====================
 
+const isIPhone = /iPhone/i.test(navigator.userAgent);
+
 function goFullscreen() {
+  if (isIPhone && !window.navigator.standalone) {
+    // iPhones don't support browser Fullscreen API
+    alert("To use Fullscreen on iPhone:\n\n1. Tap the Share button (square with arrow) at the bottom of Safari.\n2. Select 'Add to Home Screen'.\n3. Open the Clock from your Home Screen!");
+    return;
+  }
+
   if(!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(()=>{});
+    const docElm = document.documentElement;
+    if (docElm.requestFullscreen) {
+      docElm.requestFullscreen().catch(()=>{});
+    } else if (docElm.webkitRequestFullscreen) { // Safari desktop/iPad fallback
+      docElm.webkitRequestFullscreen();
+    }
   }
 }
 
@@ -337,8 +356,10 @@ document.getElementById("fullscreen-btn").addEventListener("click", (e) => {
   goFullscreen();
 });
 
-// 2. Attempt Auto-Fullscreen after 5 seconds
-setTimeout(goFullscreen, 5000);
+// 2. Attempt Auto-Fullscreen after 5 seconds (Only on supported devices)
+if (!isIPhone) {
+  setTimeout(goFullscreen, 5000);
+}
 
 // =====================
 // HIDE CURSOR AFTER INACTIVITY
@@ -374,7 +395,6 @@ setInterval(() => {
 // =====================
 
 setInterval(() => {
-  // Bypasses browser cache by attaching a timestamp query parameter
   window.location.href = window.location.pathname + "?t=" + new Date().getTime();
 }, 5000);
 
