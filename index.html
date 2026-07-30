@@ -68,22 +68,30 @@
             border-radius: 20px;
             padding: 25px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.5s ease;
         }
 
         .status-header {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 700;
-            color: var(--accent-blue);
-            margin-bottom: 15px;
+            color: var(--text-muted);
+            margin-bottom: 0px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            transition: color 0.3s ease, margin-bottom 0.3s ease;
+        }
+
+        .status-header.active {
+            color: var(--accent-blue);
+            margin-bottom: 15px;
         }
 
         .status-header.home {
             color: var(--accent-green);
+            margin-bottom: 15px;
         }
 
-        /* PROGRESS BAR */
+        /* PROGRESS BAR (HIDDEN BY DEFAULT IN STANDBY) */
         .progress-wrapper {
             width: 100%;
             background-color: var(--bar-bg);
@@ -92,6 +100,7 @@
             overflow: hidden;
             position: relative;
             margin-bottom: 15px;
+            display: none; /* Hidden until shortcut runs */
         }
 
         .progress-bar {
@@ -107,9 +116,9 @@
             width: 100% !important;
         }
 
-        /* METRICS & DETAILS */
+        /* METRICS & DETAILS (HIDDEN BY DEFAULT IN STANDBY) */
         .metrics-row {
-            display: flex;
+            display: none; /* Hidden until shortcut runs */
             justify-content: space-between;
             font-size: 0.95rem;
             color: var(--text-muted);
@@ -124,7 +133,8 @@
         #last-updated {
             font-size: 0.75rem;
             color: #4f586b;
-            margin-top: 18px;
+            margin-top: 15px;
+            display: none; /* Hidden until shortcut runs */
         }
     </style>
 </head>
@@ -137,14 +147,14 @@
     </div>
 
     <!-- LIVE COMMUTE DASHBOARD -->
-    <div class="commute-container">
-        <div id="commute-status" class="status-header">Waiting for GPS...</div>
+    <div class="commute-container" id="commute-box">
+        <div id="commute-status" class="status-header">💤 STANDBY MODE — RUN SHORTCUT TO START</div>
         
-        <div class="progress-wrapper">
+        <div class="progress-wrapper" id="progress-container">
             <div id="progress-bar" class="progress-bar"></div>
         </div>
 
-        <div class="metrics-row">
+        <div class="metrics-row" id="metrics-container">
             <div>Distance: <span id="distance-val" class="metric-value">-- km</span></div>
             <div>ETA: <span id="eta-val" class="metric-value">-- min</span></div>
         </div>
@@ -178,10 +188,10 @@
         const HOME_LAT = 19.865694;
         const HOME_LON = 75.243806;
 
-        // Dynamic trip memory (resets automatically for new trips)
+        // Dynamic trip memory
         let tripStartDistanceKm = null;
         let lastUpdateTimestamp = 0;
-        let lastKnownDistanceKm = null;
+        let isTripActive = false;
 
         /* ==========================================
            3. HAVERSINE DISTANCE MATH (IN KM)
@@ -214,17 +224,18 @@
                 tripStartDistanceKm = currentDistanceKm;
             }
             lastUpdateTimestamp = now;
-            lastKnownDistanceKm = currentDistanceKm;
+            isTripActive = true;
 
             // ARRIVED HOME CHECK (Within 150 meters / 0.15 km)
             if (currentDistanceKm <= 0.15) {
                 tripStartDistanceKm = null; // Reset for your next journey out
                 return {
-                    status: "🏡 ARRIVED HOME",
+                    status: "🏡 ARRIVED AT HOME",
                     progress: 100,
                     distance: "0.0",
-                    eta: "Now",
-                    isHome: true
+                    eta: "Arrived",
+                    isHome: true,
+                    active: true
                 };
             }
 
@@ -233,7 +244,7 @@
             let progressPercent = ((totalTrip - currentDistanceKm) / totalTrip) * 100;
             progressPercent = Math.max(5, Math.min(100, progressPercent)); // Keep visible
 
-            // Estimate ETA based on an average city/highway speed of 30 km/h (2 mins per km)
+            // Estimate ETA based on an average speed of 30 km/h (2 mins per km)
             const estimatedMinutes = Math.max(1, Math.round(currentDistanceKm * 2));
 
             return {
@@ -241,7 +252,8 @@
                 progress: progressPercent,
                 distance: currentDistanceKm.toFixed(1),
                 eta: `${estimatedMinutes} min`,
-                isHome: false
+                isHome: false,
+                active: true
             };
         }
 
@@ -275,17 +287,27 @@
                 }
             } catch (error) {
                 console.log('Waiting for next GPS update...', error);
+                
+                // If no update has been received for 15 minutes, revert back to Standby Mode
+                if (Date.now() - lastUpdateTimestamp > 15 * 60 * 1000 && isTripActive) {
+                    resetToStandby();
+                }
             }
         }
 
         /* ==========================================
-           6. UPDATE UI ELEMENTS
+           6. UPDATE UI ELEMENTS & TOGGLE VISIBILITY
            ========================================== */
         function updateDashboardUI(data) {
             const statusEl = document.getElementById('commute-status');
             const barEl = document.getElementById('progress-bar');
             const distEl = document.getElementById('distance-val');
             const etaEl = document.getElementById('eta-val');
+            
+            // Un-hide the progress bar and metrics when the shortcut runs!
+            document.getElementById('progress-container').style.display = 'block';
+            document.getElementById('metrics-container').style.display = 'flex';
+            document.getElementById('last-updated').style.display = 'block';
 
             statusEl.textContent = data.status;
             distEl.textContent = `${data.distance} km`;
@@ -297,9 +319,18 @@
                 statusEl.className = 'status-header home';
                 barEl.className = 'progress-bar home';
             } else {
-                statusEl.className = 'status-header';
+                statusEl.className = 'status-header active';
                 barEl.className = 'progress-bar';
             }
+        }
+
+        function resetToStandby() {
+            isTripActive = false;
+            document.getElementById('commute-status').textContent = '💤 STANDBY MODE — RUN SHORTCUT TO START';
+            document.getElementById('commute-status').className = 'status-header';
+            document.getElementById('progress-container').style.display = 'none';
+            document.getElementById('metrics-container').style.display = 'none';
+            document.getElementById('last-updated').style.display = 'none';
         }
 
         // Check GitHub for a new iPhone ping every 10 seconds
