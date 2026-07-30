@@ -185,7 +185,8 @@
 
         let tripStartDistanceKm = null;
         let lastUpdateTimestamp = 0;
-        let homeArrivalTimer = null;
+        let arrivalTimer = null; // Timer to wait 10 seconds before sleep mode
+        let isInStandby = true;
 
         /* ==========================================
            3. HAVERSINE DISTANCE MATH (IN KM)
@@ -218,9 +219,14 @@
                     progress: 100,
                     distance: "0.0",
                     eta: "Arrived",
-                    isHome: true,
-                    rawDistance: currentDistanceKm
+                    isHome: true
                 };
+            }
+
+            // Clear any pending arrival timer if we are still driving
+            if (arrivalTimer) {
+                clearTimeout(arrivalTimer);
+                arrivalTimer = null;
             }
 
             // Set new 100% start distance if first ping of the trip
@@ -240,8 +246,7 @@
                 progress: progressPercent,
                 distance: currentDistanceKm.toFixed(1),
                 eta: `${estimatedMinutes} min`,
-                isHome: false,
-                rawDistance: currentDistanceKm
+                isHome: false
             };
         }
 
@@ -265,15 +270,25 @@
                 if (gpsData.lat && gpsData.lon) {
                     const result = processCommuteData(parseFloat(gpsData.lat), parseFloat(gpsData.lon));
                     
-                    // --- STANDBY GATEKEEPER ---
-                    // If the distance is home (<= 0.15 km), do not show the tracker unless we just arrived!
+                    // --- 10-SECOND ARRIVAL DELAY LOGIC ---
                     if (result.isHome) {
-                        // If it's already sitting at home, force standby and ignore the old file
-                        resetToStandby();
+                        // Only show ARRIVED if we aren't already sitting in standby
+                        if (!isInStandby) {
+                            updateDashboardUI(result);
+                            
+                            // If timer isn't running yet, start the 10-second countdown to Sleep Mode
+                            if (!arrivalTimer) {
+                                arrivalTimer = setTimeout(() => {
+                                    resetToStandby();
+                                    arrivalTimer = null;
+                                }, 10000); // 10,000 ms = 10 seconds
+                            }
+                        }
                         return;
                     }
 
-                    // Otherwise, you are away from home! Show the live tracking dashboard:
+                    // Otherwise, we are driving! Show live tracking:
+                    isInStandby = false;
                     updateDashboardUI(result);
                     
                     lastUpdateTimestamp = Date.now();
@@ -294,7 +309,7 @@
             const distEl = document.getElementById('distance-val');
             const etaEl = document.getElementById('eta-val');
             
-            // Un-hide the tracker metrics because you are on a trip!
+            // Un-hide the tracker metrics
             document.getElementById('progress-container').style.display = 'block';
             document.getElementById('metrics-container').style.display = 'flex';
             document.getElementById('last-updated').style.display = 'block';
@@ -304,12 +319,19 @@
             etaEl.textContent = data.eta;
             barEl.style.width = `${data.progress}%`;
 
-            statusEl.className = 'status-header active';
-            barEl.className = 'progress-bar';
+            if (data.isHome) {
+                statusEl.className = 'status-header home';
+                barEl.className = 'progress-bar home';
+            } else {
+                statusEl.className = 'status-header active';
+                barEl.className = 'progress-bar';
+            }
         }
 
         function resetToStandby() {
             tripStartDistanceKm = null;
+            isInStandby = true;
+            
             document.getElementById('commute-status').textContent = '💤 STANDBY MODE — RUN SHORTCUT TO START';
             document.getElementById('commute-status').className = 'status-header';
             
