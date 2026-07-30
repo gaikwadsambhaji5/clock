@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Desk Clock</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    user-select:none;
+    -webkit-user-select:none;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    color:#fff;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+body{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.container{
+    width:100%;
+    text-align:center;
+}
+
+#clock{
+    font-size:20vw;
+    font-weight:bold;
+    line-height:1;
+    letter-spacing:2px;
+}
+
+#seconds{
+    font-size:8vw;
+    vertical-align:top;
+}
+
+#date{
+    margin-top:25px;
+    font-size:4vw;
+    color:#bbbbbb;
+    letter-spacing:1px;
+}
+
+#day{
+    margin-top:10px;
+    font-size:3.5vw;
+    color:#888;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div id="clock">
+<span id="time"></span><span id="seconds"></span>
+</div>
+
+<div id="date"></div>
+<div id="day"></div>
+
+</div>
+
+<script>
+
+const days=[
+"Sunday",
+"Monday",
+"Tuesday",
+"Wednesday",
+"Thursday",
+"Friday",
+"Saturday"
+];
+
+const months=[
+"January",
+"February",
+"March",
+"April",
+"May",
+"June",
+"July",
+"August",
+"September",
+"October",
+"November",
+"December"
+];
+
+function updateClock(){
+
+const now=new Date();
+
+let h=now.getHours();
+let m=now.getMinutes();
+let s=now.getSeconds();
+
+h=String(h).padStart(2,"0");
+m=String(m).padStart(2,"0");
+s=String(s).padStart(2,"0");
+
+document.getElementById("time").innerHTML=`${h}:${m}`;
+document.getElementById("seconds").innerHTML=`:${s}`;
+
+document.getElementById("date").innerHTML=
+`${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+
+document.getElementById("day").innerHTML=
+days[now.getDay()];
+}
+
+setInterval(updateClock,1000);
+updateClock();
+
+
+// Auto reload every 5 seconds to detect GitHub updates
+setInterval(()=>{
+    location.reload(true);
+},5000);
+
+
+// Keep Screen Awake
+let wakeLock=null;
+
+async function keepAwake(){
+    try{
+        if('wakeLock' in navigator){
+            wakeLock=await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release',()=>{
+                console.log('Wake Lock released');
+            });
+        }
+    }catch(err){
+        console.log(err);
+    }
+}
+
+document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'){
+        keepAwake();
+    }
+});
+
+keepAwake();
+
+
+// Enter Fullscreen when user taps once
+document.body.addEventListener("click",()=>{
+    if(document.documentElement.requestFullscreen){
+        document.documentElement.requestFullscreen();
+    }
+});
+
+</script>
+
+</body>
+</html>
