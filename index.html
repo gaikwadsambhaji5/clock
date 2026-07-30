@@ -1,647 +1,310 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Desk Clock</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Prevent caching so your Realme 2 Pro always fetches the latest live GPS data -->
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Realme 2 Pro Desk Clock & Commute Tracker</title>
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --text-main: #ffffff;
+            --text-muted: #8b9bb4;
+            --accent-blue: #1f8ef1;
+            --accent-green: #00f2c3;
+            --bar-bg: #1e222d;
+        }
 
-<!-- iOS Fullscreen / Web App Support -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Desk Clock">
-<meta name="mobile-web-app-capable" content="yes">
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-<style>
-/* ==========================================================================
-   1. RESET & THEME
-   ========================================================================== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            text-align: center;
+            padding: 20px;
+        }
 
-html, body {
-  width: 100%;
-  height: 100%;
-  background-color: #070708;
-  color: #ffffff;
-  overflow: hidden;
-  font-family: "Arial Black", Impact, system-ui, -apple-system, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
+        /* CLOCK SECTION */
+        .clock-container {
+            margin-bottom: 40px;
+        }
 
-body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+        #time-display {
+            font-size: 5.5rem;
+            font-weight: 800;
+            letter-spacing: -2px;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+        }
 
-body.hide-cursor {
-  cursor: none;
-}
+        #date-display {
+            font-size: 1.4rem;
+            color: var(--text-muted);
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
 
-/* ==========================================================================
-   2. TOP-LEFT DATE & DAY
-   ========================================================================== */
-#date-day {
-  position: absolute;
-  top: 24px;
-  left: 24px;
-  font-size: clamp(1rem, 2vw, 1.8rem);
-  font-weight: 700;
-  color: #8E8E93;
-  letter-spacing: 0.05em;
-  user-select: none;
-  z-index: 10;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Arial, sans-serif;
-}
+        /* COMMUTE TRACKER SECTION */
+        .commute-container {
+            width: 90%;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
 
-/* ==========================================================================
-   3. MAIN CLOCK LAYOUT
-   ========================================================================== */
-.container {
-  text-align: center;
-  width: 96vw;
-  max-height: 96vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  transition: transform 3s ease-in-out;
-}
+        .status-header {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
 
-.clock-wrapper {
-  position: relative;
-  display: inline-block;
-  width: 100%;
-}
+        .status-header.home {
+            color: var(--accent-green);
+        }
 
-#time {
-  font-weight: 900;
-  line-height: 0.85;
-  letter-spacing: -0.04em;
-  font-variant-numeric: tabular-nums;
-  user-select: none;
-  white-space: nowrap;
-  width: 100%;
-  text-align: center;
-}
+        /* PROGRESS BAR */
+        .progress-wrapper {
+            width: 100%;
+            background-color: var(--bar-bg);
+            border-radius: 12px;
+            height: 24px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 15px;
+        }
 
-#seconds {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  font-size: 4vw;
-  font-weight: 700;
-  color: #8E8E93;
-  font-variant-numeric: tabular-nums;
-  user-select: none;
-  transform: translateY(85%);
-}
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-blue), #60c0ff);
+            border-radius: 12px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-/* ==========================================================================
-   4. COMMUTE PROGRESS BAR & ETA TRACKER
-   ========================================================================== */
-.tracker-wrapper {
-  position: absolute;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80vw;
-  max-width: 650px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  z-index: 10;
-  font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
-  user-select: none;
-}
+        .progress-bar.home {
+            background: linear-gradient(90deg, #00bb96, var(--accent-green));
+            width: 100% !important;
+        }
 
-.tracker-status {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  font-size: clamp(0.75rem, 1.3vw, 1.1rem);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: #8E8E93;
-}
+        /* METRICS & DETAILS */
+        .metrics-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
 
-#status-text {
-  color: #0A84FF;
-}
+        .metric-value {
+            color: var(--text-main);
+            font-weight: 700;
+        }
 
-#eta-text {
-  color: #ffffff;
-}
-
-.progress-container {
-  width: 100%;
-  height: 18px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
-}
-
-#progress-bar {
-  height: 100%;
-  width: 0%;
-  background: #30D158; /* Starts green at office */
-  border-radius: 10px;
-  transition: width 1s ease-in-out, background-color 0.8s ease;
-  box-shadow: 0 0 12px rgba(48, 209, 88, 0.4);
-}
-
-/* ==========================================================================
-   5. CONTROLS & SETTINGS MODAL
-   ========================================================================== */
-.controls {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  display: flex;
-  gap: 12px;
-  z-index: 10;
-}
-
-:fullscreen .controls,
-:-webkit-full-screen .controls {
-  display: none !important;
-}
-
-.icon-btn {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 50%;
-  color: #8E8E93;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  user-select: none;
-}
-
-.icon-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-  transform: scale(1.05);
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 20;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-}
-
-.modal-overlay.active {
-  opacity: 1;
-  pointer-events: all;
-}
-
-.modal {
-  background: #151516;
-  border: 1px solid #2C2C2E;
-  padding: 30px;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 350px;
-  text-align: left;
-  font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-}
-
-.modal h2 {
-  margin-bottom: 20px;
-  font-size: 1.4rem;
-  border-bottom: 1px solid #2C2C2E;
-  padding-bottom: 12px;
-  color: #fff;
-}
-
-.setting-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  font-size: 1.05rem;
-  color: #D1D1D6;
-}
-
-.setting-row input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  accent-color: #0A84FF;
-}
-
-.close-btn {
-  width: 100%;
-  padding: 14px;
-  background: #fff;
-  color: #000;
-  border: none;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s;
-  margin-top: 10px;
-}
-
-.close-btn:hover {
-  opacity: 0.85;
-}
-</style>
+        #last-updated {
+            font-size: 0.75rem;
+            color: #4f586b;
+            margin-top: 18px;
+        }
+    </style>
 </head>
-
 <body>
 
-<!-- Top Left Date & Day -->
-<div id="date-day"></div>
-
-<!-- Top Right Button Controls -->
-<div class="controls">
-  <button class="icon-btn" id="fullscreen-btn" title="Fullscreen">⛶</button>
-  <button class="icon-btn" id="settings-btn" title="Settings">⚙</button>
-</div>
-
-<!-- Settings Modal -->
-<div class="modal-overlay" id="settings-modal">
-  <div class="modal">
-    <h2>Clock Settings</h2>
-    
-    <div class="setting-row">
-      <label for="toggle-12hr">12-Hour Time (AM/PM)</label>
-      <input type="checkbox" id="toggle-12hr">
-    </div>
-    
-    <div class="setting-row">
-      <label for="toggle-seconds">Show Seconds</label>
-      <input type="checkbox" id="toggle-seconds" checked>
+    <!-- DIGITAL CLOCK -->
+    <div class="clock-container">
+        <div id="time-display">00:00:00</div>
+        <div id="date-display">Loading Date...</div>
     </div>
 
-    <div class="setting-row">
-      <label for="toggle-oled">OLED Burn-in Protection</label>
-      <input type="checkbox" id="toggle-oled" checked>
-    </div>
-
-    <button class="close-btn" id="close-settings">Save & Close</button>
-  </div>
-</div>
-
-<!-- Center Clock -->
-<div class="container">
-  <div class="clock-wrapper">
-    <div id="time"></div>
-    <div id="seconds"></div>
-  </div>
-</div>
-
-<!-- Bottom Commute Progress Bar & ETA Tracker -->
-<div class="tracker-wrapper">
-  <div class="tracker-status">
-    <span id="status-text">📍 CHECKING LOCATION...</span>
-    <span id="eta-text">-- MINS AWAY</span>
-  </div>
-  <div class="progress-container">
-    <div id="progress-bar"></div>
-  </div>
-</div>
-
-<script>
-// ==========================================================================
-// 1. SETTINGS MANAGEMENT
-// ==========================================================================
-const settingsBtn = document.getElementById("settings-btn");
-const settingsModal = document.getElementById("settings-modal");
-const closeSettingsBtn = document.getElementById("close-settings");
-
-const toggle12Hr = document.getElementById("toggle-12hr");
-const toggleSeconds = document.getElementById("toggle-seconds");
-const toggleOled = document.getElementById("toggle-oled");
-
-let settings = {
-  is12Hour: localStorage.getItem("is12Hour") === "true",
-  showSeconds: localStorage.getItem("showSeconds") !== "false",
-  oledProtection: localStorage.getItem("oledProtection") !== "false"
-};
-
-toggle12Hr.checked = settings.is12Hour;
-toggleSeconds.checked = settings.showSeconds;
-toggleOled.checked = settings.oledProtection;
-
-settingsBtn.addEventListener("click", (e) => {
-  e.stopPropagation();
-  settingsModal.classList.add("active");
-});
-
-closeSettingsBtn.addEventListener("click", (e) => {
-  e.stopPropagation();
-  settings.is12Hour = toggle12Hr.checked;
-  settings.showSeconds = toggleSeconds.checked;
-  settings.oledProtection = toggleOled.checked;
-
-  localStorage.setItem("is12Hour", settings.is12Hour);
-  localStorage.setItem("showSeconds", settings.showSeconds);
-  localStorage.setItem("oledProtection", settings.oledProtection);
-
-  settingsModal.classList.remove("active");
-  updateClock();
-});
-
-// ==========================================================================
-// 2. STABLE DYNAMIC FONT SCALING
-// ==========================================================================
-function scaleFontSize() {
-  const timeEl = document.getElementById("time");
-  const charCount = timeEl.innerText.length || 5;
-  const widthBasedSize = (94 / (charCount * 0.52));
-  const heightBasedSize = 75;
-  const finalSize = Math.min(widthBasedSize, heightBasedSize);
-  timeEl.style.fontSize = `${finalSize}vw`;
-}
-
-// ==========================================================================
-// 3. CLOCK LOGIC
-// ==========================================================================
-const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-function updateClock() {
-  const now = new Date();
-  let hNum = now.getHours();
-  let ampm = "";
-
-  if (settings.is12Hour) {
-    ampm = hNum >= 12 ? " PM" : " AM";
-    hNum = hNum % 12 || 12;
-  }
-
-  let h = String(hNum).padStart(2, "0");
-  let m = String(now.getMinutes()).padStart(2, "0");
-  let s = String(now.getSeconds()).padStart(2, "0");
-
-  let ampmHTML = ampm ? `<span style="font-size:0.3em; margin-left:0.1em; vertical-align:top;">${ampm}</span>` : "";
-
-  document.getElementById("time").innerHTML = `${h}:${m}${ampmHTML}`;
-
-  const secondsEl = document.getElementById("seconds");
-  if (settings.showSeconds) {
-    secondsEl.style.display = "block";
-    secondsEl.textContent = `:${s}`;
-  } else {
-    secondsEl.style.display = "none";
-  }
-
-  document.getElementById("date-day").textContent =
-    `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()} | ${days[now.getDay()]}`;
-
-  scaleFontSize();
-}
-
-window.addEventListener("resize", scaleFontSize);
-updateClock();
-setInterval(updateClock, 1000);
-
-// ==========================================================================
-// 4. GITHUB PAGES GPS COMMUTE TRACKER
-// ==========================================================================
-
-// -> SET YOUR REALME 2 PRO (HOME) COORDINATES HERE <-
-const HOME_LAT = 19.865694;
-const HOME_LON = 75.243806;
-
-// -> SET YOUR TOTAL COMMUTE DISTANCE IN KM HERE <-
-const TOTAL_COMMUTE_KM = 6.7;
-
-// Reads directly from your GitHub Pages repository!
-const LOCATION_API_URL = "https://gaikwadsambhaji5.github.io/clock/location.json";
-
-let previousDistKm = null;
-let previousTimestamp = null;
-let averageSpeedKmh = 25; // Defaults to 25 km/h commute speed
-
-// Haversine formula (Earth straight-line distance in km)
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a = 
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-async function updateCommuteProgress() {
-  const statusText = document.getElementById("status-text");
-  const etaText = document.getElementById("eta-text");
-  const progressBar = document.getElementById("progress-bar");
-
-  try {
-    // We add cache: "no-store" and a timestamp query so GitHub Pages never serves a stale cached JSON
-    const response = await fetch(LOCATION_API_URL + "?t=" + new Date().getTime(), {
-      cache: "no-store",
-      headers: {
-        "Pragma": "no-cache",
-        "Cache-Control": "no-cache"
-      }
-    });
-    
-    if (!response.ok) return;
-    const data = await response.json();
-
-    if (data && data.lat && data.lon) {
-      const currentTimestamp = Date.now();
-      const distKm = calculateDistance(HOME_LAT, HOME_LON, parseFloat(data.lat), parseFloat(data.lon));
-
-      // Calculate commute speed dynamically
-      if (previousDistKm !== null && previousTimestamp !== null) {
-        const timeDiffHours = (currentTimestamp - previousTimestamp) / (1000 * 60 * 60);
-        const distClosedKm = previousDistKm - distKm;
+    <!-- LIVE COMMUTE DASHBOARD -->
+    <div class="commute-container">
+        <div id="commute-status" class="status-header">Waiting for GPS...</div>
         
-        if (timeDiffHours > 0 && distClosedKm > 0) {
-          const currentSpeed = distClosedKm / timeDiffHours;
-          averageSpeedKmh = (averageSpeedKmh * 0.7) + (currentSpeed * 0.3);
+        <div class="progress-wrapper">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
+
+        <div class="metrics-row">
+            <div>Distance: <span id="distance-val" class="metric-value">-- km</span></div>
+            <div>ETA: <span id="eta-val" class="metric-value">-- min</span></div>
+        </div>
+
+        <div id="last-updated">Waiting for iPhone ping...</div>
+    </div>
+
+    <script>
+        /* ==========================================
+           1. CLOCK & DATE CONFIGURATION
+           ========================================== */
+        function updateClock() {
+            const now = new Date();
+            
+            // Format Time (HH:MM:SS)
+            const timeOptions = { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            document.getElementById('time-display').textContent = now.toLocaleTimeString([], timeOptions);
+            
+            // Format Date (DAY, MONTH DATE)
+            const dateOptions = { weekday: 'short', month: 'short', day: 'numeric' };
+            document.getElementById('date-display').textContent = now.toLocaleDateString([], dateOptions);
         }
-      }
-      previousDistKm = distKm;
-      previousTimestamp = currentTimestamp;
+        
+        setInterval(updateClock, 1000);
+        updateClock();
 
-      const etaMinutes = Math.max(1, Math.round((distKm / averageSpeedKmh) * 60));
-      let percentRemaining = (distKm / TOTAL_COMMUTE_KM) * 100;
-      percentRemaining = Math.max(0, Math.min(100, percentRemaining));
+        /* ==========================================
+           2. HOME COORDINATES & SMART TRACKING
+           ========================================== */
+        // -> EXACT HOME COORDINATES (19°51'56.5"N, 75°14'37.7"E) <-
+        const HOME_LAT = 19.865694;
+        const HOME_LON = 75.243806;
 
-      // Display logic
-      if (distKm < 0.15) {
-        // ARRIVED HOME (< 150 meters)
-        statusText.textContent = "🏡 ARRIVED HOME";
-        statusText.style.color = "#30D158";
-        etaText.textContent = "NOW";
-        progressBar.style.width = "100%";
-        progressBar.style.backgroundColor = "#30D158";
-        progressBar.style.boxShadow = "0 0 16px rgba(48, 209, 88, 0.8)";
-      } else if (percentRemaining >= 95) {
-        // AT THE OFFICE
-        statusText.textContent = `🏢 AT OFFICE (${distKm.toFixed(1)} KM)`;
-        statusText.style.color = "#30D158";
-        etaText.textContent = `~${etaMinutes} MINS AWAY`;
-        progressBar.style.width = "100%";
-        progressBar.style.backgroundColor = "#30D158";
-      } else {
-        // COMMUTING HOME
-        statusText.textContent = `🚗 ON THE WAY HOME (${distKm.toFixed(1)} KM)`;
-        statusText.style.color = "#0A84FF";
-        etaText.textContent = `EST. HOME IN ~${etaMinutes} MINS`;
-        progressBar.style.width = `${percentRemaining}%`;
-        progressBar.style.backgroundColor = "#0A84FF";
-        progressBar.style.boxShadow = "0 0 12px rgba(10, 132, 255, 0.5)";
-      }
-    }
-  } catch (e) {
-    // Silently continue if offline
-  }
-}
+        // Dynamic trip memory (resets automatically for new trips)
+        let tripStartDistanceKm = null;
+        let lastUpdateTimestamp = 0;
+        let lastKnownDistanceKm = null;
 
-// Fetch location & update progress bar every 10 seconds
-updateCommuteProgress();
-setInterval(updateCommuteProgress, 10000);
+        /* ==========================================
+           3. HAVERSINE DISTANCE MATH (IN KM)
+           ========================================== */
+        function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth's radius in kilometers
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
 
-// ==========================================================================
-// 5. KEEP SCREEN AWAKE
-// ==========================================================================
-let wakeLock = null;
-async function keepAwake() {
-  try {
-    if ("wakeLock" in navigator) {
-      wakeLock = await navigator.wakeLock.request("screen");
-    }
-  } catch (e) {}
-}
-keepAwake();
+        /* ==========================================
+           4. SMART TRIP LOGIC (ANYWHERE -> HOME)
+           ========================================== */
+        function processCommuteData(currentLat, currentLon) {
+            const currentDistanceKm = calculateHaversineDistance(
+                currentLat, currentLon,
+                HOME_LAT, HOME_LON
+            );
 
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") keepAwake();
-});
+            const now = Date.now();
 
-// ==========================================================================
-// 6. FULLSCREEN SUPPORT
-// ==========================================================================
-const isIPhone = /iPhone/i.test(navigator.userAgent);
+            // Check if this is a brand new trip (more than 15 mins since last update OR first ping)
+            if (tripStartDistanceKm === null || (now - lastUpdateTimestamp) > 15 * 60 * 1000) {
+                tripStartDistanceKm = currentDistanceKm;
+            }
+            lastUpdateTimestamp = now;
+            lastKnownDistanceKm = currentDistanceKm;
 
-function goFullscreen() {
-  if (isIPhone && !window.navigator.standalone) {
-    alert("To use Fullscreen on iPhone:\n\n1. Tap the Share button (square with arrow) at the bottom of Safari.\n2. Select 'Add to Home Screen'.\n3. Open the Clock from your Home Screen!");
-    return;
-  }
+            // ARRIVED HOME CHECK (Within 150 meters / 0.15 km)
+            if (currentDistanceKm <= 0.15) {
+                tripStartDistanceKm = null; // Reset for your next journey out
+                return {
+                    status: "🏡 ARRIVED HOME",
+                    progress: 100,
+                    distance: "0.0",
+                    eta: "Now",
+                    isHome: true
+                };
+            }
 
-  if (!document.fullscreenElement) {
-    const docElm = document.documentElement;
-    if (docElm.requestFullscreen) {
-      docElm.requestFullscreen().catch(() => {});
-    } else if (docElm.webkitRequestFullscreen) {
-      docElm.webkitRequestFullscreen();
-    }
-  }
-}
+            // DYNAMIC DRIVING CHECK (Calculates % based on where you started)
+            const totalTrip = Math.max(tripStartDistanceKm, currentDistanceKm);
+            let progressPercent = ((totalTrip - currentDistanceKm) / totalTrip) * 100;
+            progressPercent = Math.max(5, Math.min(100, progressPercent)); // Keep visible
 
-document.getElementById("fullscreen-btn").addEventListener("click", (e) => {
-  e.stopPropagation();
-  goFullscreen();
-});
+            // Estimate ETA based on an average city/highway speed of 30 km/h (2 mins per km)
+            const estimatedMinutes = Math.max(1, Math.round(currentDistanceKm * 2));
 
-if (!isIPhone) {
-  setTimeout(goFullscreen, 5000);
-}
+            return {
+                status: `🚗 DRIVING HOME (${currentDistanceKm.toFixed(1)} KM LEFT)`,
+                progress: progressPercent,
+                distance: currentDistanceKm.toFixed(1),
+                eta: `${estimatedMinutes} min`,
+                isHome: false
+            };
+        }
 
-// ==========================================================================
-// 7. AUTO-HIDE CURSOR
-// ==========================================================================
-let cursorTimer;
-document.addEventListener("mousemove", () => {
-  document.body.classList.remove("hide-cursor");
-  clearTimeout(cursorTimer);
-  cursorTimer = setTimeout(() => {
-    if (!settingsModal.classList.contains("active")) {
-      document.body.classList.add("hide-cursor");
-    }
-  }, 3000);
-});
+        /* ==========================================
+           5. FETCH LIVE DATA FROM GITHUB API
+           ========================================== */
+        async function fetchLiveGPS() {
+            try {
+                // Direct GitHub API URL to bypass cache and third-party delays
+                const response = await fetch('https://api.github.com/repos/gaikwadsambhaji5/clock/contents/location.json', {
+                    headers: {
+                        'Accept': 'application/vnd.github.v3+json'
+                    },
+                    cache: 'no-store'
+                });
 
-// ==========================================================================
-// 8. OLED BURN-IN PROTECTION
-// ==========================================================================
-setInterval(() => {
-  if (settings.oledProtection) {
-    const x = Math.floor(Math.random() * 21) - 10;
-    const y = Math.floor(Math.random() * 21) - 10;
-    document.querySelector(".container").style.transform = `translate(${x}px, ${y}px)`;
-  } else {
-    document.querySelector(".container").style.transform = "translate(0px, 0px)";
-  }
-}, 60000);
+                if (!response.ok) throw new Error('Network error');
 
-// ==========================================================================
-// 9. BACKGROUND GITHUB UPDATE CHECKER
-// ==========================================================================
-const FILE_URL = "https://gaikwadsambhaji5.github.io/clock/index.html";
-let lastContentHash = "";
+                const data = await response.json();
+                
+                // Decode GitHub's Base64 content payload
+                const decodedText = atob(data.content);
+                const gpsData = JSON.parse(decodedText);
 
-function hashCode(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  return hash.toString();
-}
+                if (gpsData.lat && gpsData.lon) {
+                    const result = processCommuteData(parseFloat(gpsData.lat), parseFloat(gpsData.lon));
+                    updateDashboardUI(result);
+                    
+                    const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    document.getElementById('last-updated').textContent = `Last GPS Sync: Today at ${timeString}`;
+                }
+            } catch (error) {
+                console.log('Waiting for next GPS update...', error);
+            }
+        }
 
-async function checkUpdate() {
-  try {
-    const fetchUrl = FILE_URL + "?t=" + new Date().getTime();
-    const response = await fetch(fetchUrl, {
-      method: "GET",
-      cache: "no-store"
-    });
+        /* ==========================================
+           6. UPDATE UI ELEMENTS
+           ========================================== */
+        function updateDashboardUI(data) {
+            const statusEl = document.getElementById('commute-status');
+            const barEl = document.getElementById('progress-bar');
+            const distEl = document.getElementById('distance-val');
+            const etaEl = document.getElementById('eta-val');
 
-    if (!response.ok) return;
+            statusEl.textContent = data.status;
+            distEl.textContent = `${data.distance} km`;
+            etaEl.textContent = data.eta;
 
-    const text = await response.text();
-    const currentHash = hashCode(text);
+            barEl.style.width = `${data.progress}%`;
 
-    if (!lastContentHash) {
-      lastContentHash = currentHash;
-    } else if (currentHash !== lastContentHash) {
-      window.location.href = window.location.pathname + "?updated=" + new Date().getTime();
-    }
-  } catch (e) {}
-}
+            if (data.isHome) {
+                statusEl.className = 'status-header home';
+                barEl.className = 'progress-bar home';
+            } else {
+                statusEl.className = 'status-header';
+                barEl.className = 'progress-bar';
+            }
+        }
 
-checkUpdate();
-setInterval(checkUpdate, 5000);
-</script>
-
+        // Check GitHub for a new iPhone ping every 10 seconds
+        setInterval(fetchLiveGPS, 10000);
+        fetchLiveGPS();
+    </script>
 </body>
 </html>
