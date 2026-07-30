@@ -320,7 +320,7 @@ body.hide-cursor {
 <!-- Bottom Commute Progress Bar & ETA Tracker -->
 <div class="tracker-wrapper">
   <div class="tracker-status">
-    <span id="status-text">📍 WAITING FOR GPS...</span>
+    <span id="status-text">📍 CHECKING LOCATION...</span>
     <span id="eta-text">-- MINS AWAY</span>
   </div>
   <div class="progress-container">
@@ -424,24 +424,24 @@ updateClock();
 setInterval(updateClock, 1000);
 
 // ==========================================================================
-// 4. COMMUTE PROGRESS BAR & ETA CALCULATOR
+// 4. GITHUB PAGES GPS COMMUTE TRACKER
 // ==========================================================================
 
-// -> SETUP YOUR HOME (REALME) & OFFICE COORDINATES HERE <-
-const HOME_LAT = 18.5204;   // Example: Your House Latitude
-const HOME_LON = 73.8567;   // Example: Your House Longitude
+// -> SET YOUR REALME 2 PRO (HOME) COORDINATES HERE <-
+const HOME_LAT = 18.5204;
+const HOME_LON = 73.8567;
 
-const TOTAL_COMMUTE_KM = 15.0; // Example: Total distance from Office to Home in kilometers
+// -> SET YOUR TOTAL COMMUTE DISTANCE IN KM HERE <-
+const TOTAL_COMMUTE_KM = 15.0;
 
-// -> REPLACE WITH YOUR FREE DATABASE URL (Firebase / KVDB) <-
-const LOCATION_API_URL = "https://YOUR_DATABASE_URL/location.json";
+// Reads directly from your GitHub Pages repository!
+const LOCATION_API_URL = "https://gaikwadsambhaji5.github.io/clock/location.json";
 
-// Keep track of speed for ETA
 let previousDistKm = null;
 let previousTimestamp = null;
-let averageSpeedKmh = 25; // Default assumption: 25 km/h commute speed
+let averageSpeedKmh = 25; // Defaults to 25 km/h commute speed
 
-// Haversine formula (Straight-line Earth distance in KM)
+// Haversine formula (Earth straight-line distance in km)
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -460,8 +460,13 @@ async function updateCommuteProgress() {
   const progressBar = document.getElementById("progress-bar");
 
   try {
+    // We add cache: "no-store" and a timestamp query so GitHub Pages never serves a stale cached JSON
     const response = await fetch(LOCATION_API_URL + "?t=" + new Date().getTime(), {
-      cache: "no-store"
+      cache: "no-store",
+      headers: {
+        "Pragma": "no-cache",
+        "Cache-Control": "no-cache"
+      }
     });
     
     if (!response.ok) return;
@@ -471,26 +476,22 @@ async function updateCommuteProgress() {
       const currentTimestamp = Date.now();
       const distKm = calculateDistance(HOME_LAT, HOME_LON, parseFloat(data.lat), parseFloat(data.lon));
 
-      // Calculate travel speed between 10-second checks
+      // Calculate commute speed dynamically
       if (previousDistKm !== null && previousTimestamp !== null) {
         const timeDiffHours = (currentTimestamp - previousTimestamp) / (1000 * 60 * 60);
-        const distClosedKm = previousDistKm - distKm; // Positive if moving closer
+        const distClosedKm = previousDistKm - distKm;
         
         if (timeDiffHours > 0 && distClosedKm > 0) {
           const currentSpeed = distClosedKm / timeDiffHours;
-          // Smooth the speed average
           averageSpeedKmh = (averageSpeedKmh * 0.7) + (currentSpeed * 0.3);
         }
       }
       previousDistKm = distKm;
       previousTimestamp = currentTimestamp;
 
-      // Calculate ETA in minutes based on average commute speed
       const etaMinutes = Math.max(1, Math.round((distKm / averageSpeedKmh) * 60));
-
-      // Calculate progress percentage (0% at home, 100% at office)
       let percentRemaining = (distKm / TOTAL_COMMUTE_KM) * 100;
-      percentRemaining = Math.max(0, Math.min(100, percentRemaining)); // Clamp between 0-100%
+      percentRemaining = Math.max(0, Math.min(100, percentRemaining));
 
       // Display logic
       if (distKm < 0.15) {
@@ -514,12 +515,12 @@ async function updateCommuteProgress() {
         statusText.style.color = "#0A84FF";
         etaText.textContent = `EST. HOME IN ~${etaMinutes} MINS`;
         progressBar.style.width = `${percentRemaining}%`;
-        progressBar.style.backgroundColor = "#0A84FF"; // Blue while driving
+        progressBar.style.backgroundColor = "#0A84FF";
         progressBar.style.boxShadow = "0 0 12px rgba(10, 132, 255, 0.5)";
       }
     }
   } catch (e) {
-    // Fails silently if offline
+    // Silently continue if offline
   }
 }
 
