@@ -370,54 +370,13 @@ setInterval(() => {
 }, 60000);
 
 // =====================
-// AUTO UPDATE CHECK (Content-Based Check)
+// FORCE REFRESH EVERY 5 SECONDS
 // =====================
 
-const FILE_URL = "https://gaikwadsambhaji5.github.io/clock/index.html";
-let lastContentHash = "";
-
-// Simple hash generator to compare file contents
-function hashCode(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  return hash.toString();
-}
-
-async function checkUpdate(){
-  try{
-    // Append current timestamp so GitHub/browser cache is completely bypassed
-    const fetchUrl = FILE_URL + "?t=" + new Date().getTime();
-    
-    // Fetch actual text content instead of HEAD headers
-    const response = await fetch(fetchUrl, {
-      method: "GET",
-      cache: "no-store"
-    });
-
-    if (!response.ok) return;
-
-    const text = await response.text();
-    const currentHash = hashCode(text);
-
-    if(!lastContentHash){
-      // Save the hash of the current page on first load
-      lastContentHash = currentHash;
-    }else if(currentHash !== lastContentHash){
-      // If the file content has changed, reload immediately
-      window.location.href = window.location.pathname + "?updated=" + new Date().getTime();
-    }
-  }catch(e){}
-}
-
-// First check
-checkUpdate();
-
-// Check every 5 seconds (5000 ms)
-setInterval(checkUpdate, 5000);
+setInterval(() => {
+  // Bypasses browser cache by attaching a timestamp query parameter
+  window.location.href = window.location.pathname + "?t=" + new Date().getTime();
+}, 5000);
 
 </script>
 
