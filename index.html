@@ -90,7 +90,7 @@
             margin-bottom: 15px;
         }
 
-        /* PROGRESS BAR (HIDDEN BY DEFAULT IN STANDBY) */
+        /* PROGRESS BAR (HIDDEN BY DEFAULT) */
         .progress-wrapper {
             width: 100%;
             background-color: var(--bar-bg);
@@ -99,7 +99,7 @@
             overflow: hidden;
             position: relative;
             margin-bottom: 15px;
-            display: none; /* Invisible in standby */
+            display: none;
         }
 
         .progress-bar {
@@ -115,9 +115,9 @@
             width: 100% !important;
         }
 
-        /* METRICS & DETAILS (HIDDEN BY DEFAULT IN STANDBY) */
+        /* METRICS & DETAILS (HIDDEN BY DEFAULT) */
         .metrics-row {
-            display: none; /* Invisible in standby */
+            display: none;
             justify-content: space-between;
             font-size: 0.95rem;
             color: var(--text-muted);
@@ -133,7 +133,7 @@
             font-size: 0.75rem;
             color: #4f586b;
             margin-top: 15px;
-            display: none; /* Invisible in standby */
+            display: none;
         }
     </style>
 </head>
@@ -185,6 +185,7 @@
 
         let tripStartDistanceKm = null;
         let lastUpdateTimestamp = 0;
+        let homeArrivalTimer = null;
 
         /* ==========================================
            3. HAVERSINE DISTANCE MATH (IN KM)
@@ -210,22 +211,21 @@
                 HOME_LAT, HOME_LON
             );
 
-            const now = Date.now();
-
-            // Set new 100% start distance if first ping of the trip
-            if (tripStartDistanceKm === null) {
-                tripStartDistanceKm = currentDistanceKm;
-            }
-
-            // ARRIVED HOME CHECK
+            // ARRIVED HOME CHECK (Within 150 meters / 0.15 km)
             if (currentDistanceKm <= 0.15) {
                 return {
                     status: "🏡 ARRIVED AT HOME",
                     progress: 100,
                     distance: "0.0",
                     eta: "Arrived",
-                    isHome: true
+                    isHome: true,
+                    rawDistance: currentDistanceKm
                 };
+            }
+
+            // Set new 100% start distance if first ping of the trip
+            if (tripStartDistanceKm === null || tripStartDistanceKm <= 0.15) {
+                tripStartDistanceKm = currentDistanceKm;
             }
 
             // DYNAMIC DRIVING CHECK
@@ -240,12 +240,13 @@
                 progress: progressPercent,
                 distance: currentDistanceKm.toFixed(1),
                 eta: `${estimatedMinutes} min`,
-                isHome: false
+                isHome: false,
+                rawDistance: currentDistanceKm
             };
         }
 
         /* ==========================================
-           5. FETCH LIVE DATA & EXPIRY CHECK
+           5. FETCH LIVE DATA FROM GITHUB API
            ========================================== */
         async function fetchLiveGPS() {
             try {
@@ -258,27 +259,21 @@
 
                 const data = await response.json();
                 
-                // --- CRITICAL STANDBY FIX: CHECK FILE TIMESTAMP ---
-                // If the GitHub file wasn't modified in the last 15 minutes, stay in STANDBY!
-                const fileAgeMinutes = (Date.now() - new Date(data.sha ? Date.now() : 0)) / (1000 * 60);
-                
-                // GitHub returns a commit URL we can use, but simpler: check if we've seen this update recently
-                // Here we inspect the timestamp of the commit or rely on our fresh update loop
                 const decodedText = atob(data.content);
                 const gpsData = JSON.parse(decodedText);
 
-                // Check if the file has a timestamp sent from your iPhone, OR check if file was just updated
-                // If you haven't run the shortcut recently, force standby:
-                const timeDiff = (Date.now() - (gpsData.time || 0));
-                
-                // If gpsData has no 'time' tag OR it's older than 15 mins (900,000 ms), show Standby
-                if (gpsData.time && timeDiff > 15 * 60 * 1000) {
-                    resetToStandby();
-                    return;
-                }
-
                 if (gpsData.lat && gpsData.lon) {
                     const result = processCommuteData(parseFloat(gpsData.lat), parseFloat(gpsData.lon));
+                    
+                    // --- STANDBY GATEKEEPER ---
+                    // If the distance is home (<= 0.15 km), do not show the tracker unless we just arrived!
+                    if (result.isHome) {
+                        // If it's already sitting at home, force standby and ignore the old file
+                        resetToStandby();
+                        return;
+                    }
+
+                    // Otherwise, you are away from home! Show the live tracking dashboard:
                     updateDashboardUI(result);
                     
                     lastUpdateTimestamp = Date.now();
@@ -287,10 +282,6 @@
                 }
             } catch (error) {
                 console.log('Waiting for next GPS update...');
-                // If 15 minutes pass without any successful update, auto-reset to Standby
-                if (Date.now() - lastUpdateTimestamp > 15 * 60 * 1000) {
-                    resetToStandby();
-                }
             }
         }
 
@@ -303,7 +294,7 @@
             const distEl = document.getElementById('distance-val');
             const etaEl = document.getElementById('eta-val');
             
-            // UN-HIDE the tracker metrics when active
+            // Un-hide the tracker metrics because you are on a trip!
             document.getElementById('progress-container').style.display = 'block';
             document.getElementById('metrics-container').style.display = 'flex';
             document.getElementById('last-updated').style.display = 'block';
@@ -313,13 +304,8 @@
             etaEl.textContent = data.eta;
             barEl.style.width = `${data.progress}%`;
 
-            if (data.isHome) {
-                statusEl.className = 'status-header home';
-                barEl.className = 'progress-bar home';
-            } else {
-                statusEl.className = 'status-header active';
-                barEl.className = 'progress-bar';
-            }
+            statusEl.className = 'status-header active';
+            barEl.className = 'progress-bar';
         }
 
         function resetToStandby() {
@@ -327,16 +313,16 @@
             document.getElementById('commute-status').textContent = '💤 STANDBY MODE — RUN SHORTCUT TO START';
             document.getElementById('commute-status').className = 'status-header';
             
-            // HIDE everything except the Standby text
+            // HIDE everything except Standby Mode text
             document.getElementById('progress-container').style.display = 'none';
             document.getElementById('metrics-container').style.display = 'none';
             document.getElementById('last-updated').style.display = 'none';
         }
 
-        // 1. Start immediately in Standby Mode on load!
+        // 1. Start in Standby Mode immediately
         resetToStandby();
 
-        // 2. Check GitHub every 10 seconds for new shortcut runs
+        // 2. Check GitHub every 10 seconds
         setInterval(fetchLiveGPS, 10000);
     </script>
 </body>
