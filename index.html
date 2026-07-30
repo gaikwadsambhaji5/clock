@@ -239,32 +239,40 @@
             };
         }
 
-        /* 5. FETCH LIVE DATA (DIRECT RAW URL - NO 403 RATE LIMITS!) */
+        /* 5. FETCH LIVE DATA (AUTO-REFRESH + CACHE BUSTER) */
         async function fetchLiveGPS() {
             const debugEl = document.getElementById('debug-log');
             try {
-                // Fetch directly from Raw GitHub URL to bypass GitHub API 403 blocks!
-                const url = 'https://raw.githubusercontent.com/gaikwadsambhaji5/clock/main/location.json?nocache=' + Date.now();
+                // Add an exact millisecond timestamp so the URL is completely unique every 10 seconds
+                const url = 'https://raw.githubusercontent.com/gaikwadsambhaji5/clock/main/location.json?cb=' + Date.now();
+                
+                // Explicit headers to force mobile browsers NOT to cache the file
                 const response = await fetch(url, {
-                    cache: 'no-store'
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
                 });
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status} (File not found yet)`);
                 }
 
-                // Since raw URL gives the plain JSON directly, we don't need atob() decoding!
                 const gpsData = await response.json();
 
                 if (gpsData.lat && gpsData.lon) {
                     const result = processCommuteData(parseFloat(gpsData.lat), parseFloat(gpsData.lon));
                     
-                    // Wake up UI when valid coordinates are read
+                    // Automatically wake up UI when fresh coordinates are read
                     isInStandby = false;
                     updateDashboardUI(result);
                     
+                    const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                     debugEl.style.color = "#00f2c3";
-                    debugEl.textContent = `Sync OK | Lat: ${gpsData.lat}, Lon: ${gpsData.lon} | Dist: ${result.rawDist.toFixed(2)} km`;
+                    debugEl.textContent = `Sync OK [${timeString}] | Dist: ${result.rawDist.toFixed(2)} km`;
 
                     // 10-Second Arrival Delay
                     if (result.isHome && !arrivalTimer) {
@@ -278,7 +286,7 @@
                 }
             } catch (error) {
                 debugEl.style.color = "#ff5555";
-                debugEl.textContent = `Error: ${error.message}`;
+                debugEl.textContent = `Sync Error: ${error.message}`;
             }
         }
 
@@ -325,7 +333,7 @@
         // Start in Standby Mode immediately
         resetToStandby();
 
-        // Check GitHub every 10 seconds
+        // Automatically fetch live GPS every 10 seconds (10,000 milliseconds)
         setInterval(fetchLiveGPS, 10000);
         fetchLiveGPS();
     </script>
