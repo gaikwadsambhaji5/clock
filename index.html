@@ -62,27 +62,45 @@ user-select:none;
 }
 
 /* =====================
-   SETTINGS ICON & MODAL
+   BUTTON CONTROLS
    ===================== */
-#settings-btn{
+.controls{
 position:absolute;
 top:20px;
 right:20px;
+display:flex;
+gap:15px;
+z-index:10;
+}
+
+/* Hide buttons automatically when in fullscreen mode */
+:fullscreen .controls,
+:-webkit-full-screen .controls {
+display:none !important;
+}
+
+.icon-btn{
 font-size:2rem;
 background:none;
 border:none;
 color:#444;
 cursor:pointer;
-z-index:10;
 transition:color 0.3s, transform 0.3s;
 user-select:none;
 }
 
-#settings-btn:hover{
+.icon-btn:hover{
 color:#fff;
+transform:scale(1.15);
+}
+
+#settings-btn:hover{
 transform:rotate(45deg);
 }
 
+/* =====================
+   SETTINGS MODAL
+   ===================== */
 .modal-overlay{
 position:fixed;
 top:0;
@@ -161,8 +179,11 @@ background:#333;
 
 <body>
 
-<!-- Settings Button -->
-<button id="settings-btn" title="Settings">⚙</button>
+<!-- Top Right Button Controls -->
+<div class="controls">
+  <button class="icon-btn" id="fullscreen-btn" title="Fullscreen">⛶</button>
+  <button class="icon-btn" id="settings-btn" title="Settings">⚙</button>
+</div>
 
 <!-- Settings Modal -->
 <div class="modal-overlay" id="settings-modal">
@@ -301,7 +322,7 @@ document.addEventListener("visibilitychange",()=>{
 });
 
 // =====================
-// FULLSCREEN (AUTO AFTER 5s + CLICK TO TOGGLE)
+// FULLSCREEN CONTROLS
 // =====================
 
 function goFullscreen() {
@@ -310,15 +331,14 @@ function goFullscreen() {
   }
 }
 
-// 1. Attempt Auto-Fullscreen after 5 seconds
-setTimeout(goFullscreen, 5000);
-
-// 2. Click anywhere to Fullscreen (fallback if browser blocked auto-fullscreen)
-document.body.addEventListener("click", (e)=>{
-  // Don't trigger fullscreen if clicking inside settings modal or button
-  if(e.target.closest("#settings-modal") || e.target.closest("#settings-btn")) return;
+// 1. Dedicated Fullscreen Button Click
+document.getElementById("fullscreen-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
   goFullscreen();
 });
+
+// 2. Attempt Auto-Fullscreen after 5 seconds
+setTimeout(goFullscreen, 5000);
 
 // =====================
 // HIDE CURSOR AFTER INACTIVITY
@@ -350,7 +370,7 @@ setInterval(() => {
 }, 60000);
 
 // =====================
-// AUTO UPDATE CHECK (Fixed GitHub Cache-Busting)
+// AUTO UPDATE CHECK (Every 5s with Cache-Bust)
 // =====================
 
 const FILE_URL = "https://gaikwadsambhaji5.github.io/clock/index.html";
@@ -358,7 +378,6 @@ let lastModified = "";
 
 async function checkUpdate(){
   try{
-    // Append a timestamp (?t=...) so GitHub/browser cache is bypassed when checking headers
     const fetchUrl = FILE_URL + "?t=" + new Date().getTime();
     
     const response = await fetch(fetchUrl, {
@@ -371,7 +390,6 @@ async function checkUpdate(){
     if(!lastModified){
       lastModified = modified;
     }else if(modified && modified !== lastModified){
-      // New version detected on GitHub -> Reload and bypass cache
       window.location.href = window.location.pathname + "?updated=" + new Date().getTime();
     }
   }catch(e){}
