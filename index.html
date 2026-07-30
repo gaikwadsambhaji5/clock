@@ -28,9 +28,14 @@ justify-content:center;
 align-items:center;
 }
 
+body.hide-cursor{
+cursor:none;
+}
+
 .container{
 text-align:center;
 width:100%;
+transition:transform 3s ease-in-out;
 }
 
 #time{
@@ -38,18 +43,22 @@ font-size:20vw;
 font-weight:bold;
 letter-spacing:2px;
 line-height:1;
+font-variant-numeric:tabular-nums; /* Prevents horizontal jitter as numbers tick */
+user-select:none;
 }
 
 #date{
 font-size:4vw;
 margin-top:20px;
 color:#aaa;
+user-select:none;
 }
 
 #day{
 font-size:3vw;
 margin-top:10px;
 color:#666;
+user-select:none;
 }
 
 </style>
@@ -71,7 +80,7 @@ color:#666;
 <script>
 
 // =====================
-// CLOCK
+// CLOCK (with 12/24 Hr Toggle)
 // =====================
 
 const days=[
@@ -83,16 +92,26 @@ const months=[
 "July","August","September","October","November","December"
 ];
 
+let is24Hour = true;
+
 function updateClock(){
 
 const now=new Date();
 
-let h=String(now.getHours()).padStart(2,"0");
+let hNum = now.getHours();
+let ampm = "";
+
+if (!is24Hour) {
+  ampm = hNum >= 12 ? " PM" : " AM";
+  hNum = hNum % 12 || 12; // Convert 0 to 12
+}
+
+let h=String(hNum).padStart(2,"0");
 let m=String(now.getMinutes()).padStart(2,"0");
 let s=String(now.getSeconds()).padStart(2,"0");
 
 document.getElementById("time").innerHTML=
-`${h}:${m}<span style="font-size:8vw">:${s}</span>`;
+`${h}:${m}<span style="font-size:8vw">:${s}${ampm}</span>`;
 
 document.getElementById("date").textContent=
 `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
@@ -104,6 +123,12 @@ days[now.getDay()];
 
 updateClock();
 setInterval(updateClock,1000);
+
+// Double-click to toggle 12/24 hour time format
+document.body.addEventListener("dblclick", () => {
+  is24Hour = !is24Hour;
+  updateClock();
+});
 
 // =====================
 // KEEP SCREEN AWAKE
@@ -147,7 +172,30 @@ document.documentElement.requestFullscreen().catch(()=>{});
 };
 
 // =====================
-// AUTO UPDATE CHECK
+// HIDE CURSOR AFTER INACTIVITY
+// =====================
+
+let cursorTimer;
+document.addEventListener("mousemove", () => {
+  document.body.classList.remove("hide-cursor");
+  clearTimeout(cursorTimer);
+  cursorTimer = setTimeout(() => {
+    document.body.classList.add("hide-cursor");
+  }, 3000);
+});
+
+// =====================
+// OLED BURN-IN PROTECTION (Pixel Shift)
+// =====================
+
+setInterval(() => {
+  const x = Math.floor(Math.random() * 21) - 10; // -10px to +10px
+  const y = Math.floor(Math.random() * 21) - 10;
+  document.querySelector(".container").style.transform = `translate(${x}px, ${y}px)`;
+}, 60000);
+
+// =====================
+// AUTO UPDATE CHECK (Every 5 Seconds)
 // =====================
 
 // Your GitHub Pages URL
@@ -172,7 +220,8 @@ lastModified=modified;
 
 }else if(modified && modified!==lastModified){
 
-location.reload(true);
+// Forces a reliable reload in modern browsers without getting stuck on cache
+window.location.href = window.location.pathname + "?updated=" + new Date().getTime();
 
 }
 
@@ -183,8 +232,8 @@ location.reload(true);
 // First check
 checkUpdate();
 
-// Check every 15 seconds
-setInterval(checkUpdate,15000);
+// Check every 5 seconds (5000 ms)
+setInterval(checkUpdate,5000);
 
 </script>
 
