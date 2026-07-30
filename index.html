@@ -251,7 +251,7 @@
         }
 
         /* ==========================================
-           5. FETCH LIVE DATA FROM GITHUB API
+           5. FETCH LIVE DATA & CHECK IF SHARING IS OFF
            ========================================== */
         async function fetchLiveGPS() {
             try {
@@ -263,9 +263,21 @@
                 if (!response.ok) throw new Error('Network error');
 
                 const data = await response.json();
-                
                 const decodedText = atob(data.content);
                 const gpsData = JSON.parse(decodedText);
+
+                // --- DETECT IF AUTOMATION IS TURNED OFF ---
+                // If the GPS ping timestamp is older than 15 minutes (900,000 ms),
+                // we assume you turned OFF the automation or stopped sharing!
+                const pingTime = parseInt(gpsData.time || 0);
+                const now = Date.now();
+                if (pingTime > 0 && (now - pingTime) > (15 * 60 * 1000)) {
+                    if (!isInStandby) {
+                        console.log("GPS ping older than 15 minutes. Resetting to standby...");
+                        resetToStandby();
+                    }
+                    return;
+                }
 
                 if (gpsData.lat && gpsData.lon) {
                     const result = processCommuteData(parseFloat(gpsData.lat), parseFloat(gpsData.lon));
@@ -276,7 +288,7 @@
                         if (!isInStandby) {
                             updateDashboardUI(result);
                             
-                            // If timer isn't running yet, start the 10-second countdown to Sleep Mode
+                            // Start the 10-second countdown to Sleep Mode
                             if (!arrivalTimer) {
                                 arrivalTimer = setTimeout(() => {
                                     resetToStandby();
@@ -291,7 +303,6 @@
                     isInStandby = false;
                     updateDashboardUI(result);
                     
-                    lastUpdateTimestamp = Date.now();
                     const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                     document.getElementById('last-updated').textContent = `Last GPS Sync: Today at ${timeString}`;
                 }
@@ -331,6 +342,10 @@
         function resetToStandby() {
             tripStartDistanceKm = null;
             isInStandby = true;
+            if (arrivalTimer) {
+                clearTimeout(arrivalTimer);
+                arrivalTimer = null;
+            }
             
             document.getElementById('commute-status').textContent = '💤 STANDBY MODE — RUN SHORTCUT TO START';
             document.getElementById('commute-status').className = 'status-header';
