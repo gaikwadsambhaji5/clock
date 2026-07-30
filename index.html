@@ -97,11 +97,67 @@ body.hide-cursor {
   color: #8E8E93;
   font-variant-numeric: tabular-nums;
   user-select: none;
-  transform: translateY(85%); /* Neatly tucked just below bottom-right of HH:MM */
+  transform: translateY(85%);
 }
 
 /* ==========================================================================
-   4. CONTROLS & SETTINGS MODAL
+   4. COMMUTE PROGRESS BAR & ETA TRACKER
+   ========================================================================== */
+.tracker-wrapper {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80vw;
+  max-width: 650px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+  font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  user-select: none;
+}
+
+.tracker-status {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: clamp(0.75rem, 1.3vw, 1.1rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #8E8E93;
+}
+
+#status-text {
+  color: #0A84FF;
+}
+
+#eta-text {
+  color: #ffffff;
+}
+
+.progress-container {
+  width: 100%;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+#progress-bar {
+  height: 100%;
+  width: 0%;
+  background: #30D158; /* Starts green at office */
+  border-radius: 10px;
+  transition: width 1s ease-in-out, background-color 0.8s ease;
+  box-shadow: 0 0 12px rgba(48, 209, 88, 0.4);
+}
+
+/* ==========================================================================
+   5. CONTROLS & SETTINGS MODAL
    ========================================================================== */
 .controls {
   position: absolute;
@@ -112,7 +168,6 @@ body.hide-cursor {
   z-index: 10;
 }
 
-/* Hide buttons automatically when in fullscreen mode */
 :fullscreen .controls,
 :-webkit-full-screen .controls {
   display: none !important;
@@ -254,10 +309,22 @@ body.hide-cursor {
   </div>
 </div>
 
+<!-- Center Clock -->
 <div class="container">
   <div class="clock-wrapper">
     <div id="time"></div>
     <div id="seconds"></div>
+  </div>
+</div>
+
+<!-- Bottom Commute Progress Bar & ETA Tracker -->
+<div class="tracker-wrapper">
+  <div class="tracker-status">
+    <span id="status-text">📍 WAITING FOR GPS...</span>
+    <span id="eta-text">-- MINS AWAY</span>
+  </div>
+  <div class="progress-container">
+    <div id="progress-bar"></div>
   </div>
 </div>
 
@@ -308,11 +375,8 @@ closeSettingsBtn.addEventListener("click", (e) => {
 function scaleFontSize() {
   const timeEl = document.getElementById("time");
   const charCount = timeEl.innerText.length || 5;
-  
-  // Safe formula that prevents text from ever overflowing the viewport
   const widthBasedSize = (94 / (charCount * 0.52));
   const heightBasedSize = 75;
-  
   const finalSize = Math.min(widthBasedSize, heightBasedSize);
   timeEl.style.fontSize = `${finalSize}vw`;
 }
@@ -339,10 +403,8 @@ function updateClock() {
 
   let ampmHTML = ampm ? `<span style="font-size:0.3em; margin-left:0.1em; vertical-align:top;">${ampm}</span>` : "";
 
-  // Main HH:MM
   document.getElementById("time").innerHTML = `${h}:${m}${ampmHTML}`;
 
-  // Bottom-Right Seconds
   const secondsEl = document.getElementById("seconds");
   if (settings.showSeconds) {
     secondsEl.style.display = "block";
@@ -351,7 +413,6 @@ function updateClock() {
     secondsEl.style.display = "none";
   }
 
-  // Top-Left Date & Day
   document.getElementById("date-day").textContent =
     `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()} | ${days[now.getDay()]}`;
 
@@ -359,12 +420,115 @@ function updateClock() {
 }
 
 window.addEventListener("resize", scaleFontSize);
-
 updateClock();
 setInterval(updateClock, 1000);
 
 // ==========================================================================
-// 4. KEEP SCREEN AWAKE
+// 4. COMMUTE PROGRESS BAR & ETA CALCULATOR
+// ==========================================================================
+
+// -> SETUP YOUR HOME (REALME) & OFFICE COORDINATES HERE <-
+const HOME_LAT = 18.5204;   // Example: Your House Latitude
+const HOME_LON = 73.8567;   // Example: Your House Longitude
+
+const TOTAL_COMMUTE_KM = 15.0; // Example: Total distance from Office to Home in kilometers
+
+// -> REPLACE WITH YOUR FREE DATABASE URL (Firebase / KVDB) <-
+const LOCATION_API_URL = "https://YOUR_DATABASE_URL/location.json";
+
+// Keep track of speed for ETA
+let previousDistKm = null;
+let previousTimestamp = null;
+let averageSpeedKmh = 25; // Default assumption: 25 km/h commute speed
+
+// Haversine formula (Straight-line Earth distance in KM)
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+async function updateCommuteProgress() {
+  const statusText = document.getElementById("status-text");
+  const etaText = document.getElementById("eta-text");
+  const progressBar = document.getElementById("progress-bar");
+
+  try {
+    const response = await fetch(LOCATION_API_URL + "?t=" + new Date().getTime(), {
+      cache: "no-store"
+    });
+    
+    if (!response.ok) return;
+    const data = await response.json();
+
+    if (data && data.lat && data.lon) {
+      const currentTimestamp = Date.now();
+      const distKm = calculateDistance(HOME_LAT, HOME_LON, parseFloat(data.lat), parseFloat(data.lon));
+
+      // Calculate travel speed between 10-second checks
+      if (previousDistKm !== null && previousTimestamp !== null) {
+        const timeDiffHours = (currentTimestamp - previousTimestamp) / (1000 * 60 * 60);
+        const distClosedKm = previousDistKm - distKm; // Positive if moving closer
+        
+        if (timeDiffHours > 0 && distClosedKm > 0) {
+          const currentSpeed = distClosedKm / timeDiffHours;
+          // Smooth the speed average
+          averageSpeedKmh = (averageSpeedKmh * 0.7) + (currentSpeed * 0.3);
+        }
+      }
+      previousDistKm = distKm;
+      previousTimestamp = currentTimestamp;
+
+      // Calculate ETA in minutes based on average commute speed
+      const etaMinutes = Math.max(1, Math.round((distKm / averageSpeedKmh) * 60));
+
+      // Calculate progress percentage (0% at home, 100% at office)
+      let percentRemaining = (distKm / TOTAL_COMMUTE_KM) * 100;
+      percentRemaining = Math.max(0, Math.min(100, percentRemaining)); // Clamp between 0-100%
+
+      // Display logic
+      if (distKm < 0.15) {
+        // ARRIVED HOME (< 150 meters)
+        statusText.textContent = "🏡 ARRIVED HOME";
+        statusText.style.color = "#30D158";
+        etaText.textContent = "NOW";
+        progressBar.style.width = "100%";
+        progressBar.style.backgroundColor = "#30D158";
+        progressBar.style.boxShadow = "0 0 16px rgba(48, 209, 88, 0.8)";
+      } else if (percentRemaining >= 95) {
+        // AT THE OFFICE
+        statusText.textContent = `🏢 AT OFFICE (${distKm.toFixed(1)} KM)`;
+        statusText.style.color = "#30D158";
+        etaText.textContent = `~${etaMinutes} MINS AWAY`;
+        progressBar.style.width = "100%";
+        progressBar.style.backgroundColor = "#30D158";
+      } else {
+        // COMMUTING HOME
+        statusText.textContent = `🚗 ON THE WAY HOME (${distKm.toFixed(1)} KM)`;
+        statusText.style.color = "#0A84FF";
+        etaText.textContent = `EST. HOME IN ~${etaMinutes} MINS`;
+        progressBar.style.width = `${percentRemaining}%`;
+        progressBar.style.backgroundColor = "#0A84FF"; // Blue while driving
+        progressBar.style.boxShadow = "0 0 12px rgba(10, 132, 255, 0.5)";
+      }
+    }
+  } catch (e) {
+    // Fails silently if offline
+  }
+}
+
+// Fetch location & update progress bar every 10 seconds
+updateCommuteProgress();
+setInterval(updateCommuteProgress, 10000);
+
+// ==========================================================================
+// 5. KEEP SCREEN AWAKE
 // ==========================================================================
 let wakeLock = null;
 async function keepAwake() {
@@ -381,7 +545,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 // ==========================================================================
-// 5. FULLSCREEN (iPhone Support)
+// 6. FULLSCREEN SUPPORT
 // ==========================================================================
 const isIPhone = /iPhone/i.test(navigator.userAgent);
 
@@ -411,7 +575,7 @@ if (!isIPhone) {
 }
 
 // ==========================================================================
-// 6. AUTO-HIDE CURSOR
+// 7. AUTO-HIDE CURSOR
 // ==========================================================================
 let cursorTimer;
 document.addEventListener("mousemove", () => {
@@ -425,7 +589,7 @@ document.addEventListener("mousemove", () => {
 });
 
 // ==========================================================================
-// 7. OLED BURN-IN PROTECTION
+// 8. OLED BURN-IN PROTECTION
 // ==========================================================================
 setInterval(() => {
   if (settings.oledProtection) {
@@ -438,7 +602,7 @@ setInterval(() => {
 }, 60000);
 
 // ==========================================================================
-// 8. BACKGROUND GITHUB UPDATE CHECKER
+// 9. BACKGROUND GITHUB UPDATE CHECKER
 // ==========================================================================
 const FILE_URL = "https://gaikwadsambhaji5.github.io/clock/index.html";
 let lastContentHash = "";
