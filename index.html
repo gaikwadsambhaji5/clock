@@ -25,7 +25,6 @@ height:100%;
 background:#000;
 color:#fff;
 overflow:hidden;
-/* Heavy geometric system fonts for maximum boldness */
 font-family:"Arial Black", Impact, system-ui, -apple-system, sans-serif;
 }
 
@@ -39,10 +38,29 @@ body.hide-cursor{
 cursor:none;
 }
 
+/* =====================
+   TOP-LEFT DATE & DAY
+   ===================== */
+#date-day{
+position:absolute;
+top:20px;
+left:20px;
+font-size:1.5rem;
+font-weight:700;
+color:#aaa;
+letter-spacing:0.05em;
+user-select:none;
+z-index:10;
+font-family:Arial, sans-serif;
+}
+
+/* =====================
+   CLOCK LAYOUT
+   ===================== */
 .container{
 text-align:center;
-width:198vw; /* Uses 98% of viewport width for maximum edge-to-edge size */
-max-height:98vh;
+width:96vw;
+max-height:96vh;
 display:flex;
 flex-direction:column;
 justify-content:center;
@@ -50,10 +68,16 @@ align-items:center;
 transition:transform 3s ease-in-out;
 }
 
+.clock-wrapper{
+position:relative;
+display:inline-block;
+width:100%;
+}
+
 #time{
 font-weight:900;
-line-height:0.82; /* Tighter line height so bigger text doesn't overflow */
-letter-spacing:-0.04em; /* Tightly packs digits for larger horizontal scaling */
+line-height:0.85;
+letter-spacing:-0.04em;
 font-variant-numeric:tabular-nums;
 user-select:none;
 white-space:nowrap;
@@ -61,23 +85,16 @@ width:100%;
 text-align:center;
 }
 
-#date{
-font-size:4.5vw; /* Increased from 3.5vw */
+#seconds{
+position:absolute;
+bottom:0;
+right:0;
+font-size:4vw;
 font-weight:700;
-margin-top:1.5vh;
-color:#aaa;
+color:#888;
+font-variant-numeric:tabular-nums;
 user-select:none;
-letter-spacing:0.04em;
-}
-
-#day{
-font-size:3.2vw; /* Increased from 2.5vw */
-font-weight:600;
-margin-top:0.5vh;
-color:#666;
-user-select:none;
-text-transform:uppercase;
-letter-spacing:0.08em;
+transform:translateY(80%); /* Sits neatly just below the bottom right of HH:MM */
 }
 
 /* =====================
@@ -199,6 +216,9 @@ background:#333;
 
 <body>
 
+<!-- Top Left Date & Day -->
+<div id="date-day"></div>
+
 <!-- Top Right Button Controls -->
 <div class="controls">
   <button class="icon-btn" id="fullscreen-btn" title="Fullscreen">⛶</button>
@@ -230,9 +250,10 @@ background:#333;
 </div>
 
 <div class="container">
-  <div id="time"></div>
-  <div id="date"></div>
-  <div id="day"></div>
+  <div class="clock-wrapper">
+    <div id="time"></div>
+    <div id="seconds"></div>
+  </div>
 </div>
 
 <script>
@@ -287,9 +308,9 @@ function scaleFontSize() {
   const timeEl = document.getElementById("time");
   const charCount = timeEl.innerText.length || 5;
   
-  // Increased multiplier to push text all the way to the screen edges
-  const widthBasedSize = (98 / (charCount * 0.54));
-  const heightBasedSize = 65; // Increased ceiling for taller vertical scaling
+  // High multiplier pushes HH:MM all the way to screen edges
+  const widthBasedSize = (98 / (charCount * 0.52));
+  const heightBasedSize = 75; // Allows enormous vertical height
   
   const finalSize = Math.min(widthBasedSize, heightBasedSize);
   timeEl.style.fontSize = `${finalSize}vw`;
@@ -322,15 +343,23 @@ function updateClock(){
   let m = String(now.getMinutes()).padStart(2,"0");
   let s = String(now.getSeconds()).padStart(2,"0");
 
-  let secondsHTML = settings.showSeconds ? `<span style="font-size:0.45em; opacity:0.85;">:${s}</span>` : "";
-  let ampmHTML = ampm ? `<span style="font-size:0.35em; margin-left:0.1em; vertical-align:top;">${ampm}</span>` : "";
+  let ampmHTML = ampm ? `<span style="font-size:0.3em; margin-left:0.1em; vertical-align:top;">${ampm}</span>` : "";
 
-  document.getElementById("time").innerHTML = `${h}:${m}${secondsHTML}${ampmHTML}`;
+  // Big HH:MM
+  document.getElementById("time").innerHTML = `${h}:${m}${ampmHTML}`;
 
-  document.getElementById("date").textContent =
-    `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  // Small bottom-right seconds
+  const secondsEl = document.getElementById("seconds");
+  if (settings.showSeconds) {
+    secondsEl.style.display = "block";
+    secondsEl.textContent = `:${s}`;
+  } else {
+    secondsEl.style.display = "none";
+  }
 
-  document.getElementById("day").textContent = days[now.getDay()];
+  // Top left date & day format: "30 July 2030 | Friday"
+  document.getElementById("date-day").textContent =
+    `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()} | ${days[now.getDay()]}`;
 
   scaleFontSize();
 }
@@ -421,12 +450,46 @@ setInterval(() => {
 }, 60000);
 
 // =====================
-// FORCE REFRESH EVERY 5 SECONDS
+// BACKGROUND UPDATE CHECKER (Checks every 5s, only reloads on change)
 // =====================
 
-setInterval(() => {
-  window.location.href = window.location.pathname + "?t=" + new Date().getTime();
-}, 5000);
+const FILE_URL = "https://gaikwadsambhaji5.github.io/clock/index.html";
+let lastContentHash = "";
+
+function hashCode(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  return hash.toString();
+}
+
+async function checkUpdate(){
+  try{
+    const fetchUrl = FILE_URL + "?t=" + new Date().getTime();
+    const response = await fetch(fetchUrl, {
+      method: "GET",
+      cache: "no-store"
+    });
+
+    if (!response.ok) return;
+
+    const text = await response.text();
+    const currentHash = hashCode(text);
+
+    if(!lastContentHash){
+      lastContentHash = currentHash;
+    }else if(currentHash !== lastContentHash){
+      // Automatically refreshes ONLY when new code is detected on GitHub
+      window.location.href = window.location.pathname + "?updated=" + new Date().getTime();
+    }
+  }catch(e){}
+}
+
+checkUpdate();
+setInterval(checkUpdate, 5000);
 
 </script>
 
