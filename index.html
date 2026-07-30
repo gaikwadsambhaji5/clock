@@ -1,53 +1,80 @@
+<script>
 // =====================
-// AUTO FULLSCREEN
+// AUTO UPDATE (WORKING)
 // =====================
 
-async function enterFullscreen() {
+const CHECK_URL = "index.html";
+let lastETag = "";
+let lastModified = "";
 
-    const el = document.documentElement;
-
+async function checkForUpdate() {
     try {
+        const response = await fetch(CHECK_URL + "?t=" + Date.now(), {
+            method: "HEAD",
+            cache: "no-store"
+        });
 
-        if (!document.fullscreenElement && el.requestFullscreen) {
-            await el.requestFullscreen();
+        const etag = response.headers.get("etag");
+        const modified = response.headers.get("last-modified");
+
+        if (!lastETag && !lastModified) {
+            lastETag = etag;
+            lastModified = modified;
             return;
         }
 
-        if (!document.fullscreenElement && el.webkitRequestFullscreen) {
-            el.webkitRequestFullscreen();
-            return;
-        }
+        if ((etag && etag !== lastETag) ||
+            (modified && modified !== lastModified)) {
 
-        if (!document.fullscreenElement && el.msRequestFullscreen) {
-            el.msRequestFullscreen();
-            return;
+            location.reload();
+
         }
 
     } catch (e) {}
-
 }
 
-// Try automatically when page loads
-window.addEventListener("load", () => {
-    enterFullscreen();
-});
+setInterval(checkForUpdate, 15000);
+checkForUpdate();
 
-// Try again when page becomes visible
+
+// =====================
+// KEEP SCREEN AWAKE
+// =====================
+
+let wakeLock = null;
+
+async function keepAwake() {
+    try {
+        if ("wakeLock" in navigator) {
+            wakeLock = await navigator.wakeLock.request("screen");
+        }
+    } catch (e) {}
+}
+
+keepAwake();
+
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
-        enterFullscreen();
+        keepAwake();
     }
 });
 
-// Try every 2 seconds until fullscreen succeeds
-setInterval(() => {
-    if (!document.fullscreenElement) {
-        enterFullscreen();
-    }
-}, 2000);
 
-// If browser requires user interaction,
-// first touch/click will enter fullscreen.
-["click","touchstart","pointerdown"].forEach(event => {
-    document.addEventListener(event, enterFullscreen, { once: true });
-});
+// =====================
+// FULLSCREEN
+// =====================
+
+// IMPORTANT:
+// Chrome on Android DOES NOT ALLOW webpages to enter fullscreen
+// automatically. User interaction is required by the browser.
+// No JavaScript can bypass this restriction.
+
+document.addEventListener("click", () => {
+    document.documentElement.requestFullscreen?.();
+}, { once: true });
+
+document.addEventListener("touchstart", () => {
+    document.documentElement.requestFullscreen?.();
+}, { once: true });
+
+</script>
