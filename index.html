@@ -1,80 +1,192 @@
-<script>
-// =====================
-// AUTO UPDATE (WORKING)
-// =====================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Desk Clock</title>
 
-const CHECK_URL = "index.html";
-let lastETag = "";
-let lastModified = "";
+<style>
 
-async function checkForUpdate() {
-    try {
-        const response = await fetch(CHECK_URL + "?t=" + Date.now(), {
-            method: "HEAD",
-            cache: "no-store"
-        });
-
-        const etag = response.headers.get("etag");
-        const modified = response.headers.get("last-modified");
-
-        if (!lastETag && !lastModified) {
-            lastETag = etag;
-            lastModified = modified;
-            return;
-        }
-
-        if ((etag && etag !== lastETag) ||
-            (modified && modified !== lastModified)) {
-
-            location.reload();
-
-        }
-
-    } catch (e) {}
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
 }
 
-setInterval(checkForUpdate, 15000);
-checkForUpdate();
+html,body{
+width:100%;
+height:100%;
+background:#000;
+color:#fff;
+overflow:hidden;
+font-family:Arial,Helvetica,sans-serif;
+}
 
+body{
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+.container{
+text-align:center;
+width:100%;
+}
+
+#time{
+font-size:20vw;
+font-weight:bold;
+letter-spacing:2px;
+line-height:1;
+}
+
+#date{
+font-size:4vw;
+margin-top:20px;
+color:#aaa;
+}
+
+#day{
+font-size:3vw;
+margin-top:10px;
+color:#666;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div id="time"></div>
+
+<div id="date"></div>
+
+<div id="day"></div>
+
+</div>
+
+<script>
+
+// =====================
+// CLOCK
+// =====================
+
+const days=[
+"Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"
+];
+
+const months=[
+"January","February","March","April","May","June",
+"July","August","September","October","November","December"
+];
+
+function updateClock(){
+
+const now=new Date();
+
+let h=String(now.getHours()).padStart(2,"0");
+let m=String(now.getMinutes()).padStart(2,"0");
+let s=String(now.getSeconds()).padStart(2,"0");
+
+document.getElementById("time").innerHTML=
+`${h}:${m}<span style="font-size:8vw">:${s}</span>`;
+
+document.getElementById("date").textContent=
+`${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+
+document.getElementById("day").textContent=
+days[now.getDay()];
+
+}
+
+updateClock();
+setInterval(updateClock,1000);
 
 // =====================
 // KEEP SCREEN AWAKE
 // =====================
 
-let wakeLock = null;
+let wakeLock=null;
 
-async function keepAwake() {
-    try {
-        if ("wakeLock" in navigator) {
-            wakeLock = await navigator.wakeLock.request("screen");
-        }
-    } catch (e) {}
+async function keepAwake(){
+
+try{
+
+if("wakeLock" in navigator){
+
+wakeLock=await navigator.wakeLock.request("screen");
+
+}
+
+}catch(e){}
+
 }
 
 keepAwake();
 
-document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-        keepAwake();
-    }
-});
+document.addEventListener("visibilitychange",()=>{
 
+if(document.visibilityState==="visible")
+keepAwake();
+
+});
 
 // =====================
 // FULLSCREEN
 // =====================
 
-// IMPORTANT:
-// Chrome on Android DOES NOT ALLOW webpages to enter fullscreen
-// automatically. User interaction is required by the browser.
-// No JavaScript can bypass this restriction.
+document.body.onclick=()=>{
 
-document.addEventListener("click", () => {
-    document.documentElement.requestFullscreen?.();
-}, { once: true });
+if(document.fullscreenElement) return;
 
-document.addEventListener("touchstart", () => {
-    document.documentElement.requestFullscreen?.();
-}, { once: true });
+document.documentElement.requestFullscreen().catch(()=>{});
+
+};
+
+// =====================
+// AUTO UPDATE CHECK
+// =====================
+
+// Your GitHub Pages URL
+const FILE_URL="https://gaikwadsambhaji5.github.io/clock/index.html";
+
+let lastModified="";
+
+async function checkUpdate(){
+
+try{
+
+const response=await fetch(FILE_URL,{
+method:"HEAD",
+cache:"no-cache"
+});
+
+const modified=response.headers.get("last-modified");
+
+if(!lastModified){
+
+lastModified=modified;
+
+}else if(modified && modified!==lastModified){
+
+location.reload(true);
+
+}
+
+}catch(e){}
+
+}
+
+// First check
+checkUpdate();
+
+// Check every 15 seconds
+setInterval(checkUpdate,15000);
 
 </script>
+
+</body>
+</html>
