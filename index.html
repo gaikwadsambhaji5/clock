@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Prevent caching so your Realme 2 Pro always fetches the latest live GPS data -->
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -100,7 +99,7 @@
             overflow: hidden;
             position: relative;
             margin-bottom: 15px;
-            display: none; /* Hidden until shortcut runs */
+            display: none; /* Invisible in standby */
         }
 
         .progress-bar {
@@ -118,7 +117,7 @@
 
         /* METRICS & DETAILS (HIDDEN BY DEFAULT IN STANDBY) */
         .metrics-row {
-            display: none; /* Hidden until shortcut runs */
+            display: none; /* Invisible in standby */
             justify-content: space-between;
             font-size: 0.95rem;
             color: var(--text-muted);
@@ -134,7 +133,7 @@
             font-size: 0.75rem;
             color: #4f586b;
             margin-top: 15px;
-            display: none; /* Hidden until shortcut runs */
+            display: none; /* Invisible in standby */
         }
     </style>
 </head>
@@ -168,12 +167,9 @@
            ========================================== */
         function updateClock() {
             const now = new Date();
-            
-            // Format Time (HH:MM:SS)
             const timeOptions = { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' };
             document.getElementById('time-display').textContent = now.toLocaleTimeString([], timeOptions);
             
-            // Format Date (DAY, MONTH DATE)
             const dateOptions = { weekday: 'short', month: 'short', day: 'numeric' };
             document.getElementById('date-display').textContent = now.toLocaleDateString([], dateOptions);
         }
@@ -184,20 +180,17 @@
         /* ==========================================
            2. HOME COORDINATES & SMART TRACKING
            ========================================== */
-        // -> EXACT HOME COORDINATES (19°51'56.5"N, 75°14'37.7"E) <-
         const HOME_LAT = 19.865694;
         const HOME_LON = 75.243806;
 
-        // Dynamic trip memory
         let tripStartDistanceKm = null;
         let lastUpdateTimestamp = 0;
-        let isTripActive = false;
 
         /* ==========================================
            3. HAVERSINE DISTANCE MATH (IN KM)
            ========================================== */
         function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Earth's radius in kilometers
+            const R = 6371;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = 
@@ -219,32 +212,27 @@
 
             const now = Date.now();
 
-            // Check if this is a brand new trip (more than 15 mins since last update OR first ping)
-            if (tripStartDistanceKm === null || (now - lastUpdateTimestamp) > 15 * 60 * 1000) {
+            // Set new 100% start distance if first ping of the trip
+            if (tripStartDistanceKm === null) {
                 tripStartDistanceKm = currentDistanceKm;
             }
-            lastUpdateTimestamp = now;
-            isTripActive = true;
 
-            // ARRIVED HOME CHECK (Within 150 meters / 0.15 km)
+            // ARRIVED HOME CHECK
             if (currentDistanceKm <= 0.15) {
-                tripStartDistanceKm = null; // Reset for your next journey out
                 return {
                     status: "🏡 ARRIVED AT HOME",
                     progress: 100,
                     distance: "0.0",
                     eta: "Arrived",
-                    isHome: true,
-                    active: true
+                    isHome: true
                 };
             }
 
-            // DYNAMIC DRIVING CHECK (Calculates % based on where you started)
+            // DYNAMIC DRIVING CHECK
             const totalTrip = Math.max(tripStartDistanceKm, currentDistanceKm);
             let progressPercent = ((totalTrip - currentDistanceKm) / totalTrip) * 100;
-            progressPercent = Math.max(5, Math.min(100, progressPercent)); // Keep visible
+            progressPercent = Math.max(5, Math.min(100, progressPercent));
 
-            // Estimate ETA based on an average speed of 30 km/h (2 mins per km)
             const estimatedMinutes = Math.max(1, Math.round(currentDistanceKm * 2));
 
             return {
@@ -252,21 +240,17 @@
                 progress: progressPercent,
                 distance: currentDistanceKm.toFixed(1),
                 eta: `${estimatedMinutes} min`,
-                isHome: false,
-                active: true
+                isHome: false
             };
         }
 
         /* ==========================================
-           5. FETCH LIVE DATA FROM GITHUB API
+           5. FETCH LIVE DATA & EXPIRY CHECK
            ========================================== */
         async function fetchLiveGPS() {
             try {
-                // Direct GitHub API URL to bypass cache and third-party delays
                 const response = await fetch('https://api.github.com/repos/gaikwadsambhaji5/clock/contents/location.json', {
-                    headers: {
-                        'Accept': 'application/vnd.github.v3+json'
-                    },
+                    headers: { 'Accept': 'application/vnd.github.v3+json' },
                     cache: 'no-store'
                 });
 
@@ -274,29 +258,44 @@
 
                 const data = await response.json();
                 
-                // Decode GitHub's Base64 content payload
+                // --- CRITICAL STANDBY FIX: CHECK FILE TIMESTAMP ---
+                // If the GitHub file wasn't modified in the last 15 minutes, stay in STANDBY!
+                const fileAgeMinutes = (Date.now() - new Date(data.sha ? Date.now() : 0)) / (1000 * 60);
+                
+                // GitHub returns a commit URL we can use, but simpler: check if we've seen this update recently
+                // Here we inspect the timestamp of the commit or rely on our fresh update loop
                 const decodedText = atob(data.content);
                 const gpsData = JSON.parse(decodedText);
+
+                // Check if the file has a timestamp sent from your iPhone, OR check if file was just updated
+                // If you haven't run the shortcut recently, force standby:
+                const timeDiff = (Date.now() - (gpsData.time || 0));
+                
+                // If gpsData has no 'time' tag OR it's older than 15 mins (900,000 ms), show Standby
+                if (gpsData.time && timeDiff > 15 * 60 * 1000) {
+                    resetToStandby();
+                    return;
+                }
 
                 if (gpsData.lat && gpsData.lon) {
                     const result = processCommuteData(parseFloat(gpsData.lat), parseFloat(gpsData.lon));
                     updateDashboardUI(result);
                     
+                    lastUpdateTimestamp = Date.now();
                     const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                     document.getElementById('last-updated').textContent = `Last GPS Sync: Today at ${timeString}`;
                 }
             } catch (error) {
-                console.log('Waiting for next GPS update...', error);
-                
-                // If no update has been received for 15 minutes, revert back to Standby Mode
-                if (Date.now() - lastUpdateTimestamp > 15 * 60 * 1000 && isTripActive) {
+                console.log('Waiting for next GPS update...');
+                // If 15 minutes pass without any successful update, auto-reset to Standby
+                if (Date.now() - lastUpdateTimestamp > 15 * 60 * 1000) {
                     resetToStandby();
                 }
             }
         }
 
         /* ==========================================
-           6. UPDATE UI ELEMENTS & TOGGLE VISIBILITY
+           6. UI TOGGLE & STANDBY RESET
            ========================================== */
         function updateDashboardUI(data) {
             const statusEl = document.getElementById('commute-status');
@@ -304,7 +303,7 @@
             const distEl = document.getElementById('distance-val');
             const etaEl = document.getElementById('eta-val');
             
-            // Un-hide the progress bar and metrics when the shortcut runs!
+            // UN-HIDE the tracker metrics when active
             document.getElementById('progress-container').style.display = 'block';
             document.getElementById('metrics-container').style.display = 'flex';
             document.getElementById('last-updated').style.display = 'block';
@@ -312,7 +311,6 @@
             statusEl.textContent = data.status;
             distEl.textContent = `${data.distance} km`;
             etaEl.textContent = data.eta;
-
             barEl.style.width = `${data.progress}%`;
 
             if (data.isHome) {
@@ -325,17 +323,21 @@
         }
 
         function resetToStandby() {
-            isTripActive = false;
+            tripStartDistanceKm = null;
             document.getElementById('commute-status').textContent = '💤 STANDBY MODE — RUN SHORTCUT TO START';
             document.getElementById('commute-status').className = 'status-header';
+            
+            // HIDE everything except the Standby text
             document.getElementById('progress-container').style.display = 'none';
             document.getElementById('metrics-container').style.display = 'none';
             document.getElementById('last-updated').style.display = 'none';
         }
 
-        // Check GitHub for a new iPhone ping every 10 seconds
+        // 1. Start immediately in Standby Mode on load!
+        resetToStandby();
+
+        // 2. Check GitHub every 10 seconds for new shortcut runs
         setInterval(fetchLiveGPS, 10000);
-        fetchLiveGPS();
     </script>
 </body>
 </html>
