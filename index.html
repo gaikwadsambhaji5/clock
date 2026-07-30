@@ -25,7 +25,8 @@ height:100%;
 background:#000;
 color:#fff;
 overflow:hidden;
-font-family:Arial,Helvetica,sans-serif;
+/* Heavy geometric system fonts for maximum boldness */
+font-family:"Arial Black", Impact, system-ui, -apple-system, sans-serif;
 }
 
 body{
@@ -40,31 +41,43 @@ cursor:none;
 
 .container{
 text-align:center;
-width:100%;
+width:96vw; /* Uses 96% of viewport width */
+max-height:96vh;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
 transition:transform 3s ease-in-out;
 }
 
 #time{
-font-size:20vw;
-font-weight:bold;
-letter-spacing:2px;
-line-height:1;
+font-weight:900;
+line-height:0.88;
+letter-spacing:-0.03em; /* Tightly packs digits for larger scaling */
 font-variant-numeric:tabular-nums;
 user-select:none;
+white-space:nowrap;
+width:100%;
+text-align:center;
 }
 
 #date{
-font-size:4vw;
-margin-top:20px;
+font-size:3.5vw;
+font-weight:700;
+margin-top:2vh;
 color:#aaa;
 user-select:none;
+letter-spacing:0.05em;
 }
 
 #day{
-font-size:3vw;
-margin-top:10px;
-color:#666;
+font-size:2.5vw;
+font-weight:600;
+margin-top:0.8vh;
+color:#555;
 user-select:none;
+text-transform:uppercase;
+letter-spacing:0.1em;
 }
 
 /* =====================
@@ -136,6 +149,7 @@ border-radius:12px;
 width:90%;
 max-width:350px;
 text-align:left;
+font-family:Arial, sans-serif;
 }
 
 .modal h2{
@@ -238,11 +252,10 @@ const toggleOled = document.getElementById("toggle-oled");
 // Load settings from localStorage or defaults
 let settings = {
   is12Hour: localStorage.getItem("is12Hour") === "true",
-  showSeconds: localStorage.getItem("showSeconds") !== "false", // default true
-  oledProtection: localStorage.getItem("oledProtection") !== "false" // default true
+  showSeconds: localStorage.getItem("showSeconds") !== "false",
+  oledProtection: localStorage.getItem("oledProtection") !== "false"
 };
 
-// Apply loaded values to checkboxes
 toggle12Hr.checked = settings.is12Hour;
 toggleSeconds.checked = settings.showSeconds;
 toggleOled.checked = settings.oledProtection;
@@ -265,6 +278,23 @@ closeSettingsBtn.addEventListener("click", (e) => {
   settingsModal.classList.remove("active");
   updateClock();
 });
+
+// =====================
+// DYNAMIC FONT SCALING (Fit to Screen)
+// =====================
+
+function scaleFontSize() {
+  const timeEl = document.getElementById("time");
+  // Calculate size based on how many characters are displayed
+  const charCount = timeEl.innerText.length || 5;
+  
+  // Dynamically scale font size based on viewport width & height
+  const widthBasedSize = (92 / (charCount * 0.58));
+  const heightBasedSize = 55; // Prevent clipping vertically
+  
+  const finalSize = Math.min(widthBasedSize, heightBasedSize);
+  timeEl.style.fontSize = `${finalSize}vw`;
+}
 
 // =====================
 // CLOCK
@@ -293,8 +323,8 @@ function updateClock(){
   let m = String(now.getMinutes()).padStart(2,"0");
   let s = String(now.getSeconds()).padStart(2,"0");
 
-  let secondsHTML = settings.showSeconds ? `<span style="font-size:8vw">:${s}</span>` : "";
-  let ampmHTML = ampm ? `<span style="font-size:6vw">${ampm}</span>` : "";
+  let secondsHTML = settings.showSeconds ? `<span style="font-size:0.45em; opacity:0.85;">:${s}</span>` : "";
+  let ampmHTML = ampm ? `<span style="font-size:0.35em; margin-left:0.1em; vertical-align:top;">${ampm}</span>` : "";
 
   document.getElementById("time").innerHTML = `${h}:${m}${secondsHTML}${ampmHTML}`;
 
@@ -302,7 +332,11 @@ function updateClock(){
     `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
 
   document.getElementById("day").textContent = days[now.getDay()];
+
+  scaleFontSize();
 }
+
+window.addEventListener("resize", scaleFontSize);
 
 updateClock();
 setInterval(updateClock, 1000);
@@ -335,7 +369,6 @@ const isIPhone = /iPhone/i.test(navigator.userAgent);
 
 function goFullscreen() {
   if (isIPhone && !window.navigator.standalone) {
-    // iPhones don't support browser Fullscreen API
     alert("To use Fullscreen on iPhone:\n\n1. Tap the Share button (square with arrow) at the bottom of Safari.\n2. Select 'Add to Home Screen'.\n3. Open the Clock from your Home Screen!");
     return;
   }
@@ -344,19 +377,17 @@ function goFullscreen() {
     const docElm = document.documentElement;
     if (docElm.requestFullscreen) {
       docElm.requestFullscreen().catch(()=>{});
-    } else if (docElm.webkitRequestFullscreen) { // Safari desktop/iPad fallback
+    } else if (docElm.webkitRequestFullscreen) {
       docElm.webkitRequestFullscreen();
     }
   }
 }
 
-// 1. Dedicated Fullscreen Button Click
 document.getElementById("fullscreen-btn").addEventListener("click", (e) => {
   e.stopPropagation();
   goFullscreen();
 });
 
-// 2. Attempt Auto-Fullscreen after 5 seconds (Only on supported devices)
 if (!isIPhone) {
   setTimeout(goFullscreen, 5000);
 }
@@ -382,7 +413,7 @@ document.addEventListener("mousemove", () => {
 
 setInterval(() => {
   if (settings.oledProtection) {
-    const x = Math.floor(Math.random() * 21) - 10; // -10px to +10px
+    const x = Math.floor(Math.random() * 21) - 10;
     const y = Math.floor(Math.random() * 21) - 10;
     document.querySelector(".container").style.transform = `translate(${x}px, ${y}px)`;
   } else {
