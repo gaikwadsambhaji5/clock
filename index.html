@@ -239,29 +239,28 @@
             };
         }
 
-        /* 5. FETCH LIVE DATA (GITHUB API WITH 5-SECOND AUTO-REFRESH & CACHE-BUSTING) */
+        /* 5. FETCH LIVE DATA (SAME-ORIGIN GITHUB PAGES FETCH - NO CORS OR RATE LIMITS!) */
         async function fetchLiveGPS() {
             const debugEl = document.getElementById('debug-log');
             try {
-                const url = 'https://api.github.com/repos/gaikwadsambhaji5/clock/contents/location.json?timestamp=' + Date.now();
+                // Fetch directly from the same website domain with a unique cache-buster!
+                const url = './location.json?cb=' + Date.now();
                 
                 const response = await fetch(url, {
                     method: 'GET',
+                    cache: 'no-store',
                     headers: {
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Cache-Control': 'no-cache, no-store, must-revalidate'
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
                     }
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status} (Waiting for GitHub...)`);
+                    throw new Error(`HTTP ${response.status} (File not found yet)`);
                 }
 
-                const data = await response.json();
-                
-                // Decode Base64 content from GitHub API
-                const decodedText = atob(data.content);
-                const gpsData = JSON.parse(decodedText);
+                const gpsData = await response.json();
 
                 if (gpsData.lat && gpsData.lon) {
                     const result = processCommuteData(parseFloat(gpsData.lat), parseFloat(gpsData.lon));
