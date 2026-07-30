@@ -239,29 +239,27 @@
             };
         }
 
-        /* 5. FETCH LIVE DATA FROM GITHUB API */
+        /* 5. FETCH LIVE DATA (DIRECT RAW URL - NO 403 RATE LIMITS!) */
         async function fetchLiveGPS() {
             const debugEl = document.getElementById('debug-log');
             try {
-                // Bypass cache completely using random timestamp
-                const url = 'https://api.github.com/repos/gaikwadsambhaji5/clock/contents/location.json?nocache=' + Date.now();
+                // Fetch directly from Raw GitHub URL to bypass GitHub API 403 blocks!
+                const url = 'https://raw.githubusercontent.com/gaikwadsambhaji5/clock/main/location.json?nocache=' + Date.now();
                 const response = await fetch(url, {
-                    headers: { 'Accept': 'application/vnd.github.v3+json' },
                     cache: 'no-store'
                 });
 
                 if (!response.ok) {
-                    throw new Error(`GitHub HTTP ${response.status}`);
+                    throw new Error(`HTTP ${response.status} (File not found yet)`);
                 }
 
-                const data = await response.json();
-                const decodedText = atob(data.content);
-                const gpsData = JSON.parse(decodedText);
+                // Since raw URL gives the plain JSON directly, we don't need atob() decoding!
+                const gpsData = await response.json();
 
                 if (gpsData.lat && gpsData.lon) {
                     const result = processCommuteData(parseFloat(gpsData.lat), parseFloat(gpsData.lon));
                     
-                    // Always wake up UI when fresh valid coordinates are read
+                    // Wake up UI when valid coordinates are read
                     isInStandby = false;
                     updateDashboardUI(result);
                     
@@ -276,7 +274,7 @@
                     }
                 } else {
                     debugEl.style.color = "#ffb86c";
-                    debugEl.textContent = `Sync OK, but missing lat/lon in JSON: ${decodedText}`;
+                    debugEl.textContent = `Sync OK, but missing lat/lon inside location.json`;
                 }
             } catch (error) {
                 debugEl.style.color = "#ff5555";
