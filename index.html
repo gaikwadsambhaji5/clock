@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Desk Clock Pro</title>
+<title>Desk Clock</title>
 
 <!-- iOS Fullscreen / Web App Support -->
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,18 +13,8 @@
 
 <style>
 /* ==========================================================================
-   1. RESET & VARIABLES
+   1. RESET & THEME
    ========================================================================== */
-:root {
-  --bg-color: #070708;
-  --text-main: #FFFFFF;
-  --text-muted: #8E8E93;
-  --text-dim: #48484A;
-  --border-color: #1C1C1E;
-  --accent: #0A84FF;
-  --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
-}
-
 * {
   margin: 0;
   padding: 0;
@@ -34,11 +24,17 @@
 html, body {
   width: 100%;
   height: 100%;
-  background-color: var(--bg-color);
-  color: var(--text-main);
+  background-color: #070708;
+  color: #ffffff;
   overflow: hidden;
-  font-family: var(--font-stack);
+  font-family: "Arial Black", Impact, system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 body.hide-cursor {
@@ -46,103 +42,77 @@ body.hide-cursor {
 }
 
 /* ==========================================================================
-   2. MAIN LAYOUT GRID
+   2. TOP-LEFT DATE & DAY
    ========================================================================== */
-.app-viewport {
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  width: 100vw;
-  height: 100vh;
-  padding: 3vh 3vw;
-  transition: transform 2.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* TOP BAR: DATE & DAY */
-.header-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 5;
-}
-
 #date-day {
-  font-size: clamp(0.9rem, 1.8vw, 1.6rem);
-  font-weight: 600;
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-size: clamp(1rem, 2vw, 1.8rem);
+  font-weight: 700;
+  color: #8E8E93;
+  letter-spacing: 0.05em;
   user-select: none;
+  z-index: 10;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Arial, sans-serif;
 }
 
-/* CENTER: MASSIVE CLOCK */
-.clock-stage {
+/* ==========================================================================
+   3. MAIN CLOCK LAYOUT
+   ========================================================================== */
+.container {
+  text-align: center;
+  width: 96vw;
+  max-height: 96vh;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  width: 100%;
-  height: 100%;
+  transition: transform 3s ease-in-out;
 }
 
-.time-wrapper {
+.clock-wrapper {
   position: relative;
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
+  display: inline-block;
   width: 100%;
 }
 
 #time {
-  font-weight: 800;
+  font-weight: 900;
   line-height: 0.85;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
   user-select: none;
   white-space: nowrap;
+  width: 100%;
   text-align: center;
 }
 
-/* SMALL AM/PM & SECONDS MODULE */
-.sub-indicators {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  margin-left: 1.5vw;
-  padding-bottom: 0.5vw;
-}
-
-#ampm {
-  font-size: clamp(1rem, 3.5vw, 4rem);
-  font-weight: 700;
-  color: var(--text-muted);
-  line-height: 1;
-  margin-bottom: 0.5vh;
-  user-select: none;
-}
-
 #seconds {
-  font-size: clamp(1.2rem, 4vw, 4.5rem);
-  font-weight: 600;
-  color: var(--text-main);
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  font-size: 4vw;
+  font-weight: 700;
+  color: #8E8E93;
   font-variant-numeric: tabular-nums;
-  line-height: 1;
-  background: var(--border-color);
-  padding: 0.2em 0.35em;
-  border-radius: 6px;
   user-select: none;
+  transform: translateY(85%); /* Neatly tucked just below bottom-right of HH:MM */
 }
 
 /* ==========================================================================
-   3. CONTROLS & MODAL
+   4. CONTROLS & SETTINGS MODAL
    ========================================================================== */
 .controls {
   position: absolute;
-  top: 3vh;
-  right: 3vw;
+  top: 20px;
+  right: 20px;
   display: flex;
   gap: 12px;
   z-index: 10;
 }
 
+/* Hide buttons automatically when in fullscreen mode */
 :fullscreen .controls,
 :-webkit-full-screen .controls {
   display: none !important;
@@ -158,15 +128,15 @@ body.hide-cursor {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
-  color: var(--text-muted);
+  color: #8E8E93;
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
 }
 
 .icon-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
   transform: scale(1.05);
 }
 
@@ -176,16 +146,16 @@ body.hide-cursor {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 50;
+  z-index: 20;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.3s ease;
 }
 
 .modal-overlay.active {
@@ -195,28 +165,30 @@ body.hide-cursor {
 
 .modal {
   background: #151516;
-  border: 1px solid var(--border-color);
-  padding: 28px;
+  border: 1px solid #2C2C2E;
+  padding: 30px;
   border-radius: 16px;
   width: 90%;
-  max-width: 360px;
+  max-width: 350px;
+  text-align: left;
+  font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 .modal h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 24px;
-  color: var(--text-main);
-  letter-spacing: -0.01em;
+  margin-bottom: 20px;
+  font-size: 1.4rem;
+  border-bottom: 1px solid #2C2C2E;
+  padding-bottom: 12px;
+  color: #fff;
 }
 
 .setting-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 18px;
-  font-size: 0.95rem;
+  margin-bottom: 20px;
+  font-size: 1.05rem;
   color: #D1D1D6;
 }
 
@@ -224,21 +196,21 @@ body.hide-cursor {
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: var(--accent);
+  accent-color: #0A84FF;
 }
 
 .close-btn {
   width: 100%;
   padding: 14px;
-  background: var(--text-main);
+  background: #fff;
   color: #000;
   border: none;
   border-radius: 10px;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 12px;
   transition: opacity 0.2s;
+  margin-top: 10px;
 }
 
 .close-btn:hover {
@@ -246,64 +218,53 @@ body.hide-cursor {
 }
 </style>
 </head>
+
 <body>
 
-  <!-- Controls -->
-  <div class="controls">
-    <button class="icon-btn" id="fullscreen-btn" title="Fullscreen">⛶</button>
-    <button class="icon-btn" id="settings-btn" title="Settings">⚙</button>
-  </div>
+<!-- Top Left Date & Day -->
+<div id="date-day"></div>
 
-  <!-- Settings Modal -->
-  <div class="modal-overlay" id="settings-modal">
-    <div class="modal">
-      <h2>Clock Preferences</h2>
-      
-      <div class="setting-row">
-        <label for="toggle-12hr">12-Hour Time (AM/PM)</label>
-        <input type="checkbox" id="toggle-12hr">
-      </div>
-      
-      <div class="setting-row">
-        <label for="toggle-seconds">Show Seconds</label>
-        <input type="checkbox" id="toggle-seconds" checked>
-      </div>
+<!-- Top Right Button Controls -->
+<div class="controls">
+  <button class="icon-btn" id="fullscreen-btn" title="Fullscreen">⛶</button>
+  <button class="icon-btn" id="settings-btn" title="Settings">⚙</button>
+</div>
 
-      <div class="setting-row">
-        <label for="toggle-oled">OLED Burn-in Protection</label>
-        <input type="checkbox" id="toggle-oled" checked>
-      </div>
-
-      <button class="close-btn" id="close-settings">Done</button>
-    </div>
-  </div>
-
-  <!-- Main Viewport -->
-  <div class="app-viewport" id="viewport">
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <h2>Clock Settings</h2>
     
-    <header class="header-bar">
-      <div id="date-day"></div>
-    </header>
+    <div class="setting-row">
+      <label for="toggle-12hr">12-Hour Time (AM/PM)</label>
+      <input type="checkbox" id="toggle-12hr">
+    </div>
+    
+    <div class="setting-row">
+      <label for="toggle-seconds">Show Seconds</label>
+      <input type="checkbox" id="toggle-seconds" checked>
+    </div>
 
-    <main class="clock-stage">
-      <div class="time-wrapper">
-        <div id="time">00:00</div>
-        <div class="sub-indicators">
-          <div id="ampm"></div>
-          <div id="seconds">00</div>
-        </div>
-      </div>
-    </main>
+    <div class="setting-row">
+      <label for="toggle-oled">OLED Burn-in Protection</label>
+      <input type="checkbox" id="toggle-oled" checked>
+    </div>
 
-    <!-- Empty footer row to keep vertical grid centered -->
-    <footer></footer>
-
+    <button class="close-btn" id="close-settings">Save & Close</button>
   </div>
+</div>
+
+<div class="container">
+  <div class="clock-wrapper">
+    <div id="time"></div>
+    <div id="seconds"></div>
+  </div>
+</div>
 
 <script>
-/* ==========================================================================
-   1. STATE & SETTINGS
-   ========================================================================== */
+// ==========================================================================
+// 1. SETTINGS MANAGEMENT
+// ==========================================================================
 const settingsBtn = document.getElementById("settings-btn");
 const settingsModal = document.getElementById("settings-modal");
 const closeSettingsBtn = document.getElementById("close-settings");
@@ -341,71 +302,87 @@ closeSettingsBtn.addEventListener("click", (e) => {
   updateClock();
 });
 
-/* ==========================================================================
-   2. DYNAMIC FONT SCALING (Pro Edge-to-Edge Algorithm)
-   ========================================================================== */
+// ==========================================================================
+// 2. STABLE DYNAMIC FONT SCALING
+// ==========================================================================
 function scaleFontSize() {
   const timeEl = document.getElementById("time");
   const charCount = timeEl.innerText.length || 5;
   
-  // Calculate optimal font size dynamically based on viewport width/height
-  const vwSize = 88 / (charCount * 0.44);
-  const vhSize = 62; 
+  // Safe formula that prevents text from ever overflowing the viewport
+  const widthBasedSize = (94 / (charCount * 0.52));
+  const heightBasedSize = 75;
   
-  timeEl.style.fontSize = `${Math.min(vwSize, vhSize)}vw`;
+  const finalSize = Math.min(widthBasedSize, heightBasedSize);
+  timeEl.style.fontSize = `${finalSize}vw`;
 }
 
-/* ==========================================================================
-   3. CLOCK CORE
-   ========================================================================== */
+// ==========================================================================
+// 3. CLOCK LOGIC
+// ==========================================================================
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 function updateClock() {
   const now = new Date();
   let hNum = now.getHours();
-  let ampmStr = "";
+  let ampm = "";
 
   if (settings.is12Hour) {
-    ampmStr = hNum >= 12 ? "PM" : "AM";
+    ampm = hNum >= 12 ? " PM" : " AM";
     hNum = hNum % 12 || 12;
   }
 
-  const h = String(hNum).padStart(2, "0");
-  const m = String(now.getMinutes()).padStart(2, "0");
-  const s = String(now.getSeconds()).padStart(2, "0");
+  let h = String(hNum).padStart(2, "0");
+  let m = String(now.getMinutes()).padStart(2, "0");
+  let s = String(now.getSeconds()).padStart(2, "0");
 
-  document.getElementById("time").textContent = `${h}:${m}`;
+  let ampmHTML = ampm ? `<span style="font-size:0.3em; margin-left:0.1em; vertical-align:top;">${ampm}</span>` : "";
 
-  const ampmEl = document.getElementById("ampm");
-  if (ampmStr) {
-    ampmEl.style.display = "block";
-    ampmEl.textContent = ampmStr;
-  } else {
-    ampmEl.style.display = "none";
-  }
+  // Main HH:MM
+  document.getElementById("time").innerHTML = `${h}:${m}${ampmHTML}`;
 
+  // Bottom-Right Seconds
   const secondsEl = document.getElementById("seconds");
   if (settings.showSeconds) {
     secondsEl.style.display = "block";
-    secondsEl.textContent = s;
+    secondsEl.textContent = `:${s}`;
   } else {
     secondsEl.style.display = "none";
   }
 
-  document.getElementById("date-day").textContent = 
-    `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()} — ${days[now.getDay()]}`;
+  // Top-Left Date & Day
+  document.getElementById("date-day").textContent =
+    `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()} | ${days[now.getDay()]}`;
 
   scaleFontSize();
 }
 
 window.addEventListener("resize", scaleFontSize);
+
 updateClock();
 setInterval(updateClock, 1000);
 
-/* ==========================================================================
-   4. FULLSCREEN & APPLE HOME SCREEN SUPPORT
-   ========================================================================== */
+// ==========================================================================
+// 4. KEEP SCREEN AWAKE
+// ==========================================================================
+let wakeLock = null;
+async function keepAwake() {
+  try {
+    if ("wakeLock" in navigator) {
+      wakeLock = await navigator.wakeLock.request("screen");
+    }
+  } catch (e) {}
+}
+keepAwake();
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") keepAwake();
+});
+
+// ==========================================================================
+// 5. FULLSCREEN (iPhone Support)
+// ==========================================================================
 const isIPhone = /iPhone/i.test(navigator.userAgent);
 
 function goFullscreen() {
@@ -433,19 +410,9 @@ if (!isIPhone) {
   setTimeout(goFullscreen, 5000);
 }
 
-/* ==========================================================================
-   5. OLED PIXEL SHIFTING & INACTIVITY CURSOR
-   ========================================================================== */
-setInterval(() => {
-  if (settings.oledProtection) {
-    const x = Math.floor(Math.random() * 15) - 7;
-    const y = Math.floor(Math.random() * 15) - 7;
-    document.getElementById("viewport").style.transform = `translate(${x}px, ${y}px)`;
-  } else {
-    document.getElementById("viewport").style.transform = "translate(0px, 0px)";
-  }
-}, 60000);
-
+// ==========================================================================
+// 6. AUTO-HIDE CURSOR
+// ==========================================================================
 let cursorTimer;
 document.addEventListener("mousemove", () => {
   document.body.classList.remove("hide-cursor");
@@ -457,25 +424,22 @@ document.addEventListener("mousemove", () => {
   }, 3000);
 });
 
-/* ==========================================================================
-   6. KEEP AWAKE LOCK
-   ========================================================================== */
-let wakeLock = null;
-async function keepAwake() {
-  try {
-    if ("wakeLock" in navigator) {
-      wakeLock = await navigator.wakeLock.request("screen");
-    }
-  } catch (e) {}
-}
-keepAwake();
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") keepAwake();
-});
+// ==========================================================================
+// 7. OLED BURN-IN PROTECTION
+// ==========================================================================
+setInterval(() => {
+  if (settings.oledProtection) {
+    const x = Math.floor(Math.random() * 21) - 10;
+    const y = Math.floor(Math.random() * 21) - 10;
+    document.querySelector(".container").style.transform = `translate(${x}px, ${y}px)`;
+  } else {
+    document.querySelector(".container").style.transform = "translate(0px, 0px)";
+  }
+}, 60000);
 
-/* ==========================================================================
-   7. BACKGROUND GITHUB UPDATE CHECKER
-   ========================================================================== */
+// ==========================================================================
+// 8. BACKGROUND GITHUB UPDATE CHECKER
+// ==========================================================================
 const FILE_URL = "https://gaikwadsambhaji5.github.io/clock/index.html";
 let lastContentHash = "";
 
@@ -492,7 +456,11 @@ function hashCode(str) {
 async function checkUpdate() {
   try {
     const fetchUrl = FILE_URL + "?t=" + new Date().getTime();
-    const response = await fetch(fetchUrl, { method: "GET", cache: "no-store" });
+    const response = await fetch(fetchUrl, {
+      method: "GET",
+      cache: "no-store"
+    });
+
     if (!response.ok) return;
 
     const text = await response.text();
