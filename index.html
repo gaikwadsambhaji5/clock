@@ -51,6 +51,7 @@
             font-size: 1.8rem;
             font-weight: 800;
             letter-spacing: 1px;
+            transition: opacity 0.5s ease;
         }
 
         .header-right {
@@ -58,6 +59,7 @@
             grid-row: 1 / 2;
             display: flex;
             align-items: center;
+            transition: opacity 0.5s ease;
         }
 
         /* MESSAGE AREA */
@@ -99,7 +101,7 @@
             100% { transform: translate(-100%, 0); }
         }
 
-        /* --- LEFT SIDE: GIANT DESK CLOCK (#Image 01) --- */
+        /* --- CLOCK CONTAINER (NORMAL VS FULLSCREEN CENTERED) --- */
         .clock-container {
             grid-column: 1 / 2;
             grid-row: 2 / 3;
@@ -108,12 +110,32 @@
             justify-content: center;
             line-height: 0.82;
             user-select: none;
+            transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .clock-time {
             font-size: 14.5vw;
             font-weight: 900;
             letter-spacing: -3px;
+            transition: font-size 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /* FULLSCREEN CENTERED CLOCK OVERRIDE */
+        .clock-container.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--bg-color);
+            z-index: 1000;
+        }
+
+        .clock-container.fullscreen .clock-time {
+            font-size: 27vw; /* Massive centered font */
+            letter-spacing: -6px;
         }
 
         /* --- RIGHT SIDE: DYNAMIC CARDS (#Image 02, etc.) --- */
@@ -268,26 +290,26 @@
 
     <div class="dashboard">
         <!-- TOP LEFT: DATE DISPLAY -->
-        <div class="header-left">
+        <div class="header-left" id="headerLeft">
             <span id="dateDisplay">31/07/1996 | FRIDAY</span>
         </div>
 
         <!-- TOP RIGHT: MESSAGE AREA -->
-        <div class="header-right">
+        <div class="header-right" id="headerRight">
             <div id="messageArea" class="message-area">
                 <div id="messageText" class="message-text">*MESSAGE AREA*</div>
             </div>
         </div>
 
-        <!-- BOTTOM LEFT: DESK CLOCK (#Image 01) -->
-        <div class="clock-container">
+        <!-- BOTTOM LEFT: DESK CLOCK (#Image 01 / FULLSCREEN CLOCK) -->
+        <div class="clock-container" id="clockContainer">
             <div id="timeDisplay" class="clock-time">12:33</div>
         </div>
 
         <!-- BOTTOM RIGHT: MODE SWITCHER CARDS -->
         <div class="card-container">
 
-            <!-- MODE 1: CLOCK ONLY (#Image 01 - Right side remains blank) -->
+            <!-- MODE 1: CLOCK ONLY (Right side remains blank) -->
             <div id="panel-clock-only" class="view-panel active"></div>
 
             <!-- MODE 2 & 4 & 6: COMMUTE & RETURN HOME (#Image 02) -->
@@ -388,13 +410,13 @@
         const OFFICE_LAT = 19.829540680618862;
         const OFFICE_LNG = 75.19337422921791;
 
-        // --- STATE & EXPIRATION LOCKS (FIX FOR RESET TIMERS) ---
+        // --- STATE & EXPIRATION LOCKS ---
         let TOTAL_ROAD_KM = 8.90;
 
         // Mode Expiration Tracking
         let currentMode = "";
-        let modeExpiryTime = 0; // Timestamp when the current mode should expire and revert to CLOCK
-        let expiredModes = new Set(); // Keeps track of modes we already timed out so 5s polling doesn't re-trigger them
+        let modeExpiryTime = 0;
+        let expiredModes = new Set();
 
         // Message Expiration Tracking
         let lastServerMessage = "";
@@ -454,14 +476,14 @@
             const minutes = String(now.getMinutes()).padStart(2, '0');
             document.getElementById('timeDisplay').textContent = `${hours}:${minutes}`;
 
-            // --- LOCAL EXPIRATION CHECKER (RUNS EVERY SECOND) ---
+            // --- LOCAL EXPIRATION CHECKER ---
             const currentTime = Date.now();
 
-            // 1. Check Mode Expiry (Welcome / Office Arrived)
+            // 1. Check Mode Expiry (Welcome / Office Arrived -> Reverts to FULLSCREEN CLOCK)
             if (modeExpiryTime > 0 && currentTime >= modeExpiryTime) {
-                expiredModes.add(currentMode); // Lock out this mode until server changes it
+                expiredModes.add(currentMode);
                 modeExpiryTime = 0;
-                switchPanel('panel-clock-only');
+                switchPanel('panel-clock-only', true); // Pass true to enable centered fullscreen clock
             }
 
             // 2. Check Message Expiry
@@ -487,7 +509,6 @@
             const area = document.getElementById('messageArea');
             const textEl = document.getElementById('messageText');
 
-            // If empty message from server, reset everything
             if (!msg || msg.trim() === "") {
                 lastServerMessage = "";
                 isMessageExpired = false;
@@ -496,7 +517,6 @@
                 return;
             }
 
-            // If the server sends a BRAND NEW message, reset the 3-minute timer
             if (msg !== lastServerMessage) {
                 lastServerMessage = msg;
                 isMessageExpired = false;
@@ -510,13 +530,11 @@
                 }
             }
 
-            // If the message has already expired locally, ignore the server's payload
             if (isMessageExpired) {
                 clearMessageUI();
                 return;
             }
 
-            // Apply blinking state if active
             if (blinkFlag === true || blinkFlag === "true") {
                 area.classList.add('blink');
             } else {
@@ -524,12 +542,22 @@
             }
         }
 
-        // --- 6. PANEL SWITCHER ---
-        function switchPanel(panelId) {
+        // --- 6. PANEL & FULLSCREEN CLOCK SWITCHER ---
+        function switchPanel(panelId, enableFullscreenClock = false) {
             const panels = document.querySelectorAll('.view-panel');
             panels.forEach(p => p.classList.remove('active'));
+            
             const target = document.getElementById(panelId);
             if (target) target.classList.add('active');
+
+            const clockContainer = document.getElementById('clockContainer');
+            
+            // If CLOCK only mode OR timed out -> Expand time to dead center of entire screen
+            if (enableFullscreenClock || panelId === 'panel-clock-only') {
+                clockContainer.classList.add('fullscreen');
+            } else {
+                clockContainer.classList.remove('fullscreen');
+            }
         }
 
         // --- 7. SMART COORDINATE & ADDRESS PARSER ---
@@ -584,14 +612,12 @@
 
                 const mode = (data.mode || "CLOCK").toUpperCase();
 
-                // If mode changed on the server, clear out expired locks so it can trigger again later
                 if (mode !== currentMode) {
                     currentMode = mode;
                     expiredModes.delete(mode);
-                    modeExpiryTime = 0; // Reset expiry
+                    modeExpiryTime = 0;
                 }
 
-                // Process Message Banner (with local expiration protection)
                 updateMessageArea(data.message, data.blink);
 
                 const cleanCoords = formatCoordinates(data.lat, data.lon || data.lng);
@@ -604,29 +630,27 @@
                     cleanBattery = String(data.battery).includes('%') ? String(data.battery) : `${data.battery}%`;
                 }
 
-                // --- MODE ROUTING & TIMEOUT ENFORCEMENT ---
-
-                // If this mode has ALREADY expired locally, force default clock screen and ignore server
+                // --- TIMEOUT & OVERRIDE PROTECTION ---
+                // If mode timed out, lock into centered fullscreen clock
                 if (expiredModes.has(mode)) {
-                    switchPanel('panel-clock-only');
+                    switchPanel('panel-clock-only', true);
                     return;
                 }
 
-                // --- MODE 1: CLOCK ONLY ---
+                // --- MODE 1: CLOCK ONLY (FULLSCREEN CENTERED CLOCK) ---
                 if (mode === "CLOCK") {
-                    switchPanel('panel-clock-only');
+                    switchPanel('panel-clock-only', true);
                 } 
-                // --- MODE 2: WELCOME HOME (10 MINUTE LOCK) ---
+                // --- MODE 2: WELCOME HOME ---
                 else if (mode === "WELCOME") {
-                    switchPanel('panel-welcome');
-                    // Start 10-minute timer ONLY if not already ticking
+                    switchPanel('panel-welcome', false);
                     if (modeExpiryTime === 0) {
                         modeExpiryTime = Date.now() + 600000; // 10 Minutes = 600,000ms
                     }
                 } 
                 // --- MODE 3: DRIVE MODE ---
                 else if (mode === "DRIVE") {
-                    switchPanel('panel-drive');
+                    switchPanel('panel-drive', false);
                     document.getElementById('uiDriveSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
                     document.getElementById('uiDriveBattery').textContent = `Battery ${cleanBattery}`;
                     document.getElementById('uiDriveTotalDist').textContent = `${data.totalDist || '0.00'} Km`;
@@ -637,7 +661,7 @@
                 } 
                 // --- MODE 4: DRIVING TO OFFICE ---
                 else if (mode === "TO_OFFICE") {
-                    switchPanel('panel-commute');
+                    switchPanel('panel-commute', false);
                     document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
                     document.getElementById('uiBattery').textContent = `Battery ${cleanBattery}`;
                     document.getElementById('uiFromLabel').textContent = "HOME";
@@ -647,9 +671,9 @@
                     document.getElementById('uiLocName').textContent = cleanLocName;
                     document.getElementById('uiLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
                 } 
-                // --- MODE 5: ARRIVED AT OFFICE (3 MINUTE LOCK) ---
+                // --- MODE 5: ARRIVED AT OFFICE ---
                 else if (mode === "OFFICE_ARRIVED") {
-                    switchPanel('panel-commute');
+                    switchPanel('panel-commute', false);
                     updateMessageArea("ARRIVED AT OFFICE! HAVE A GREAT DAY!", true);
                     
                     document.getElementById('uiFromLabel').textContent = "HOME";
@@ -661,14 +685,13 @@
                     document.getElementById('uiLocName').textContent = "OFFICE";
                     document.getElementById('uiCoords').textContent = cleanCoords;
                     
-                    // Start 3-minute timer ONLY if not already ticking
                     if (modeExpiryTime === 0) {
                         modeExpiryTime = Date.now() + 180000; // 3 Minutes = 180,000ms
                     }
                 } 
                 // --- MODE 6: DRIVING HOME FROM OFFICE ---
                 else {
-                    switchPanel('panel-commute');
+                    switchPanel('panel-commute', false);
                     document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
                     document.getElementById('uiBattery').textContent = `Battery ${cleanBattery}`;
                     document.getElementById('uiFromLabel').textContent = "OFFICE";
