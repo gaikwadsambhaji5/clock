@@ -125,7 +125,7 @@
         <div class="distance-display">
             <span id="distanceValue">--</span><span class="unit">km</span>
         </div>
-        <div class="label">Distance from Home</div>
+        <div class="label">Road Distance from Home</div>
 
         <div class="details-grid">
             <div class="detail-card">
@@ -148,9 +148,9 @@
         const HOME_LON = 75.243806;
         const REFRESH_RATE_MS = 10000; // Refreshes every 10 seconds
 
-        // 2. HAVERSINE DISTANCE FORMULA (Calculates km between two GPS coordinates)
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Earth's radius in km
+        // 2. BACKUP STRAIGHT-LINE FORMULA (In case routing API is temporarily offline)
+        function calculateStraightLineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; 
             const dLat = (lat2 - lat1) * (Math.PI / 180);
             const dLon = (lon2 - lon1) * (Math.PI / 180);
             const a = 
@@ -158,31 +158,51 @@
                 Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
                 Math.sin(dLon / 2) * Math.sin(dLon / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return (R * c).toFixed(2); // Returns distance fixed to 2 decimal places
+            return (R * c).toFixed(2);
         }
 
-        // 3. UPDATE THE DASHBOARD UI
-        function updateUI(lat, lon, timeStr) {
-            const distance = calculateDistance(lat, lon, HOME_LAT, HOME_LON);
+        // 3. FREE ROAD ROUTING API (OSRM)
+        async function getRoadDistance(lat1, lon1, lat2, lon2) {
+            try {
+                // OSRM API expects coordinates in format: longitude,latitude
+                const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.routes && data.routes.length > 0) {
+                    // OSRM returns road distance in meters -> Convert to km
+                    const roadKm = (data.routes[0].distance / 1000).toFixed(2);
+                    return roadKm;
+                }
+            } catch (error) {
+                console.warn("Road routing API failed, falling back to straight-line distance:", error);
+            }
+            
+            // Fallback to straight line if the network request fails
+            return calculateStraightLineDistance(lat1, lon1, lat2, lon2);
+        }
 
-            // Update text elements
+        // 4. UPDATE THE DASHBOARD UI
+        async function updateUI(lat, lon, timeStr) {
+            // Fetch real street road distance
+            const distance = await getRoadDistance(lat, lon, HOME_LAT, HOME_LON);
+
             document.getElementById('distanceValue').textContent = distance;
             document.getElementById('latValue').textContent = lat.toFixed(4);
             document.getElementById('lonValue').textContent = lon.toFixed(4);
             document.getElementById('timeValue').textContent = `Last updated: ${timeStr || 'Just now'}`;
 
-            // Update status badge based on distance
             const statusBadge = document.getElementById('statusBadge');
             if (distance < 0.20) {
                 statusBadge.textContent = '🏡 Arrived at Home';
                 statusBadge.classList.add('home');
             } else {
-                statusBadge.textContent = '🚗 On The Way';
+                statusBadge.textContent = '🚗 On The Road';
                 statusBadge.classList.remove('home');
             }
         }
 
-        // 4. FETCH DATA FROM GOOGLE APPS SCRIPT
+        // 5. FETCH DATA FROM GOOGLE APPS SCRIPT
         async function fetchLocation() {
             try {
                 const response = await fetch(GOOGLE_SCRIPT_URL);
@@ -205,7 +225,7 @@
             }
         }
 
-        // 5. INITIALIZE AND AUTO-REFRESH
+        // 6. INITIALIZE AND AUTO-REFRESH
         fetchLocation();
         setInterval(fetchLocation, REFRESH_RATE_MS);
     </script>
