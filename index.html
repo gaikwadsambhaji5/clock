@@ -388,8 +388,10 @@
         const OFFICE_LAT = 19.829540680618862;
         const OFFICE_LNG = 75.19337422921791;
 
-        let autoResetTimer = null;
-        let TOTAL_ROAD_KM = 8.90; // Locked typical road commute distance
+        // --- TIMERS FOR AUTOMATIC UI RESETS ---
+        let autoResetTimer = null;    // Controls 10-Min Welcome Home & 3-Min Office Arrived
+        let messageResetTimer = null; // Controls 3-Min Custom Message removal
+        let TOTAL_ROAD_KM = 8.90;     // Locked typical road commute distance
 
         // --- 2. STRAIGHT-LINE DISTANCE CHECK ---
         function calculateStraightDistance(lat1, lon1, lat2, lon2) {
@@ -447,19 +449,25 @@
         setInterval(updateDeskClock, 1000);
         updateDeskClock();
 
-        // --- 5. MESSAGE AREA HANDLER ---
+        // --- 5. MESSAGE AREA HANDLER (WITH 3-MINUTE AUTO-REMOVE TIMER) ---
         let lastMessage = "";
         function updateMessageArea(msg, blinkFlag) {
             const area = document.getElementById('messageArea');
             const textEl = document.getElementById('messageText');
 
+            // If empty message, clear banner immediately
             if (!msg || msg.trim() === "") {
                 textEl.textContent = "*MESSAGE AREA*";
                 area.classList.remove('blink');
                 textEl.classList.remove('scroll');
+                if (messageResetTimer) {
+                    clearTimeout(messageResetTimer);
+                    messageResetTimer = null;
+                }
                 return;
             }
 
+            // When a NEW custom message arrives, display it and start a 3-minute timer
             if (msg !== lastMessage) {
                 textEl.textContent = msg.toUpperCase();
                 lastMessage = msg;
@@ -468,6 +476,16 @@
                 } else {
                     textEl.classList.remove('scroll');
                 }
+
+                // Reset existing message timer and set for 3 minutes (180,000 ms)
+                if (messageResetTimer) clearTimeout(messageResetTimer);
+                messageResetTimer = setTimeout(() => {
+                    textEl.textContent = "*MESSAGE AREA*";
+                    area.classList.remove('blink');
+                    textEl.classList.remove('scroll');
+                    lastMessage = "";
+                    messageResetTimer = null;
+                }, 180000); // 3 Minutes = 180,000ms
             }
 
             if (blinkFlag === true || blinkFlag === "true") {
@@ -502,7 +520,7 @@
             return locNameRaw || "Unknown Location";
         }
 
-        // --- 8. SMART COMMUTE PROGRESS CALCULATOR (WORKS BOTH DIRECTIONS!) ---
+        // --- 8. SMART COMMUTE PROGRESS CALCULATOR ---
         async function updateCommuteUI(curLat, curLng, targetLat, targetLng, originLat, originLng) {
             let dist = TOTAL_ROAD_KM;
             let progressPct = 0;
@@ -511,17 +529,17 @@
                 const distFromStart = calculateStraightDistance(curLat, curLng, originLat, originLng);
                 const distFromTarget = calculateStraightDistance(curLat, curLng, targetLat, targetLng);
                 
-                // 1. If you are already within 150m of your DESTINATION (e.g. testing while at Office)
+                // 1. If within 150m of DESTINATION -> Snap to 100%
                 if (distFromTarget < 0.15) {
                     dist = 0.00;
                     progressPct = 100;
                 }
-                // 2. If you are within 150m of your STARTING POINT (Snap to 0%)
+                // 2. If within 150m of STARTING POINT -> Snap to 0%
                 else if (distFromStart < 0.15) {
                     dist = TOTAL_ROAD_KM;
                     progressPct = 0;
                 } 
-                // 3. Normal live road routing while driving
+                // 3. Live OSRM Road Distance
                 else {
                     dist = await getRoadDistance(curLat, curLng, targetLat, targetLng);
                     progressPct = Math.min(Math.max(((TOTAL_ROAD_KM - dist) / TOTAL_ROAD_KM) * 100, 0), 100);
@@ -540,32 +558,42 @@
                 if (!res.ok) return;
                 const data = await res.json();
 
-                if (autoResetTimer && data.mode !== "OFFICE_ARRIVED") {
+                const mode = (data.mode || "CLOCK").toUpperCase();
+
+                // If new active commute/drive data comes in, cancel any active UI reset timer
+                if (autoResetTimer && mode !== "WELCOME" && mode !== "OFFICE_ARRIVED") {
                     clearTimeout(autoResetTimer);
                     autoResetTimer = null;
                 }
 
                 updateMessageArea(data.message, data.blink);
-                const mode = (data.mode || "CLOCK").toUpperCase();
 
                 const cleanCoords = formatCoordinates(data.lat, data.lon || data.lng);
                 const cleanLocName = getCleanLocationName(data.locName, data.lon || data.lng);
                 const curLat = parseFloat(data.lat);
                 const curLng = parseFloat(data.lon || data.lng);
 
-                // Format battery cleanly whether it comes as "85" or "85%"
                 let cleanBattery = "--%";
                 if (data.battery !== undefined && data.battery !== null && String(data.battery).trim() !== "") {
                     cleanBattery = String(data.battery).includes('%') ? String(data.battery) : `${data.battery}%`;
                 }
 
-                // MODE 1: CLOCK ONLY (#Image 01)
+                // --- MODE 1: CLOCK ONLY (#Image 01) ---
                 if (mode === "CLOCK") {
                     switchPanel('panel-clock-only');
                 } 
+                // --- MODE 2: WELCOME HOME (HOLDS FOR 10 MINUTES THEN RESTORES #Image 01) ---
                 else if (mode === "WELCOME") {
                     switchPanel('panel-welcome');
+
+                    if (!autoResetTimer) {
+                        autoResetTimer = setTimeout(() => {
+                            switchPanel('panel-clock-only');
+                            autoResetTimer = null;
+                        }, 600000); // 10 Minutes = 600,000ms
+                    }
                 } 
+                // --- MODE 3: DRIVE MODE ---
                 else if (mode === "DRIVE") {
                     switchPanel('panel-drive');
                     document.getElementById('uiDriveSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
@@ -576,7 +604,7 @@
                     document.getElementById('uiDriveLocName').textContent = cleanLocName;
                     document.getElementById('uiDriveLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
                 } 
-                // --- MODE 2: DRIVING FROM HOME TO OFFICE (#Image 02) ---
+                // --- MODE 4: DRIVING FROM HOME TO OFFICE (#Image 02) ---
                 else if (mode === "TO_OFFICE") {
                     switchPanel('panel-commute');
                     document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
@@ -584,14 +612,13 @@
                     document.getElementById('uiFromLabel').textContent = "HOME";
                     document.getElementById('uiToLabel').textContent = "OFFICE";
 
-                    // Smart Commute: Origin = HOME, Target = OFFICE
                     await updateCommuteUI(curLat, curLng, OFFICE_LAT, OFFICE_LNG, HOME_LAT, HOME_LNG);
 
                     document.getElementById('uiCoords').textContent = cleanCoords;
                     document.getElementById('uiLocName').textContent = cleanLocName;
                     document.getElementById('uiLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
                 }
-                // --- MODE 3: ARRIVED AT OFFICE (HOLDS FOR 2 MINUTES THEN RESTORES #Image 01) ---
+                // --- MODE 5: ARRIVED AT OFFICE (HOLDS FOR 3 MINUTES THEN RESTORES #Image 01) ---
                 else if (mode === "OFFICE_ARRIVED") {
                     switchPanel('panel-commute');
                     updateMessageArea("ARRIVED AT OFFICE! HAVE A GREAT DAY!", true);
@@ -607,12 +634,11 @@
                     if (!autoResetTimer) {
                         autoResetTimer = setTimeout(() => {
                             switchPanel('panel-clock-only');
-                            updateMessageArea("", false);
                             autoResetTimer = null;
-                        }, 120000);
+                        }, 180000); // 3 Minutes = 180,000ms
                     }
                 }
-                // --- MODE 4: DRIVING HOME FROM OFFICE ---
+                // --- MODE 6: DRIVING HOME FROM OFFICE ---
                 else {
                     switchPanel('panel-commute');
                     document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
@@ -620,7 +646,6 @@
                     document.getElementById('uiFromLabel').textContent = data.fromLabel || 'OFFICE';
                     document.getElementById('uiToLabel').textContent = data.toLabel || 'HOME';
 
-                    // Smart Commute: Origin = OFFICE, Target = HOME
                     await updateCommuteUI(curLat, curLng, HOME_LAT, HOME_LNG, OFFICE_LAT, OFFICE_LNG);
 
                     document.getElementById('uiCoords').textContent = cleanCoords;
