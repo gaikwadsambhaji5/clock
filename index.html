@@ -388,10 +388,18 @@
         const OFFICE_LAT = 19.829540680618862;
         const OFFICE_LNG = 75.19337422921791;
 
-        // --- TIMERS FOR AUTOMATIC UI RESETS ---
-        let autoResetTimer = null;    // Controls 10-Min Welcome Home & 3-Min Office Arrived
-        let messageResetTimer = null; // Controls 3-Min Custom Message removal
-        let TOTAL_ROAD_KM = 8.90;     // Locked typical road commute distance
+        // --- STATE & EXPIRATION LOCKS (FIX FOR RESET TIMERS) ---
+        let TOTAL_ROAD_KM = 8.90;
+
+        // Mode Expiration Tracking
+        let currentMode = "";
+        let modeExpiryTime = 0; // Timestamp when the current mode should expire and revert to CLOCK
+        let expiredModes = new Set(); // Keeps track of modes we already timed out so 5s polling doesn't re-trigger them
+
+        // Message Expiration Tracking
+        let lastServerMessage = "";
+        let messageExpiryTime = 0;
+        let isMessageExpired = false;
 
         // --- 2. STRAIGHT-LINE DISTANCE CHECK ---
         function calculateStraightDistance(lat1, lon1, lat2, lon2) {
@@ -445,46 +453,70 @@
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             document.getElementById('timeDisplay').textContent = `${hours}:${minutes}`;
+
+            // --- LOCAL EXPIRATION CHECKER (RUNS EVERY SECOND) ---
+            const currentTime = Date.now();
+
+            // 1. Check Mode Expiry (Welcome / Office Arrived)
+            if (modeExpiryTime > 0 && currentTime >= modeExpiryTime) {
+                expiredModes.add(currentMode); // Lock out this mode until server changes it
+                modeExpiryTime = 0;
+                switchPanel('panel-clock-only');
+            }
+
+            // 2. Check Message Expiry
+            if (messageExpiryTime > 0 && currentTime >= messageExpiryTime) {
+                isMessageExpired = true;
+                messageExpiryTime = 0;
+                clearMessageUI();
+            }
         }
         setInterval(updateDeskClock, 1000);
         updateDeskClock();
 
-        // --- 5. MESSAGE AREA HANDLER (WITH 3-MINUTE AUTO-REMOVE TIMER) ---
-        let lastMessage = "";
+        // --- 5. MESSAGE AREA HANDLER ---
+        function clearMessageUI() {
+            const area = document.getElementById('messageArea');
+            const textEl = document.getElementById('messageText');
+            textEl.textContent = "*MESSAGE AREA*";
+            area.classList.remove('blink');
+            textEl.classList.remove('scroll');
+        }
+
         function updateMessageArea(msg, blinkFlag) {
             const area = document.getElementById('messageArea');
             const textEl = document.getElementById('messageText');
 
+            // If empty message from server, reset everything
             if (!msg || msg.trim() === "") {
-                textEl.textContent = "*MESSAGE AREA*";
-                area.classList.remove('blink');
-                textEl.classList.remove('scroll');
-                if (messageResetTimer) {
-                    clearTimeout(messageResetTimer);
-                    messageResetTimer = null;
-                }
+                lastServerMessage = "";
+                isMessageExpired = false;
+                messageExpiryTime = 0;
+                clearMessageUI();
                 return;
             }
 
-            if (msg !== lastMessage) {
+            // If the server sends a BRAND NEW message, reset the 3-minute timer
+            if (msg !== lastServerMessage) {
+                lastServerMessage = msg;
+                isMessageExpired = false;
+                messageExpiryTime = Date.now() + 180000; // 3 Minutes from now
+
                 textEl.textContent = msg.toUpperCase();
-                lastMessage = msg;
                 if (msg.length > 22) {
                     textEl.classList.add('scroll');
                 } else {
                     textEl.classList.remove('scroll');
                 }
-
-                if (messageResetTimer) clearTimeout(messageResetTimer);
-                messageResetTimer = setTimeout(() => {
-                    textEl.textContent = "*MESSAGE AREA*";
-                    area.classList.remove('blink');
-                    textEl.classList.remove('scroll');
-                    lastMessage = "";
-                    messageResetTimer = null;
-                }, 180000); // 3 Minutes = 180,000ms
             }
 
+            // If the message has already expired locally, ignore the server's payload
+            if (isMessageExpired) {
+                clearMessageUI();
+                return;
+            }
+
+            // Apply blinking state if active
             if (blinkFlag === true || blinkFlag === "true") {
                 area.classList.add('blink');
             } else {
@@ -526,18 +558,13 @@
                 const distFromStart = calculateStraightDistance(curLat, curLng, originLat, originLng);
                 const distFromTarget = calculateStraightDistance(curLat, curLng, targetLat, targetLng);
                 
-                // 1. If within 150m of DESTINATION -> Snap to 100%
                 if (distFromTarget < 0.15) {
                     dist = 0.00;
                     progressPct = 100;
-                }
-                // 2. If within 150m of STARTING POINT -> Snap to 0%
-                else if (distFromStart < 0.15) {
+                } else if (distFromStart < 0.15) {
                     dist = TOTAL_ROAD_KM;
                     progressPct = 0;
-                } 
-                // 3. Live OSRM Road Distance
-                else {
+                } else {
                     dist = await getRoadDistance(curLat, curLng, targetLat, targetLng);
                     progressPct = Math.min(Math.max(((TOTAL_ROAD_KM - dist) / TOTAL_ROAD_KM) * 100, 0), 100);
                 }
@@ -557,11 +584,14 @@
 
                 const mode = (data.mode || "CLOCK").toUpperCase();
 
-                if (autoResetTimer && mode !== "WELCOME" && mode !== "OFFICE_ARRIVED") {
-                    clearTimeout(autoResetTimer);
-                    autoResetTimer = null;
+                // If mode changed on the server, clear out expired locks so it can trigger again later
+                if (mode !== currentMode) {
+                    currentMode = mode;
+                    expiredModes.delete(mode);
+                    modeExpiryTime = 0; // Reset expiry
                 }
 
+                // Process Message Banner (with local expiration protection)
                 updateMessageArea(data.message, data.blink);
 
                 const cleanCoords = formatCoordinates(data.lat, data.lon || data.lng);
@@ -574,19 +604,24 @@
                     cleanBattery = String(data.battery).includes('%') ? String(data.battery) : `${data.battery}%`;
                 }
 
-                // --- MODE 1: CLOCK ONLY (#Image 01) ---
+                // --- MODE ROUTING & TIMEOUT ENFORCEMENT ---
+
+                // If this mode has ALREADY expired locally, force default clock screen and ignore server
+                if (expiredModes.has(mode)) {
+                    switchPanel('panel-clock-only');
+                    return;
+                }
+
+                // --- MODE 1: CLOCK ONLY ---
                 if (mode === "CLOCK") {
                     switchPanel('panel-clock-only');
                 } 
-                // --- MODE 2: WELCOME HOME (HOLDS FOR 10 MINUTES THEN RESTORES #Image 01) ---
+                // --- MODE 2: WELCOME HOME (10 MINUTE LOCK) ---
                 else if (mode === "WELCOME") {
                     switchPanel('panel-welcome');
-
-                    if (!autoResetTimer) {
-                        autoResetTimer = setTimeout(() => {
-                            switchPanel('panel-clock-only');
-                            autoResetTimer = null;
-                        }, 600000); // 10 Minutes = 600,000ms
+                    // Start 10-minute timer ONLY if not already ticking
+                    if (modeExpiryTime === 0) {
+                        modeExpiryTime = Date.now() + 600000; // 10 Minutes = 600,000ms
                     }
                 } 
                 // --- MODE 3: DRIVE MODE ---
@@ -600,29 +635,23 @@
                     document.getElementById('uiDriveLocName').textContent = cleanLocName;
                     document.getElementById('uiDriveLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
                 } 
-                // --- MODE 4: DRIVING FROM HOME TO OFFICE (#Image 02) ---
+                // --- MODE 4: DRIVING TO OFFICE ---
                 else if (mode === "TO_OFFICE") {
                     switchPanel('panel-commute');
                     document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
                     document.getElementById('uiBattery').textContent = `Battery ${cleanBattery}`;
-                    
-                    // FORCE LABELS: HOME -> OFFICE
                     document.getElementById('uiFromLabel').textContent = "HOME";
                     document.getElementById('uiToLabel').textContent = "OFFICE";
-
-                    // SMART CALC: Origin=HOME, Target=OFFICE
                     await updateCommuteUI(curLat, curLng, OFFICE_LAT, OFFICE_LNG, HOME_LAT, HOME_LNG);
-
                     document.getElementById('uiCoords').textContent = cleanCoords;
                     document.getElementById('uiLocName').textContent = cleanLocName;
                     document.getElementById('uiLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
-                }
-                // --- MODE 5: ARRIVED AT OFFICE (HOLDS FOR 3 MINUTES THEN RESTORES #Image 01) ---
+                } 
+                // --- MODE 5: ARRIVED AT OFFICE (3 MINUTE LOCK) ---
                 else if (mode === "OFFICE_ARRIVED") {
                     switchPanel('panel-commute');
                     updateMessageArea("ARRIVED AT OFFICE! HAVE A GREAT DAY!", true);
                     
-                    // FORCE LABELS: HOME -> OFFICE
                     document.getElementById('uiFromLabel').textContent = "HOME";
                     document.getElementById('uiToLabel').textContent = "OFFICE";
                     document.getElementById('uiTotalDist').textContent = `${TOTAL_ROAD_KM} Km`;
@@ -632,26 +661,19 @@
                     document.getElementById('uiLocName').textContent = "OFFICE";
                     document.getElementById('uiCoords').textContent = cleanCoords;
                     
-                    if (!autoResetTimer) {
-                        autoResetTimer = setTimeout(() => {
-                            switchPanel('panel-clock-only');
-                            autoResetTimer = null;
-                        }, 180000); // 3 Minutes = 180,000ms
+                    // Start 3-minute timer ONLY if not already ticking
+                    if (modeExpiryTime === 0) {
+                        modeExpiryTime = Date.now() + 180000; // 3 Minutes = 180,000ms
                     }
-                }
-                // --- MODE 6: DRIVING HOME FROM OFFICE (COMMUTE) ---
+                } 
+                // --- MODE 6: DRIVING HOME FROM OFFICE ---
                 else {
                     switchPanel('panel-commute');
                     document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
                     document.getElementById('uiBattery').textContent = `Battery ${cleanBattery}`;
-                    
-                    // FORCE LABELS: OFFICE -> HOME
                     document.getElementById('uiFromLabel').textContent = "OFFICE";
                     document.getElementById('uiToLabel').textContent = "HOME";
-
-                    // SMART CALC: Origin=OFFICE, Target=HOME
                     await updateCommuteUI(curLat, curLng, HOME_LAT, HOME_LNG, OFFICE_LAT, OFFICE_LNG);
-
                     document.getElementById('uiCoords').textContent = cleanCoords;
                     document.getElementById('uiLocName').textContent = cleanLocName;
                     document.getElementById('uiLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
