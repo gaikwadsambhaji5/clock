@@ -99,7 +99,7 @@
             100% { transform: translate(-100%, 0); }
         }
 
-        /* --- LEFT SIDE: GIANT DESK CLOCK --- */
+        /* --- LEFT SIDE: GIANT DESK CLOCK (#Image 01) --- */
         .clock-container {
             grid-column: 1 / 2;
             grid-row: 2 / 3;
@@ -116,7 +116,7 @@
             letter-spacing: -3px;
         }
 
-        /* --- RIGHT SIDE: DYNAMIC CARDS --- */
+        /* --- RIGHT SIDE: DYNAMIC CARDS (#Image 02, etc.) --- */
         .card-container {
             grid-column: 2 / 3;
             grid-row: 2 / 3;
@@ -135,7 +135,7 @@
             display: flex;
         }
 
-        /* --- TELEMETRY CARD STYLE --- */
+        /* --- TELEMETRY CARD STYLE (#Image 02) --- */
         .telemetry-card {
             background-color: var(--card-bg);
             color: var(--text-dark);
@@ -279,7 +279,7 @@
             </div>
         </div>
 
-        <!-- BOTTOM LEFT: DESK CLOCK -->
+        <!-- BOTTOM LEFT: DESK CLOCK (#Image 01) -->
         <div class="clock-container">
             <div id="timeDisplay" class="clock-time">12:33</div>
         </div>
@@ -287,10 +287,10 @@
         <!-- BOTTOM RIGHT: MODE SWITCHER CARDS -->
         <div class="card-container">
 
-            <!-- MODE 1: CLOCK ONLY -->
+            <!-- MODE 1: CLOCK ONLY (#Image 01 - Right side remains blank) -->
             <div id="panel-clock-only" class="view-panel active"></div>
 
-            <!-- MODE 2 & 4 & 6: COMMUTE & RETURN HOME -->
+            <!-- MODE 2 & 4 & 6: COMMUTE & RETURN HOME (#Image 02) -->
             <div id="panel-commute" class="view-panel">
                 <div class="telemetry-card">
                     <div class="telemetry-top">
@@ -389,9 +389,9 @@
         const OFFICE_LNG = 75.19337422921791;
 
         let autoResetTimer = null;
-        let TOTAL_ROAD_KM = 10.19; // Locked fallback road distance
+        let TOTAL_ROAD_KM = 8.90; // Locked typical road commute distance
 
-        // --- 2. STRAIGHT-LINE DISTANCE CHECK (TO PREVENT STARTING-POINT DRIFT) ---
+        // --- 2. STRAIGHT-LINE DISTANCE CHECK ---
         function calculateStraightDistance(lat1, lon1, lat2, lon2) {
             const R = 6371;
             const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -511,8 +511,8 @@
                 // Check straight-line distance to your starting point
                 const distFromStart = calculateStraightDistance(curLat, curLng, originLat, originLng);
                 
-                // If you are within 400 meters of your starting point, SNAP TO 0%
-                if (distFromStart < 0.4) {
+                // If you are within 150 meters of your starting point, SNAP TO 0%
+                if (distFromStart < 0.15) {
                     dist = TOTAL_ROAD_KM;
                     progressPct = 0;
                 } else {
@@ -534,6 +534,7 @@
                 if (!res.ok) return;
                 const data = await res.json();
 
+                // Reset timer if fresh non-arrival mode data comes in
                 if (autoResetTimer && data.mode !== "OFFICE_ARRIVED") {
                     clearTimeout(autoResetTimer);
                     autoResetTimer = null;
@@ -547,6 +548,7 @@
                 const curLat = parseFloat(data.lat);
                 const curLng = parseFloat(data.lon || data.lng);
 
+                // MODE 1: CLOCK ONLY (#Image 01)
                 if (mode === "CLOCK") {
                     switchPanel('panel-clock-only');
                 } 
@@ -563,7 +565,7 @@
                     document.getElementById('uiDriveLocName').textContent = cleanLocName;
                     document.getElementById('uiDriveLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
                 } 
-                // --- DRIVING FROM HOME TO OFFICE ---
+                // --- MODE 2: DRIVING FROM HOME TO OFFICE (#Image 02) ---
                 else if (mode === "TO_OFFICE") {
                     switchPanel('panel-commute');
                     document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
@@ -578,7 +580,7 @@
                     document.getElementById('uiLocName').textContent = cleanLocName;
                     document.getElementById('uiLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
                 }
-                // --- ARRIVED AT OFFICE ---
+                // --- MODE 3: ARRIVED AT OFFICE (HOLDS FOR 2 MINUTES THEN RESTORES #Image 01) ---
                 else if (mode === "OFFICE_ARRIVED") {
                     switchPanel('panel-commute');
                     updateMessageArea("ARRIVED AT OFFICE! HAVE A GREAT DAY!", true);
@@ -589,6 +591,7 @@
                     document.getElementById('uiProgressBar').style.width = "100%";
                     document.getElementById('uiLocName').textContent = "OFFICE";
                     
+                    // Trigger the 120-second (2-minute) Auto-Reset back to panel-clock-only (#Image 01)
                     if (!autoResetTimer) {
                         autoResetTimer = setTimeout(() => {
                             switchPanel('panel-clock-only');
@@ -597,7 +600,7 @@
                         }, 120000);
                     }
                 }
-                // --- DRIVING HOME FROM OFFICE ---
+                // --- MODE 4: DRIVING HOME FROM OFFICE ---
                 else {
                     switchPanel('panel-commute');
                     document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
