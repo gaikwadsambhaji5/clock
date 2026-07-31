@@ -3,231 +3,511 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Commute Dashboard</title>
+    <title>RealMe Desk Clock & GPS Dashboard</title>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --accent-blue: #38bdf8;
-            --accent-green: #4ade80;
-            --accent-yellow: #facc15;
+            --bg-color: #000000;
+            --text-main: #ffffff;
+            --text-dark: #000000;
+            --accent-green: #00e676;
+            --accent-red: #ff1744;
+            --card-bg: #ffffff;
+            --border-line: #e0e0e0;
         }
 
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
             background-color: var(--bg-color);
-            color: var(--text-primary);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-main);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
             padding: 20px;
         }
 
-        .dashboard-container {
-            background-color: var(--card-bg);
-            border-radius: 24px;
-            padding: 40px;
-            width: 100%;
-            max-width: 480px;
-            text-align: center;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .status-badge {
-            display: inline-block;
-            background-color: rgba(56, 189, 248, 0.15);
-            color: var(--accent-blue);
-            padding: 8px 16px;
-            border-radius: 9999px;
-            font-weight: 600;
-            font-size: 0.875rem;
-            margin-bottom: 24px;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-
-        .status-badge.home {
-            background-color: rgba(74, 222, 128, 0.15);
-            color: var(--accent-green);
-        }
-
-        .distance-display {
-            font-size: 4.5rem;
-            font-weight: 800;
-            line-height: 1;
-            margin-bottom: 8px;
-            color: var(--text-primary);
-        }
-
-        .unit {
-            font-size: 1.5rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-            margin-left: 4px;
-        }
-
-        .label {
-            color: var(--text-secondary);
-            font-size: 1rem;
-            margin-bottom: 32px;
-        }
-
-        .details-grid {
+        /* --- MAIN LAYOUT GRID --- */
+        .dashboard {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding-top: 24px;
+            grid-template-columns: 42% 58%;
+            grid-template-rows: 60px 1fr;
+            width: 100%;
+            height: 100%;
+            gap: 15px 25px;
         }
 
-        .detail-card {
-            background: rgba(15, 23, 42, 0.5);
-            padding: 16px;
-            border-radius: 12px;
+        /* --- TOP HEADER (DATE & MESSAGE AREA) --- */
+        .header-left {
+            grid-column: 1 / 2;
+            grid-row: 1 / 2;
+            display: flex;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: 1px;
         }
 
-        .detail-title {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
+        .header-right {
+            grid-column: 2 / 3;
+            grid-row: 1 / 2;
+            display: flex;
+            align-items: center;
+        }
+
+        /* MESSAGE AREA (#Image 01 White Patch) */
+        .message-area {
+            background-color: var(--card-bg);
+            color: var(--text-dark);
+            width: 100%;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+        }
+
+        @keyframes alertBlink {
+            0%, 100% { background-color: var(--card-bg); color: var(--text-dark); }
+            50% { background-color: var(--accent-red); color: #ffffff; }
+        }
+
+        .message-area.blink {
+            animation: alertBlink 0.8s infinite;
+        }
+
+        .message-text {
+            display: inline-block;
+        }
+
+        .message-text.scroll {
+            padding-left: 100%;
+            animation: scrollText 12s linear infinite;
+        }
+
+        @keyframes scrollText {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-100%, 0); }
+        }
+
+        /* --- LEFT SIDE: GIANT DESK CLOCK (#Image 01) --- */
+        .clock-container {
+            grid-column: 1 / 2;
+            grid-row: 2 / 3;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            line-height: 0.82;
+            user-select: none;
+        }
+
+        .clock-time {
+            font-size: 14.5vw;
+            font-weight: 900;
+            letter-spacing: -3px;
+        }
+
+        /* --- RIGHT SIDE: DYNAMIC CARDS (#Image 02, 03, 04, 05) --- */
+        .card-container {
+            grid-column: 2 / 3;
+            grid-row: 2 / 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* DEFAULT: CLOCK ONLY MODE (Hidden Card) */
+        .view-panel {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        .view-panel.active {
+            display: flex;
+        }
+
+        /* --- TELEMETRY CARD STYLE (#Image 02, 04, 05) --- */
+        .telemetry-card {
+            background-color: var(--card-bg);
+            color: var(--text-dark);
+            width: 100%;
+            height: 100%;
+            border-radius: 4px;
+            padding: 20px 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .telemetry-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-bottom: 2px solid var(--border-line);
+            padding-bottom: 12px;
+        }
+
+        .battery-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .telemetry-middle {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-grow: 1;
+            padding: 15px 0;
+        }
+
+        .route-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.2rem;
+            font-weight: 800;
+            margin-bottom: 15px;
             text-transform: uppercase;
-            margin-bottom: 4px;
         }
 
-        .detail-value {
-            font-size: 1.125rem;
+        .route-labels span {
+            font-size: 0.9rem;
+            color: #666666;
+            display: block;
+        }
+
+        /* PROGRESS BAR & LIVE DISTANCE */
+        .progress-track {
+            background-color: #ededed;
+            height: 16px;
+            border-radius: 8px;
+            width: 100%;
+            position: relative;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            background-color: var(--accent-green);
+            height: 100%;
+            border-radius: 8px;
+            width: 50%;
+            position: relative;
+            transition: width 0.5s ease;
+        }
+
+        .progress-knob {
+            width: 26px;
+            height: 26px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            position: absolute;
+            right: -13px;
+            top: -5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .live-distance-highlight {
+            text-align: center;
+            font-size: 2.8rem;
+            font-weight: 900;
+            color: var(--accent-green);
+            margin-top: 5px;
+        }
+
+        .live-tag {
+            font-size: 0.9rem;
+            color: var(--accent-red);
+            font-weight: 800;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .telemetry-bottom {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.95rem;
             font-weight: 600;
-            color: var(--text-primary);
+            color: #444444;
+            border-top: 2px solid var(--border-line);
+            padding-top: 12px;
         }
 
-        .timestamp {
-            margin-top: 24px;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            opacity: 0.7;
+        /* --- WELCOME HOME SCREEN (#Image 03) --- */
+        .welcome-home-card {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--bg-color);
+            border: 4px solid var(--text-main);
+            text-align: center;
+        }
+
+        .welcome-home-card h1 {
+            font-size: 6.5vw;
+            font-weight: 900;
+            line-height: 0.95;
+            letter-spacing: -2px;
         }
     </style>
 </head>
 <body>
 
-    <div class="dashboard-container">
-        <div id="statusBadge" class="status-badge">Checking Status...</div>
-        
-        <div class="distance-display">
-            <span id="distanceValue">--</span><span class="unit">km</span>
+    <div class="dashboard">
+        <!-- TOP LEFT: DATE DISPLAY -->
+        <div class="header-left">
+            <span id="dateDisplay">31/07/1996 | FRIDAY</span>
         </div>
-        <div class="label">Road Distance from Home</div>
 
-        <div class="details-grid">
-            <div class="detail-card">
-                <div class="detail-title">Current Lat</div>
-                <div id="latValue" class="detail-value">--</div>
-            </div>
-            <div class="detail-card">
-                <div class="detail-title">Current Lon</div>
-                <div id="lonValue" class="detail-value">--</div>
+        <!-- TOP RIGHT: MESSAGE AREA (#Image 01) -->
+        <div class="header-right">
+            <div id="messageArea" class="message-area">
+                <div id="messageText" class="message-text">*MESSAGE AREA*</div>
             </div>
         </div>
 
-        <div id="timeValue" class="timestamp">Waiting for GPS data...</div>
+        <!-- BOTTOM LEFT: DESK CLOCK (#Image 01) -->
+        <div class="clock-container">
+            <div id="timeDisplay" class="clock-time">12:33</div>
+        </div>
+
+        <!-- BOTTOM RIGHT: MODE SWITCHER CARDS -->
+        <div class="card-container">
+
+            <!-- MODE 1: CLOCK ONLY (#Image 01 - Right side remains blank) -->
+            <div id="panel-clock-only" class="view-panel active"></div>
+
+            <!-- MODE 2 & 4 & 6: COMMUTE & RETURN HOME (#Image 02, 05) -->
+            <div id="panel-commute" class="view-panel">
+                <div class="telemetry-card">
+                    <div class="telemetry-top">
+                        <div id="uiSpeed">Speed: 0.00 kmH | Top: 0.00</div>
+                        <div class="battery-status">
+                            <span>📱</span>
+                            <span id="uiBattery">Battery --%</span>
+                        </div>
+                    </div>
+
+                    <div class="telemetry-middle">
+                        <div class="route-labels">
+                            <div><span>From</span><strong id="uiFromLabel">HOME</strong></div>
+                            <div style="text-align: center;"><span>Total Distance</span><strong id="uiTotalDist">0.00 Km</strong></div>
+                            <div style="text-align: right;"><span>Destination</span><strong id="uiToLabel">OFFICE</strong></div>
+                        </div>
+
+                        <div class="progress-track">
+                            <div id="uiProgressBar" class="progress-fill" style="width: 50%;">
+                                <div class="progress-knob"></div>
+                            </div>
+                        </div>
+
+                        <div id="uiLiveDist" class="live-distance-highlight">0.00 Km</div>
+                        <div class="live-tag">LIVE ●</div>
+                    </div>
+
+                    <div class="telemetry-bottom">
+                        <div>
+                            <div>Current Coordinates: <span id="uiCoords">--</span></div>
+                            <div>Location Name: <span id="uiLocName">--</span></div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div>Last Location Update</div>
+                            <div id="uiLastUpdate">--/--/---- | --:--:--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODE 5: DRIVE MODE (#Image 04) -->
+            <div id="panel-drive" class="view-panel">
+                <div class="telemetry-card">
+                    <div class="telemetry-top">
+                        <div id="uiDriveSpeed">Speed: 0.00 kmH | Top: 0.00</div>
+                        <div class="battery-status">
+                            <span>📱</span>
+                            <span id="uiDriveBattery">Battery --%</span>
+                        </div>
+                    </div>
+
+                    <div class="telemetry-middle">
+                        <div class="route-labels">
+                            <div><span>From</span><strong>HOME</strong></div>
+                            <div style="text-align: right;"><span>Total Distance Traveled</span><strong id="uiDriveTotalDist">0.00 Km</strong></div>
+                        </div>
+
+                        <div class="progress-track">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+
+                        <div id="uiDriveLiveDist" class="live-distance-highlight">From Home 0.00 Km</div>
+                        <div class="live-tag">LIVE ●</div>
+                    </div>
+
+                    <div class="telemetry-bottom">
+                        <div>
+                            <div>Current Coordinates: <span id="uiDriveCoords">--</span></div>
+                            <div>Location Name: <span id="uiDriveLocName">--</span></div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div>Last Location Update</div>
+                            <div id="uiDriveLastUpdate">--/--/---- | --:--:--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODE 3: WELCOME HOME (#Image 03) -->
+            <div id="panel-welcome" class="view-panel">
+                <div class="welcome-home-card">
+                    <h1>WELCOME<br>HOME</h1>
+                </div>
+            </div>
+
+        </div>
     </div>
 
     <script>
-        // 1. CONFIGURATION
+        // --- 1. GOOGLE APPS SCRIPT WEB APP URL ---
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzIcu7PV5yRtymEUrim0gVUQ-lBwLOM0VHWpcCayhaNacX9x_Xvkxgt9T1aKptVtxi7QQ/exec';
-        const HOME_LAT = 19.865694;
-        const HOME_LON = 75.243806;
-        const REFRESH_RATE_MS = 10000; // Refreshes every 10 seconds
 
-        // 2. BACKUP STRAIGHT-LINE FORMULA (In case routing API is temporarily offline)
-        function calculateStraightLineDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; 
-            const dLat = (lat2 - lat1) * (Math.PI / 180);
-            const dLon = (lon2 - lon1) * (Math.PI / 180);
-            const a = 
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return (R * c).toFixed(2);
-        }
-
-        // 3. FREE ROAD ROUTING API (OSRM)
-        async function getRoadDistance(lat1, lon1, lat2, lon2) {
-            try {
-                // OSRM API expects coordinates in format: longitude,latitude
-                const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                if (data.routes && data.routes.length > 0) {
-                    // OSRM returns road distance in meters -> Convert to km
-                    const roadKm = (data.routes[0].distance / 1000).toFixed(2);
-                    return roadKm;
-                }
-            } catch (error) {
-                console.warn("Road routing API failed, falling back to straight-line distance:", error);
-            }
+        // --- 2. LIVE CLOCK & DATE ENGINE (Updates Every Second) ---
+        function updateDeskClock() {
+            const now = new Date();
             
-            // Fallback to straight line if the network request fails
-            return calculateStraightLineDistance(lat1, lon1, lat2, lon2);
+            // Format: 31/07/1996 | FRIDAY
+            const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+            const dayName = days[now.getDay()];
+            const dd = String(now.getDate()).padStart(2, '0');
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const yyyy = now.getFullYear();
+            document.getElementById('dateDisplay').textContent = `${dd}/${mm}/${yyyy} | ${dayName}`;
+
+            // Format: 12:33 (24h or 12h bold display)
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('timeDisplay').textContent = `${hours}:${minutes}`;
         }
+        setInterval(updateDeskClock, 1000);
+        updateDeskClock();
 
-        // 4. UPDATE THE DASHBOARD UI
-        async function updateUI(lat, lon, timeStr) {
-            // Fetch real street road distance
-            const distance = await getRoadDistance(lat, lon, HOME_LAT, HOME_LON);
+        // --- 3. MESSAGE AREA HANDLER (Blinks Red/White & Auto-Scrolls) ---
+        let lastMessage = "";
+        function updateMessageArea(msg, blinkFlag) {
+            const area = document.getElementById('messageArea');
+            const textEl = document.getElementById('messageText');
 
-            document.getElementById('distanceValue').textContent = distance;
-            document.getElementById('latValue').textContent = lat.toFixed(4);
-            document.getElementById('lonValue').textContent = lon.toFixed(4);
-            document.getElementById('timeValue').textContent = `Last updated: ${timeStr || 'Just now'}`;
-
-            const statusBadge = document.getElementById('statusBadge');
-            if (distance < 0.20) {
-                statusBadge.textContent = '🏡 Arrived at Home';
-                statusBadge.classList.add('home');
-            } else {
-                statusBadge.textContent = '🚗 On The Road';
-                statusBadge.classList.remove('home');
+            if (!msg || msg.trim() === "") {
+                textEl.textContent = "*MESSAGE AREA*";
+                area.classList.remove('blink');
+                textEl.classList.remove('scroll');
+                return;
             }
-        }
 
-        // 5. FETCH DATA FROM GOOGLE APPS SCRIPT
-        async function fetchLocation() {
-            try {
-                const response = await fetch(GOOGLE_SCRIPT_URL);
-                if (!response.ok) throw new Error('Network response was not ok');
+            if (msg !== lastMessage) {
+                textEl.textContent = msg.toUpperCase();
+                lastMessage = msg;
                 
-                const data = await response.json();
-                
-                const currentLat = parseFloat(data.lat);
-                const currentLon = parseFloat(data.lon);
-                const lastUpdated = data.time;
-
-                if (!isNaN(currentLat) && !isNaN(currentLon)) {
-                    updateUI(currentLat, currentLon, lastUpdated);
+                // Auto scroll if text is long
+                if (msg.length > 22) {
+                    textEl.classList.add('scroll');
                 } else {
-                    console.error('Invalid coordinates received:', data);
+                    textEl.classList.remove('scroll');
                 }
-            } catch (error) {
-                console.error('Error fetching location data:', error);
-                document.getElementById('timeValue').textContent = 'Error connecting to Google Sheet';
+            }
+
+            // Blinking alert trigger
+            if (blinkFlag === true || blinkFlag === "true") {
+                area.classList.add('blink');
+            } else {
+                area.classList.remove('blink');
             }
         }
 
-        // 6. INITIALIZE AND AUTO-REFRESH
-        fetchLocation();
-        setInterval(fetchLocation, REFRESH_RATE_MS);
+        // --- 4. PANEL SWITCHER ---
+        function switchPanel(panelId) {
+            const panels = document.querySelectorAll('.view-panel');
+            panels.forEach(p => p.classList.remove('active'));
+            const target = document.getElementById(panelId);
+            if (target) target.classList.add('active');
+        }
+
+        // --- 5. LIVE TELEMETRY FETCHER (Auto-refreshes from Google Sheet) ---
+        async function syncDashboard() {
+            try {
+                const res = await fetch(GOOGLE_SCRIPT_URL);
+                if (!res.ok) return;
+                const data = await res.json();
+
+                // 1. Update Message Area
+                updateMessageArea(data.message, data.blink);
+
+                // 2. Read Active Dashboard Mode
+                // Modes: "CLOCK" (#01), "COMMUTE" (#02, #05), "DRIVE" (#04), "WELCOME" (#03)
+                const mode = (data.mode || "CLOCK").toUpperCase();
+
+                if (mode === "CLOCK") {
+                    switchPanel('panel-clock-only');
+                } 
+                else if (mode === "WELCOME") {
+                    switchPanel('panel-welcome');
+                } 
+                else if (mode === "DRIVE") {
+                    switchPanel('panel-drive');
+                    document.getElementById('uiDriveSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
+                    document.getElementById('uiDriveBattery').textContent = `Battery ${data.battery || '--%'}`;
+                    document.getElementById('uiDriveTotalDist').textContent = `${data.totalDist || '0.00'} Km`;
+                    document.getElementById('uiDriveLiveDist').textContent = `From Home ${data.liveDist || '0.00'} Km`;
+                    document.getElementById('uiDriveCoords').textContent = `${data.lat || '--'}, ${data.lon || '--'}`;
+                    document.getElementById('uiDriveLocName').textContent = data.locName || 'Unknown Location';
+                    document.getElementById('uiDriveLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
+                } 
+                else {
+                    // Default to COMMUTE panel (#Image 02 To Office & #Image 05 To Home)
+                    switchPanel('panel-commute');
+                    document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
+                    document.getElementById('uiBattery').textContent = `Battery ${data.battery || '--%'}`;
+                    document.getElementById('uiFromLabel').textContent = data.fromLabel || 'HOME';
+                    document.getElementById('uiToLabel').textContent = data.toLabel || 'OFFICE';
+                    document.getElementById('uiTotalDist').textContent = `${data.totalDist || '0.00'} Km`;
+                    
+                    // Progress Bar Calculation
+                    const pct = Math.min(Math.max(parseFloat(data.progressPct) || 50, 0), 100);
+                    document.getElementById('uiProgressBar').style.width = `${pct}%`;
+                    
+                    // Live distance text
+                    if (data.fromLabel === "HOME" && data.toLabel === "OFFICE") {
+                        document.getElementById('uiLiveDist').textContent = `${data.liveDist || '0.00'} Km`;
+                    } else {
+                        document.getElementById('uiLiveDist').textContent = `${data.liveDist || '0.00'} Km Left`;
+                    }
+
+                    document.getElementById('uiCoords').textContent = `${data.lat || '--'}, ${data.lon || '--'}`;
+                    document.getElementById('uiLocName').textContent = data.locName || 'Unknown Location';
+                    document.getElementById('uiLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
+                }
+
+            } catch (err) {
+                console.warn('Dashboard sync error:', err);
+            }
+        }
+
+        // Auto-refresh from Google Sheets every 5 seconds
+        setInterval(syncDashboard, 5000);
+        syncDashboard();
     </script>
 </body>
 </html>
