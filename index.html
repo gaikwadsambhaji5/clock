@@ -124,7 +124,7 @@
             transition: font-size 0.6s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
-        /* FULLSCREEN CENTERED CLOCK OVERRIDE (ONLY APPLIED AFTER TIMEOUT & WHEN NO MESSAGE IS ACTIVE) */
+        /* FULLSCREEN CENTERED CLOCK OVERRIDE (APPLIED ON TIMEOUT) */
         .clock-container.fullscreen-timeout {
             position: fixed;
             top: 0;
@@ -477,7 +477,7 @@
             const dd = String(now.getDate()).padStart(2, '0');
             const mm = String(now.getMonth() + 1).padStart(2, '0');
             const yyyy = now.getFullYear();
-            document.getElementById('dateDisplay').textContent = `${dd}/${mm}/${yyyy} \vert{}${dayName}`;
+            document.getElementById('dateDisplay').textContent = `${dd}/${mm}/${yyyy} | ${dayName}`;
 
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
@@ -507,7 +507,7 @@
         function enterTimeoutScreen() {
             isTimedOutScreen = true;
             switchPanel('panel-clock-only');
-            // ONLY expand to full-screen centered clock if no custom message banner is currently being displayed!
+            // Check strictly: only show giant centered clock if there's no active banner message
             if (!hasActiveMessage) {
                 document.getElementById('clockContainer').classList.add('fullscreen-timeout');
             } else {
@@ -529,7 +529,7 @@
             textEl.classList.remove('scroll');
             hasActiveMessage = false;
 
-            // If we are currently in timed-out mode and the message expires, return to giant centered clock
+            // When a message expires or clears, if we are timed out, instantly pop back to giant centered clock!
             if (isTimedOutScreen) {
                 document.getElementById('clockContainer').classList.add('fullscreen-timeout');
             }
@@ -539,7 +539,8 @@
             const area = document.getElementById('messageArea');
             const textEl = document.getElementById('messageText');
 
-            if (!msg || msg.trim() === "") {
+            // STRICT Check: Treat null, undefined, "", or blank spaces as NO message
+            if (!msg || String(msg).trim() === "") {
                 lastServerMessage = "";
                 isMessageExpired = false;
                 messageExpiryTime = 0;
@@ -547,14 +548,14 @@
                 return;
             }
 
-            // A new message has arrived
+            // A genuine new custom message has arrived
             if (msg !== lastServerMessage) {
                 lastServerMessage = msg;
                 isMessageExpired = false;
                 messageExpiryTime = Date.now() + 180000; // 3 Minutes from now
                 hasActiveMessage = true;
 
-                // When a new message comes in, IMMEDIATELY remove fullscreen clock so the user can read the header!
+                // Make room to read the message by pulling clock out of giant centered mode
                 document.getElementById('clockContainer').classList.remove('fullscreen-timeout');
 
                 textEl.textContent = msg.toUpperCase();
@@ -592,7 +593,7 @@
             const lat = parseFloat(latRaw);
             const lon = parseFloat(lonRaw);
             if (!isNaN(lat) && !isNaN(lon)) {
-                return `${lat.toFixed(4)},${lon.toFixed(4)}`;
+                return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
             }
             return "--";
         }
@@ -649,7 +650,7 @@
                     }
                 }
 
-                // Process Custom Message Banner (Always visible, reveals header if hidden by clock)
+                // Process Custom Message Banner FIRST (Ensures hasActiveMessage is accurate before drawing clock)
                 updateMessageArea(data.message, data.blink);
 
                 const cleanCoords = formatCoordinates(data.lat, data.lon || data.lng);
@@ -667,6 +668,9 @@
                 if (expiredModes.has(mode)) {
                     if (!isTimedOutScreen) {
                         enterTimeoutScreen();
+                    } else if (!hasActiveMessage) {
+                        // Ensure it stays giant if message cleared while we were timed out
+                        document.getElementById('clockContainer').classList.add('fullscreen-timeout');
                     }
                     return;
                 }
@@ -688,7 +692,7 @@
                 // --- MODE 3: DRIVE MODE ---
                 else if (mode === "DRIVE") {
                     switchPanel('panel-drive');
-                    document.getElementById('uiDriveSpeed').textContent = `Speed: ${data.speed \vert{}\vert{} 0} kmH \vert{} Top:${data.topSpeed || 0}`;
+                    document.getElementById('uiDriveSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
                     document.getElementById('uiDriveBattery').textContent = `Battery ${cleanBattery}`;
                     document.getElementById('uiDriveTotalDist').textContent = `${data.totalDist || '0.00'} Km`;
                     document.getElementById('uiDriveLiveDist').textContent = `From Home ${data.liveDist || '0.00'} Km`;
@@ -699,7 +703,7 @@
                 // --- MODE 4: DRIVING TO OFFICE ---
                 else if (mode === "TO_OFFICE") {
                     switchPanel('panel-commute');
-                    document.getElementById('uiSpeed').textContent = `Speed: ${data.speed \vert{}\vert{} 0} kmH \vert{} Top:${data.topSpeed || 0}`;
+                    document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
                     document.getElementById('uiBattery').textContent = `Battery ${cleanBattery}`;
                     document.getElementById('uiFromLabel').textContent = "HOME";
                     document.getElementById('uiToLabel').textContent = "OFFICE";
@@ -729,7 +733,7 @@
                 // --- MODE 6: DRIVING HOME FROM OFFICE ---
                 else {
                     switchPanel('panel-commute');
-                    document.getElementById('uiSpeed').textContent = `Speed: ${data.speed \vert{}\vert{} 0} kmH \vert{} Top:${data.topSpeed || 0}`;
+                    document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
                     document.getElementById('uiBattery').textContent = `Battery ${cleanBattery}`;
                     document.getElementById('uiFromLabel').textContent = "OFFICE";
                     document.getElementById('uiToLabel').textContent = "HOME";
