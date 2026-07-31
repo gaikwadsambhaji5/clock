@@ -455,7 +455,6 @@
             const area = document.getElementById('messageArea');
             const textEl = document.getElementById('messageText');
 
-            // If empty message, clear banner immediately
             if (!msg || msg.trim() === "") {
                 textEl.textContent = "*MESSAGE AREA*";
                 area.classList.remove('blink');
@@ -467,7 +466,6 @@
                 return;
             }
 
-            // When a NEW custom message arrives, display it and start a 3-minute timer
             if (msg !== lastMessage) {
                 textEl.textContent = msg.toUpperCase();
                 lastMessage = msg;
@@ -477,7 +475,6 @@
                     textEl.classList.remove('scroll');
                 }
 
-                // Reset existing message timer and set for 3 minutes (180,000 ms)
                 if (messageResetTimer) clearTimeout(messageResetTimer);
                 messageResetTimer = setTimeout(() => {
                     textEl.textContent = "*MESSAGE AREA*";
@@ -560,7 +557,6 @@
 
                 const mode = (data.mode || "CLOCK").toUpperCase();
 
-                // If new active commute/drive data comes in, cancel any active UI reset timer
                 if (autoResetTimer && mode !== "WELCOME" && mode !== "OFFICE_ARRIVED") {
                     clearTimeout(autoResetTimer);
                     autoResetTimer = null;
@@ -609,9 +605,12 @@
                     switchPanel('panel-commute');
                     document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
                     document.getElementById('uiBattery').textContent = `Battery ${cleanBattery}`;
+                    
+                    // FORCE LABELS: HOME -> OFFICE
                     document.getElementById('uiFromLabel').textContent = "HOME";
                     document.getElementById('uiToLabel').textContent = "OFFICE";
 
+                    // SMART CALC: Origin=HOME, Target=OFFICE
                     await updateCommuteUI(curLat, curLng, OFFICE_LAT, OFFICE_LNG, HOME_LAT, HOME_LNG);
 
                     document.getElementById('uiCoords').textContent = cleanCoords;
@@ -622,6 +621,8 @@
                 else if (mode === "OFFICE_ARRIVED") {
                     switchPanel('panel-commute');
                     updateMessageArea("ARRIVED AT OFFICE! HAVE A GREAT DAY!", true);
+                    
+                    // FORCE LABELS: HOME -> OFFICE
                     document.getElementById('uiFromLabel').textContent = "HOME";
                     document.getElementById('uiToLabel').textContent = "OFFICE";
                     document.getElementById('uiTotalDist').textContent = `${TOTAL_ROAD_KM} Km`;
@@ -638,14 +639,17 @@
                         }, 180000); // 3 Minutes = 180,000ms
                     }
                 }
-                // --- MODE 6: DRIVING HOME FROM OFFICE ---
+                // --- MODE 6: DRIVING HOME FROM OFFICE (COMMUTE) ---
                 else {
                     switchPanel('panel-commute');
                     document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
                     document.getElementById('uiBattery').textContent = `Battery ${cleanBattery}`;
-                    document.getElementById('uiFromLabel').textContent = data.fromLabel || 'OFFICE';
-                    document.getElementById('uiToLabel').textContent = data.toLabel || 'HOME';
+                    
+                    // FORCE LABELS: OFFICE -> HOME
+                    document.getElementById('uiFromLabel').textContent = "OFFICE";
+                    document.getElementById('uiToLabel').textContent = "HOME";
 
+                    // SMART CALC: Origin=OFFICE, Target=HOME
                     await updateCommuteUI(curLat, curLng, HOME_LAT, HOME_LNG, OFFICE_LAT, OFFICE_LNG);
 
                     document.getElementById('uiCoords').textContent = cleanCoords;
