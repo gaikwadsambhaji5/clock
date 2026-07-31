@@ -389,30 +389,10 @@
         const OFFICE_LNG = 75.19337422921791;
 
         let autoResetTimer = null;
-        let TOTAL_ROAD_KM = 8.96; // Default fallback road distance
+        let TOTAL_ROAD_KM = 10.19; // Locked fallback road distance
 
-        // --- 2. ASYNC OSRM ROAD DISTANCE ENGINE (REAL DRIVING ROADS) ---
-        async function getRoadDistance(lat1, lon1, lat2, lon2) {
-            try {
-                // OSRM API expects format: longitude,latitude;longitude,latitude
-                const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
-                const response = await fetch(url);
-                if (!response.ok) throw new Error("OSRM API error");
-                const data = await response.json();
-                
-                if (data && data.routes && data.routes.length > 0) {
-                    // Distance returned in meters, convert to Kilometers
-                    const distanceKm = (data.routes[0].distance / 1000).toFixed(2);
-                    return parseFloat(distanceKm);
-                }
-            } catch (error) {
-                console.warn("Road routing API fallback:", error);
-            }
-            // Fallback to Haversine with a road factor if API fails
-            return calculateFallbackDistance(lat1, lon1, lat2, lon2);
-        }
-
-        function calculateFallbackDistance(lat1, lon1, lat2, lon2) {
+        // --- 2. STRAIGHT-LINE DISTANCE CHECK (TO PREVENT STARTING-POINT DRIFT) ---
+        function calculateStraightDistance(lat1, lon1, lat2, lon2) {
             const R = 6371;
             const dLat = (lat2 - lat1) * (Math.PI / 180);
             const dLon = (lon2 - lon1) * (Math.PI / 180);
@@ -422,16 +402,35 @@
                 Math.cos(lat2 * (Math.PI / 180)) *
                 Math.sin(dLon / 2) * Math.sin(dLon / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return parseFloat((R * c * 1.35).toFixed(2));
+            return R * c;
         }
 
-        // Initialize and lock the exact full-route road distance between Home & Office
+        // --- 3. ASYNC OSRM ROAD DISTANCE ENGINE ---
+        async function getRoadDistance(lat1, lon1, lat2, lon2) {
+            try {
+                const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("OSRM API error");
+                const data = await response.json();
+                
+                if (data && data.routes && data.routes.length > 0) {
+                    const distanceKm = (data.routes[0].distance / 1000).toFixed(2);
+                    return parseFloat(distanceKm);
+                }
+            } catch (error) {
+                console.warn("Road routing API fallback:", error);
+            }
+            return parseFloat((calculateStraightDistance(lat1, lon1, lat2, lon2) * 1.35).toFixed(2));
+        }
+
+        // Initialize total road route distance
         (async function initTotalRoute() {
-            TOTAL_ROAD_KM = await getRoadDistance(HOME_LAT, HOME_LNG, OFFICE_LAT, OFFICE_LNG);
+            const fetchedRoute = await getRoadDistance(HOME_LAT, HOME_LNG, OFFICE_LAT, OFFICE_LNG);
+            if (fetchedRoute > 0) TOTAL_ROAD_KM = fetchedRoute;
             document.getElementById('uiTotalDist').textContent = `${TOTAL_ROAD_KM} Km`;
         })();
 
-        // --- 3. LIVE CLOCK & DATE ENGINE ---
+        // --- 4. LIVE CLOCK & DATE ENGINE ---
         function updateDeskClock() {
             const now = new Date();
             const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
@@ -448,7 +447,7 @@
         setInterval(updateDeskClock, 1000);
         updateDeskClock();
 
-        // --- 4. MESSAGE AREA HANDLER ---
+        // --- 5. MESSAGE AREA HANDLER ---
         let lastMessage = "";
         function updateMessageArea(msg, blinkFlag) {
             const area = document.getElementById('messageArea');
@@ -478,7 +477,7 @@
             }
         }
 
-        // --- 5. PANEL SWITCHER ---
+        // --- 6. PANEL SWITCHER ---
         function switchPanel(panelId) {
             const panels = document.querySelectorAll('.view-panel');
             panels.forEach(p => p.classList.remove('active'));
@@ -486,7 +485,7 @@
             if (target) target.classList.add('active');
         }
 
-        // --- 6. SMART COORDINATE & ADDRESS PARSER ---
+        // --- 7. SMART COORDINATE & ADDRESS PARSER ---
         function formatCoordinates(latRaw, lonRaw) {
             const lat = parseFloat(latRaw);
             const lon = parseFloat(lonRaw);
@@ -503,7 +502,32 @@
             return locNameRaw || "Unknown Location";
         }
 
-        // --- 7. LIVE TELEMETRY FETCHER ---
+        // --- 8. SMART COMMUTE PROGRESS CALCULATOR ---
+        async function updateCommuteUI(curLat, curLng, targetLat, targetLng, originLat, originLng) {
+            let dist = TOTAL_ROAD_KM;
+            let progressPct = 0;
+
+            if (!isNaN(curLat) && !isNaN(curLng)) {
+                // Check straight-line distance to your starting point
+                const distFromStart = calculateStraightDistance(curLat, curLng, originLat, originLng);
+                
+                // If you are within 400 meters of your starting point, SNAP TO 0%
+                if (distFromStart < 0.4) {
+                    dist = TOTAL_ROAD_KM;
+                    progressPct = 0;
+                } else {
+                    // Otherwise, calculate real road distance remaining
+                    dist = await getRoadDistance(curLat, curLng, targetLat, targetLng);
+                    progressPct = Math.min(Math.max(((TOTAL_ROAD_KM - dist) / TOTAL_ROAD_KM) * 100, 0), 100);
+                }
+            }
+
+            document.getElementById('uiProgressBar').style.width = `${progressPct}%`;
+            document.getElementById('uiLiveDist').textContent = `${dist.toFixed(2)} Km Left`;
+            document.getElementById('uiTotalDist').textContent = `${TOTAL_ROAD_KM} Km`;
+        }
+
+        // --- 9. LIVE TELEMETRY FETCHER ---
         async function syncDashboard() {
             try {
                 const res = await fetch(GOOGLE_SCRIPT_URL);
@@ -520,6 +544,8 @@
 
                 const cleanCoords = formatCoordinates(data.lat, data.lon || data.lng);
                 const cleanLocName = getCleanLocationName(data.locName, data.lon || data.lng);
+                const curLat = parseFloat(data.lat);
+                const curLng = parseFloat(data.lon || data.lng);
 
                 if (mode === "CLOCK") {
                     switchPanel('panel-clock-only');
@@ -544,26 +570,15 @@
                     document.getElementById('uiBattery').textContent = `Battery ${data.battery || '--%'}`;
                     document.getElementById('uiFromLabel').textContent = "HOME";
                     document.getElementById('uiToLabel').textContent = "OFFICE";
-                    document.getElementById('uiTotalDist').textContent = `${TOTAL_ROAD_KM} Km`;
-                    
-                    const curLat = parseFloat(data.lat);
-                    const curLng = parseFloat(data.lon || data.lng);
-                    let dist = parseFloat(data.liveDist || 0);
 
-                    if (!isNaN(curLat) && !isNaN(curLng)) {
-                        // Dynamically fetch REAL road distance to Office
-                        dist = await getRoadDistance(curLat, curLng, OFFICE_LAT, OFFICE_LNG);
-                    }
-
-                    const progressPct = Math.min(Math.max(((TOTAL_ROAD_KM - dist) / TOTAL_ROAD_KM) * 100, 0), 100);
-                    document.getElementById('uiProgressBar').style.width = `${progressPct}%`;
-                    document.getElementById('uiLiveDist').textContent = `${dist.toFixed(2)} Km Left`;
+                    // Calculate progress from HOME (Origin) to OFFICE (Target)
+                    await updateCommuteUI(curLat, curLng, OFFICE_LAT, OFFICE_LNG, HOME_LAT, HOME_LNG);
 
                     document.getElementById('uiCoords').textContent = cleanCoords;
                     document.getElementById('uiLocName').textContent = cleanLocName;
                     document.getElementById('uiLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
                 }
-                // --- ARRIVED AT OFFICE (HOLDS FOR 2 MINUTES THEN RESTORES CLOCK) ---
+                // --- ARRIVED AT OFFICE ---
                 else if (mode === "OFFICE_ARRIVED") {
                     switchPanel('panel-commute');
                     updateMessageArea("ARRIVED AT OFFICE! HAVE A GREAT DAY!", true);
@@ -582,27 +597,16 @@
                         }, 120000);
                     }
                 }
-                // --- DRIVING HOME FROM OFFICE (COMMUTE MODE) ---
+                // --- DRIVING HOME FROM OFFICE ---
                 else {
                     switchPanel('panel-commute');
                     document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
                     document.getElementById('uiBattery').textContent = `Battery ${data.battery || '--%'}`;
                     document.getElementById('uiFromLabel').textContent = data.fromLabel || 'OFFICE';
                     document.getElementById('uiToLabel').textContent = data.toLabel || 'HOME';
-                    document.getElementById('uiTotalDist').textContent = `${TOTAL_ROAD_KM} Km`;
-                    
-                    const curLat = parseFloat(data.lat);
-                    const curLng = parseFloat(data.lon || data.lng);
-                    let dist = parseFloat(data.liveDist || 0);
 
-                    if (!isNaN(curLat) && !isNaN(curLng)) {
-                        // Dynamically fetch REAL road distance to Home
-                        dist = await getRoadDistance(curLat, curLng, HOME_LAT, HOME_LNG);
-                    }
-
-                    const progressPct = Math.min(Math.max(((TOTAL_ROAD_KM - dist) / TOTAL_ROAD_KM) * 100, 0), 100);
-                    document.getElementById('uiProgressBar').style.width = `${progressPct}%`;
-                    document.getElementById('uiLiveDist').textContent = `${dist.toFixed(2)} Km Left`;
+                    // Calculate progress from OFFICE (Origin) to HOME (Target)
+                    await updateCommuteUI(curLat, curLng, HOME_LAT, HOME_LNG, OFFICE_LAT, OFFICE_LNG);
 
                     document.getElementById('uiCoords').textContent = cleanCoords;
                     document.getElementById('uiLocName').textContent = cleanLocName;
