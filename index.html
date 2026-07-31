@@ -1,339 +1,583 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Realme Smart Telemetry Dashboard</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RealMe Desk Clock & GPS Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --text-main: #ffffff;
+            --text-dark: #000000;
+            --accent-green: #00e676;
+            --accent-red: #ff1744;
+            --card-bg: #ffffff;
+            --border-line: #e0e0e0;
+        }
 
-    body {
-      background-color: #0d0d0d;
-      color: #ffffff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-    }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
 
-    /* Screen Containers */
-    .screen {
-      display: none;
-      width: 100%;
-      height: 100%;
-      padding: 2rem;
-      text-align: center;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            padding: 20px;
+        }
 
-    .active {
-      display: flex;
-    }
+        /* --- MAIN LAYOUT GRID --- */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 42% 58%;
+            grid-template-rows: 60px 1fr;
+            width: 100%;
+            height: 100%;
+            gap: 15px 25px;
+        }
 
-    /* #Image 01: Full Screen Desk Clock */
-    #IMAGE_01 {
-      background: radial-gradient(circle, #1a1a1a 0%, #000000 100%);
-    }
+        /* --- TOP HEADER (DATE & MESSAGE AREA) --- */
+        .header-left {
+            grid-column: 1 / 2;
+            grid-row: 1 / 2;
+            display: flex;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
 
-    .desk-clock {
-      font-size: 8rem;
-      font-weight: 700;
-      letter-spacing: -2px;
-      color: #00e5ff;
-      text-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
-    }
+        .header-right {
+            grid-column: 2 / 3;
+            grid-row: 1 / 2;
+            display: flex;
+            align-items: center;
+        }
 
-    .desk-date {
-      font-size: 1.8rem;
-      color: #888888;
-      margin-top: 0.5rem;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
+        /* MESSAGE AREA (#Image 01 White Patch) */
+        .message-area {
+            background-color: var(--card-bg);
+            color: var(--text-dark);
+            width: 100%;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+        }
 
-    /* #Image 02: Commute / Office Dashboard */
-    #IMAGE_02 {
-      background: linear-gradient(135deg, #111111 0%, #1f1f1f 100%);
-      border: 4px solid #333333;
-    }
+        @keyframes alertBlink {
+            0%, 100% { background-color: var(--card-bg); color: var(--text-dark); }
+            50% { background-color: var(--accent-red); color: #ffffff; }
+        }
 
-    .status-title {
-      font-size: 1.5rem;
-      color: #aaaaaa;
-      text-transform: uppercase;
-      letter-spacing: 3px;
-      margin-bottom: 1rem;
-    }
+        .message-area.blink {
+            animation: alertBlink 0.8s infinite;
+        }
 
-    .area-name {
-      font-size: 3.5rem;
-      font-weight: 800;
-      color: #ffffff;
-      margin-bottom: 1.5rem;
-    }
+        .message-text {
+            display: inline-block;
+        }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1.5rem;
-      width: 80%;
-      max-width: 600px;
-      margin-bottom: 2rem;
-    }
+        .message-text.scroll {
+            padding-left: 100%;
+            animation: scrollText 12s linear infinite;
+        }
 
-    .stat-card {
-      background: rgba(255, 255, 255, 0.05);
-      padding: 1.5rem;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
+        @keyframes scrollText {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-100%, 0); }
+        }
 
-    .stat-value {
-      font-size: 2.2rem;
-      font-weight: 700;
-      color: #00e5ff;
-    }
+        /* --- LEFT SIDE: GIANT DESK CLOCK (#Image 01) --- */
+        .clock-container {
+            grid-column: 1 / 2;
+            grid-row: 2 / 3;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            line-height: 0.82;
+            user-select: none;
+        }
 
-    .stat-label {
-      font-size: 0.9rem;
-      color: #888888;
-      margin-top: 0.3rem;
-      text-transform: uppercase;
-    }
+        .clock-time {
+            font-size: 14.5vw;
+            font-weight: 900;
+            letter-spacing: -3px;
+        }
 
-    .message-box {
-      font-size: 1.5rem;
-      color: #00ff66;
-      background: rgba(0, 255, 102, 0.1);
-      padding: 1rem 2rem;
-      border-radius: 50px;
-      border: 1px solid #00ff66;
-      max-width: 80%;
-    }
+        /* --- RIGHT SIDE: DYNAMIC CARDS (#Image 02, 03, 04, 05) --- */
+        .card-container {
+            grid-column: 2 / 3;
+            grid-row: 2 / 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-    /* #Image 03: Welcome Home Screen */
-    #IMAGE_03 {
-      background: radial-gradient(circle, #003319 0%, #000000 100%);
-    }
+        /* DEFAULT: CLOCK ONLY MODE (Hidden Card) */
+        .view-panel {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
 
-    .welcome-text {
-      font-size: 5rem;
-      font-weight: 800;
-      color: #00ff66;
-      text-shadow: 0 0 30px rgba(0, 255, 102, 0.6);
-      margin-bottom: 1rem;
-    }
+        .view-panel.active {
+            display: flex;
+        }
 
-    .welcome-sub {
-      font-size: 1.8rem;
-      color: #cccccc;
-    }
+        /* --- TELEMETRY CARD STYLE (#Image 02, 04, 05) --- */
+        .telemetry-card {
+            background-color: var(--card-bg);
+            color: var(--text-dark);
+            width: 100%;
+            height: 100%;
+            border-radius: 4px;
+            padding: 20px 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
 
-    /* Flashing Red Alert Animation */
-    .red-alert {
-      animation: flash-red 0.8s infinite alternate !important;
-      border-color: #ff0033 !important;
-      color: #ffffff !important;
-    }
+        .telemetry-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-bottom: 2px solid var(--border-line);
+            padding-bottom: 12px;
+        }
 
-    @keyframes flash-red {
-      0% { background-color: #ff0033; }
-      100% { background-color: #660011; }
-    }
-  </style>
+        .battery-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .telemetry-middle {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-grow: 1;
+            padding: 15px 0;
+        }
+
+        .route-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.2rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .route-labels span {
+            font-size: 0.9rem;
+            color: #666666;
+            display: block;
+        }
+
+        /* PROGRESS BAR & LIVE DISTANCE */
+        .progress-track {
+            background-color: #ededed;
+            height: 16px;
+            border-radius: 8px;
+            width: 100%;
+            position: relative;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            background-color: var(--accent-green);
+            height: 100%;
+            border-radius: 8px;
+            width: 50%;
+            position: relative;
+            transition: width 0.5s ease;
+        }
+
+        .progress-knob {
+            width: 26px;
+            height: 26px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            position: absolute;
+            right: -13px;
+            top: -5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .live-distance-highlight {
+            text-align: center;
+            font-size: 2.8rem;
+            font-weight: 900;
+            color: var(--accent-green);
+            margin-top: 5px;
+        }
+
+        .live-tag {
+            font-size: 0.9rem;
+            color: var(--accent-red);
+            font-weight: 800;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .telemetry-bottom {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #444444;
+            border-top: 2px solid var(--border-line);
+            padding-top: 12px;
+        }
+
+        /* --- WELCOME HOME SCREEN (#Image 03) --- */
+        .welcome-home-card {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--bg-color);
+            border: 4px solid var(--text-main);
+            text-align: center;
+        }
+
+        .welcome-home-card h1 {
+            font-size: 6.5vw;
+            font-weight: 900;
+            line-height: 0.95;
+            letter-spacing: -2px;
+        }
+    </style>
 </head>
 <body>
 
-  <!-- ================= SCREEN 1: DESK CLOCK ================= -->
-  <div id="IMAGE_01" class="screen active">
-    <div id="desk-time" class="desk-clock">00:00</div>
-    <div id="desk-date" class="desk-date">Loading Date...</div>
-  </div>
+    <div class="dashboard">
+        <!-- TOP LEFT: DATE DISPLAY -->
+        <div class="header-left">
+            <span id="dateDisplay">31/07/1996 | FRIDAY</span>
+        </div>
 
-  <!-- ================= SCREEN 2: COMMUTE / OFFICE ================= -->
-  <div id="IMAGE_02" class="screen">
-    <div class="status-title" id="mode-title">Live Commute Telemetry</div>
-    <div class="area-name" id="location-text">Waiting for GPS...</div>
-    
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-value" id="distance-text">-- km</div>
-        <div class="stat-label">Distance to Target</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="battery-text">--%</div>
-        <div class="stat-label">iPhone Battery</div>
-      </div>
+        <!-- TOP RIGHT: MESSAGE AREA (#Image 01) -->
+        <div class="header-right">
+            <div id="messageArea" class="message-area">
+                <div id="messageText" class="message-text">*MESSAGE AREA*</div>
+            </div>
+        </div>
+
+        <!-- BOTTOM LEFT: DESK CLOCK (#Image 01) -->
+        <div class="clock-container">
+            <div id="timeDisplay" class="clock-time">12:33</div>
+        </div>
+
+        <!-- BOTTOM RIGHT: MODE SWITCHER CARDS -->
+        <div class="card-container">
+
+            <!-- MODE 1: CLOCK ONLY (#Image 01 - Right side remains blank) -->
+            <div id="panel-clock-only" class="view-panel active"></div>
+
+            <!-- MODE 2 & 4 & 6: COMMUTE & RETURN HOME (#Image 02, 05) -->
+            <div id="panel-commute" class="view-panel">
+                <div class="telemetry-card">
+                    <div class="telemetry-top">
+                        <div id="uiSpeed">Speed: 0.00 kmH | Top: 0.00</div>
+                        <div class="battery-status">
+                            <span>📱</span>
+                            <span id="uiBattery">Battery --%</span>
+                        </div>
+                    </div>
+
+                    <div class="telemetry-middle">
+                        <div class="route-labels">
+                            <div><span>From</span><strong id="uiFromLabel">HOME</strong></div>
+                            <div style="text-align: center;"><span>Total Distance</span><strong id="uiTotalDist">0.00 Km</strong></div>
+                            <div style="text-align: right;"><span>Destination</span><strong id="uiToLabel">OFFICE</strong></div>
+                        </div>
+
+                        <div class="progress-track">
+                            <div id="uiProgressBar" class="progress-fill" style="width: 50%;">
+                                <div class="progress-knob"></div>
+                            </div>
+                        </div>
+
+                        <div id="uiLiveDist" class="live-distance-highlight">0.00 Km</div>
+                        <div class="live-tag">LIVE ●</div>
+                    </div>
+
+                    <div class="telemetry-bottom">
+                        <div>
+                            <div>Current Coordinates: <span id="uiCoords">--</span></div>
+                            <div>Location Name: <span id="uiLocName">--</span></div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div>Last Location Update</div>
+                            <div id="uiLastUpdate">--/--/---- | --:--:--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODE 5: DRIVE MODE (#Image 04) -->
+            <div id="panel-drive" class="view-panel">
+                <div class="telemetry-card">
+                    <div class="telemetry-top">
+                        <div id="uiDriveSpeed">Speed: 0.00 kmH | Top: 0.00</div>
+                        <div class="battery-status">
+                            <span>📱</span>
+                            <span id="uiDriveBattery">Battery --%</span>
+                        </div>
+                    </div>
+
+                    <div class="telemetry-middle">
+                        <div class="route-labels">
+                            <div><span>From</span><strong>HOME</strong></div>
+                            <div style="text-align: right;"><span>Total Distance Traveled</span><strong id="uiDriveTotalDist">0.00 Km</strong></div>
+                        </div>
+
+                        <div class="progress-track">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+
+                        <div id="uiDriveLiveDist" class="live-distance-highlight">From Home 0.00 Km</div>
+                        <div class="live-tag">LIVE ●</div>
+                    </div>
+
+                    <div class="telemetry-bottom">
+                        <div>
+                            <div>Current Coordinates: <span id="uiDriveCoords">--</span></div>
+                            <div>Location Name: <span id="uiDriveLocName">--</span></div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div>Last Location Update</div>
+                            <div id="uiDriveLastUpdate">--/--/---- | --:--:--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODE 3: WELCOME HOME (#Image 03) -->
+            <div id="panel-welcome" class="view-panel">
+                <div class="welcome-home-card">
+                    <h1>WELCOME<br>HOME</h1>
+                </div>
+            </div>
+
+        </div>
     </div>
 
-    <div class="message-box" id="message-text">System Standby</div>
-  </div>
+    <script>
+        // --- 1. GOOGLE APPS SCRIPT WEB APP URL & HARDCODED GPS ---
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwoVN3MISz0MwReTTRI3OCDlz773F8wxH3acISFOpHqo1qd7LhKFD4AWWYic13fBSAuzw/exec';
 
-  <!-- ================= SCREEN 3: WELCOME HOME ================= -->
-  <div id="IMAGE_03" class="screen">
-    <div class="welcome-text">WELCOME HOME</div>
-    <div class="welcome-sub">Automation Loop Terminated. Have a restful evening!</div>
-  </div>
+        const HOME_LAT = 19.86574625237041;
+        const HOME_LNG = 75.2437856839912;
+        const OFFICE_LAT = 19.829540680618862;
+        const OFFICE_LNG = 75.19337422921791;
 
-  <script>
-    // ==========================================
-    // 1. CONFIGURATION & CONSTANTS
-    // ==========================================
-    const SHEETS_URL = "https://script.google.com/macros/s/AKfycbwoVN3MISz0MwReTTRI3OCDlz773F8wxH3acISFOpHqo1qd7LhKFD4AWWYic13fBSAuzw/exec";
+        let autoResetTimer = null;
 
-    // Hardcoded GPS Coordinates
-    const HOME_LAT = 19.86574625237041;
-    const HOME_LNG = 75.2437856839912;
-    const OFFICE_LAT = 19.829540680618862;
-    const OFFICE_LNG = 75.19337422921791;
-
-    let resetTimer = null;
-
-    // ==========================================
-    // 2. LIVE DESK CLOCK FUNCTION (IMAGE 01)
-    // ==========================================
-    function updateClock() {
-      const now = new Date();
-      
-      // Format time (HH:MM)
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      document.getElementById("desk-time").innerText = `${hours}:${minutes}`;
-
-      // Format date (e.g., FRIDAY, JULY 31)
-      const options = { weekday: 'long', month: 'long', day: 'numeric' };
-      document.getElementById("desk-date").innerText = now.toLocaleDateString('en-US', options);
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
-
-    // ==========================================
-    // 3. UI SCREEN MANAGEMENT
-    // ==========================================
-    function showScreen(screenId) {
-      document.querySelectorAll(".screen").forEach(screen => {
-        screen.classList.remove("active");
-      });
-      document.getElementById(screenId).classList.add("active");
-    }
-
-    // ==========================================
-    // 4. HAVERSINE DISTANCE FORMULA (KM)
-    // ==========================================
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371; // Earth's radius in kilometers
-      const dLat = (lat2 - lat1) * (Math.PI / 180);
-      const dLon = (lon2 - lon1) * (Math.PI / 180);
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * (Math.PI / 180)) *
-        Math.cos(lat2 * (Math.PI / 180)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return (R * c).toFixed(1);
-    }
-
-    // ==========================================
-    // 5. FETCH DATA & HANDLE AUTOMATION LOGIC
-    // ==========================================
-    async function fetchDashboardData() {
-      try {
-        const response = await fetch(SHEETS_URL);
-        const data = await response.json();
-
-        // Clear any running 2-minute reset timer if new data arrives
-        if (resetTimer) {
-          clearTimeout(resetTimer);
-          resetTimer = null;
+        // --- 2. HAVERSINE DISTANCE MATH (KM) ---
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * (Math.PI / 180);
+            const dLon = (lon2 - lon1) * (Math.PI / 180);
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * (Math.PI / 180)) *
+                Math.cos(lat2 * (Math.PI / 180)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return (R * c).toFixed(2);
         }
 
-        const messageEl = document.getElementById("message-text");
-        messageEl.classList.remove("red-alert"); // Clear flashing alert by default
+        // --- 3. LIVE CLOCK & DATE ENGINE (Updates Every Second) ---
+        function updateDeskClock() {
+            const now = new Date();
+            
+            // Format: 31/07/1996 | FRIDAY
+            const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+            const dayName = days[now.getDay()];
+            const dd = String(now.getDate()).padStart(2, '0');
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const yyyy = now.getFullYear();
+            document.getElementById('dateDisplay').textContent = `${dd}/${mm}/${yyyy} | ${dayName}`;
 
-        // ---- MODE 1: COMMUTE HOME (OFFICE TO HOME) ----
-        if (data.mode === "COMMUTE") {
-          showScreen("IMAGE_02");
-          document.getElementById("mode-title").innerText = "Driving Home Telemetry";
-          document.getElementById("location-text").innerText = data.locName || "In Transit";
-          document.getElementById("battery-text").innerText = `${data.battery}%`;
-          document.getElementById("message-text").innerText = data.message || "Heading Home...";
+            // Format: 12:33 (24h or 12h bold display)
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('timeDisplay').textContent = `${hours}:${minutes}`;
+        }
+        setInterval(updateDeskClock, 1000);
+        updateDeskClock();
 
-          if (data.lat && data.lng) {
-            const dist = calculateDistance(data.lat, data.lng, HOME_LAT, HOME_LNG);
-            document.getElementById("distance-text").innerText = `${dist} km`;
-          }
+        // --- 4. MESSAGE AREA HANDLER (Blinks Red/White & Auto-Scrolls) ---
+        let lastMessage = "";
+        function updateMessageArea(msg, blinkFlag) {
+            const area = document.getElementById('messageArea');
+            const textEl = document.getElementById('messageText');
+
+            if (!msg || msg.trim() === "") {
+                textEl.textContent = "*MESSAGE AREA*";
+                area.classList.remove('blink');
+                textEl.classList.remove('scroll');
+                return;
+            }
+
+            if (msg !== lastMessage) {
+                textEl.textContent = msg.toUpperCase();
+                lastMessage = msg;
+                
+                // Auto scroll if text is long
+                if (msg.length > 22) {
+                    textEl.classList.add('scroll');
+                } else {
+                    textEl.classList.remove('scroll');
+                }
+            }
+
+            // Blinking alert trigger
+            if (blinkFlag === true || blinkFlag === "true") {
+                area.classList.add('blink');
+            } else {
+                area.classList.remove('blink');
+            }
         }
 
-        // ---- MODE 2: COMMUTE TO OFFICE (HOME TO OFFICE) ----
-        else if (data.mode === "TO_OFFICE") {
-          showScreen("IMAGE_02");
-          document.getElementById("mode-title").innerText = "Morning Commute Telemetry";
-          document.getElementById("location-text").innerText = data.locName || "In Transit";
-          document.getElementById("battery-text").innerText = `${data.battery}%`;
-          document.getElementById("message-text").innerText = "Driving to Office...";
-
-          if (data.lat && data.lng) {
-            const dist = calculateDistance(data.lat, data.lng, OFFICE_LAT, OFFICE_LNG);
-            document.getElementById("distance-text").innerText = `${dist} km`;
-          }
+        // --- 5. PANEL SWITCHER ---
+        function switchPanel(panelId) {
+            const panels = document.querySelectorAll('.view-panel');
+            panels.forEach(p => p.classList.remove('active'));
+            const target = document.getElementById(panelId);
+            if (target) target.classList.add('active');
         }
 
-        // ---- MODE 3: ARRIVED AT OFFICE (HOLD 2 MINS -> CLOCK) ----
-        else if (data.mode === "OFFICE_ARRIVED") {
-          showScreen("IMAGE_02");
-          document.getElementById("mode-title").innerText = "Destination Reached";
-          document.getElementById("location-text").innerText = "OFFICE";
-          document.getElementById("distance-text").innerText = "0.0 km";
-          document.getElementById("battery-text").innerText = `${data.battery}%`;
-          
-          messageEl.innerText = "ARRIVED AT OFFICE! Have a great day!";
-          
-          // Auto-reset to Image 01 (Desk Clock) after 2 minutes (120,000 ms)
-          resetTimer = setTimeout(() => {
-            showScreen("IMAGE_01");
-          }, 120000);
+        // --- 6. LIVE TELEMETRY FETCHER (Auto-refreshes from Google Sheet) ---
+        async function syncDashboard() {
+            try {
+                const res = await fetch(GOOGLE_SCRIPT_URL);
+                if (!res.ok) return;
+                const data = await res.json();
+
+                // Clear running 2-minute reset timer if fresh non-arrival mode data comes in
+                if (autoResetTimer && data.mode !== "OFFICE_ARRIVED") {
+                    clearTimeout(autoResetTimer);
+                    autoResetTimer = null;
+                }
+
+                // 1. Update Message Area
+                updateMessageArea(data.message, data.blink);
+
+                // 2. Read Active Dashboard Mode
+                // Modes: "CLOCK" (#01), "COMMUTE" (#02, #05), "TO_OFFICE", "OFFICE_ARRIVED", "DRIVE" (#04), "WELCOME" (#03)
+                const mode = (data.mode || "CLOCK").toUpperCase();
+
+                if (mode === "CLOCK") {
+                    switchPanel('panel-clock-only');
+                } 
+                else if (mode === "WELCOME") {
+                    switchPanel('panel-welcome');
+                } 
+                else if (mode === "DRIVE") {
+                    switchPanel('panel-drive');
+                    document.getElementById('uiDriveSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
+                    document.getElementById('uiDriveBattery').textContent = `Battery ${data.battery || '--%'}`;
+                    document.getElementById('uiDriveTotalDist').textContent = `${data.totalDist || '0.00'} Km`;
+                    document.getElementById('uiDriveLiveDist').textContent = `From Home ${data.liveDist || '0.00'} Km`;
+                    document.getElementById('uiDriveCoords').textContent = `${data.lat || '--'}, ${data.lon || '--'}`;
+                    document.getElementById('uiDriveLocName').textContent = data.locName || 'Unknown Location';
+                    document.getElementById('uiDriveLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
+                } 
+                // --- NEW MODE: DRIVING FROM HOME TO OFFICE ---
+                else if (mode === "TO_OFFICE") {
+                    switchPanel('panel-commute');
+                    document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
+                    document.getElementById('uiBattery').textContent = `Battery ${data.battery || '--%'}`;
+                    document.getElementById('uiFromLabel').textContent = "HOME";
+                    document.getElementById('uiToLabel').textContent = "OFFICE";
+                    document.getElementById('uiTotalDist').textContent = `${data.totalDist || '0.00'} Km`;
+                    
+                    const pct = Math.min(Math.max(parseFloat(data.progressPct) || 50, 0), 100);
+                    document.getElementById('uiProgressBar').style.width = `${pct}%`;
+                    
+                    // Auto calculate distance to office if coordinates exist
+                    if (data.lat && (data.lon || data.lng)) {
+                        const dist = calculateDistance(data.lat, (data.lon || data.lng), OFFICE_LAT, OFFICE_LNG);
+                        document.getElementById('uiLiveDist').textContent = `${dist} Km`;
+                    } else {
+                        document.getElementById('uiLiveDist').textContent = `${data.liveDist || '0.00'} Km`;
+                    }
+
+                    document.getElementById('uiCoords').textContent = `${data.lat || '--'}, ${data.lon || data.lng || '--'}`;
+                    document.getElementById('uiLocName').textContent = data.locName || 'Driving to Office...';
+                    document.getElementById('uiLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
+                }
+                // --- NEW MODE: ARRIVED AT OFFICE (HOLDS FOR 2 MINUTES THEN RESTORES CLOCK) ---
+                else if (mode === "OFFICE_ARRIVED") {
+                    switchPanel('panel-commute');
+                    updateMessageArea("ARRIVED AT OFFICE! HAVE A GREAT DAY!", true);
+                    document.getElementById('uiFromLabel').textContent = "HOME";
+                    document.getElementById('uiToLabel').textContent = "OFFICE";
+                    document.getElementById('uiLiveDist').textContent = "0.00 Km";
+                    document.getElementById('uiProgressBar').style.width = "100%";
+                    document.getElementById('uiLocName').textContent = "OFFICE";
+                    
+                    // Set the 2-Minute (120,000 ms) Auto-Reset back to panel-clock-only (#Image 01)
+                    if (!autoResetTimer) {
+                        autoResetTimer = setTimeout(() => {
+                            switchPanel('panel-clock-only');
+                            updateMessageArea("", false); // Clears the alert message
+                            autoResetTimer = null;
+                        }, 120000);
+                    }
+                }
+                else {
+                    // Default to COMMUTE panel (#Image 02 To Office & #Image 05 To Home)
+                    switchPanel('panel-commute');
+                    document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
+                    document.getElementById('uiBattery').textContent = `Battery ${data.battery || '--%'}`;
+                    document.getElementById('uiFromLabel').textContent = data.fromLabel || 'HOME';
+                    document.getElementById('uiToLabel').textContent = data.toLabel || 'OFFICE';
+                    document.getElementById('uiTotalDist').textContent = `${data.totalDist || '0.00'} Km`;
+                    
+                    // Progress Bar Calculation
+                    const pct = Math.min(Math.max(parseFloat(data.progressPct) || 50, 0), 100);
+                    document.getElementById('uiProgressBar').style.width = `${pct}%`;
+                    
+                    // Live distance text
+                    if (data.fromLabel === "HOME" && data.toLabel === "OFFICE") {
+                        document.getElementById('uiLiveDist').textContent = `${data.liveDist || '0.00'} Km`;
+                    } else {
+                        document.getElementById('uiLiveDist').textContent = `${data.liveDist || '0.00'} Km Left`;
+                    }
+
+                    document.getElementById('uiCoords').textContent = `${data.lat || '--'}, ${data.lon || '--'}`;
+                    document.getElementById('uiLocName').textContent = data.locName || 'Unknown Location';
+                    document.getElementById('uiLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
+                }
+
+            } catch (err) {
+                console.warn('Dashboard sync error:', err);
+            }
         }
 
-        // ---- MODE 4: ARRIVED HOME ----
-        else if (data.mode === "HOME") {
-          showScreen("IMAGE_03");
-          
-          // Optional: Return to Desk Clock after 5 minutes of Home display
-          resetTimer = setTimeout(() => {
-            showScreen("IMAGE_01");
-          }, 300000);
-        }
-
-        // ---- MODE 5: RED ALERT / URGENT MESSAGE ----
-        else if (data.mode === "ALERT") {
-          showScreen("IMAGE_02");
-          document.getElementById("mode-title").innerText = "INCOMING ALERT";
-          document.getElementById("location-text").innerText = "ATTENTION";
-          messageEl.innerText = data.message || "URGENT NOTIFICATION";
-          messageEl.classList.add("red-alert"); // Activates the flash-red animation
-        }
-
-        // ---- DEFAULT: DESK CLOCK ----
-        else {
-          showScreen("IMAGE_01");
-        }
-
-      } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
-      }
-    }
-
-    // Poll the Google App Script URL every 5 seconds for instant updates
-    setInterval(fetchDashboardData, 5000);
-    fetchDashboardData();
-  </script>
+        // Auto-refresh from Google Sheets every 5 seconds
+        setInterval(syncDashboard, 5000);
+        syncDashboard();
+    </script>
 </body>
 </html>
