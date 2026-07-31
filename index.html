@@ -60,7 +60,7 @@
             align-items: center;
         }
 
-        /* MESSAGE AREA (#Image 01 White Patch) */
+        /* MESSAGE AREA */
         .message-area {
             background-color: var(--card-bg);
             color: var(--text-dark);
@@ -99,7 +99,7 @@
             100% { transform: translate(-100%, 0); }
         }
 
-        /* --- LEFT SIDE: GIANT DESK CLOCK (#Image 01) --- */
+        /* --- LEFT SIDE: GIANT DESK CLOCK --- */
         .clock-container {
             grid-column: 1 / 2;
             grid-row: 2 / 3;
@@ -116,7 +116,7 @@
             letter-spacing: -3px;
         }
 
-        /* --- RIGHT SIDE: DYNAMIC CARDS (#Image 02, 03, 04, 05) --- */
+        /* --- RIGHT SIDE: DYNAMIC CARDS --- */
         .card-container {
             grid-column: 2 / 3;
             grid-row: 2 / 3;
@@ -125,7 +125,6 @@
             justify-content: center;
         }
 
-        /* DEFAULT: CLOCK ONLY MODE (Hidden Card) */
         .view-panel {
             display: none;
             width: 100%;
@@ -136,7 +135,7 @@
             display: flex;
         }
 
-        /* --- TELEMETRY CARD STYLE (#Image 02, 04, 05) --- */
+        /* --- TELEMETRY CARD STYLE --- */
         .telemetry-card {
             background-color: var(--card-bg);
             color: var(--text-dark);
@@ -202,7 +201,7 @@
             background-color: var(--accent-green);
             height: 100%;
             border-radius: 8px;
-            width: 50%;
+            width: 0%;
             position: relative;
             transition: width 0.5s ease;
         }
@@ -244,7 +243,7 @@
             padding-top: 12px;
         }
 
-        /* --- WELCOME HOME SCREEN (#Image 03) --- */
+        /* --- WELCOME HOME SCREEN --- */
         .welcome-home-card {
             width: 100%;
             height: 100%;
@@ -273,14 +272,14 @@
             <span id="dateDisplay">31/07/1996 | FRIDAY</span>
         </div>
 
-        <!-- TOP RIGHT: MESSAGE AREA (#Image 01) -->
+        <!-- TOP RIGHT: MESSAGE AREA -->
         <div class="header-right">
             <div id="messageArea" class="message-area">
                 <div id="messageText" class="message-text">*MESSAGE AREA*</div>
             </div>
         </div>
 
-        <!-- BOTTOM LEFT: DESK CLOCK (#Image 01) -->
+        <!-- BOTTOM LEFT: DESK CLOCK -->
         <div class="clock-container">
             <div id="timeDisplay" class="clock-time">12:33</div>
         </div>
@@ -288,10 +287,10 @@
         <!-- BOTTOM RIGHT: MODE SWITCHER CARDS -->
         <div class="card-container">
 
-            <!-- MODE 1: CLOCK ONLY (#Image 01 - Right side remains blank) -->
+            <!-- MODE 1: CLOCK ONLY -->
             <div id="panel-clock-only" class="view-panel active"></div>
 
-            <!-- MODE 2 & 4 & 6: COMMUTE & RETURN HOME (#Image 02, 05) -->
+            <!-- MODE 2 & 4 & 6: COMMUTE & RETURN HOME -->
             <div id="panel-commute" class="view-panel">
                 <div class="telemetry-card">
                     <div class="telemetry-top">
@@ -305,17 +304,17 @@
                     <div class="telemetry-middle">
                         <div class="route-labels">
                             <div><span>From</span><strong id="uiFromLabel">HOME</strong></div>
-                            <div style="text-align: center;"><span>Total Distance</span><strong id="uiTotalDist">0.00 Km</strong></div>
+                            <div style="text-align: center;"><span>Total Distance</span><strong id="uiTotalDist">-- Km</strong></div>
                             <div style="text-align: right;"><span>Destination</span><strong id="uiToLabel">OFFICE</strong></div>
                         </div>
 
                         <div class="progress-track">
-                            <div id="uiProgressBar" class="progress-fill" style="width: 50%;">
+                            <div id="uiProgressBar" class="progress-fill" style="width: 0%;">
                                 <div class="progress-knob"></div>
                             </div>
                         </div>
 
-                        <div id="uiLiveDist" class="live-distance-highlight">0.00 Km</div>
+                        <div id="uiLiveDist" class="live-distance-highlight">0.00 Km Left</div>
                         <div class="live-tag">LIVE ●</div>
                     </div>
 
@@ -332,7 +331,7 @@
                 </div>
             </div>
 
-            <!-- MODE 5: DRIVE MODE (#Image 04) -->
+            <!-- MODE 5: DRIVE MODE -->
             <div id="panel-drive" class="view-panel">
                 <div class="telemetry-card">
                     <div class="telemetry-top">
@@ -370,7 +369,7 @@
                 </div>
             </div>
 
-            <!-- MODE 3: WELCOME HOME (#Image 03) -->
+            <!-- MODE 3: WELCOME HOME -->
             <div id="panel-welcome" class="view-panel">
                 <div class="welcome-home-card">
                     <h1>WELCOME<br>HOME</h1>
@@ -390,9 +389,30 @@
         const OFFICE_LNG = 75.19337422921791;
 
         let autoResetTimer = null;
+        let TOTAL_ROAD_KM = 8.96; // Default fallback road distance
 
-        // --- 2. HAVERSINE DISTANCE MATH (KM) ---
-        function calculateDistance(lat1, lon1, lat2, lon2) {
+        // --- 2. ASYNC OSRM ROAD DISTANCE ENGINE (REAL DRIVING ROADS) ---
+        async function getRoadDistance(lat1, lon1, lat2, lon2) {
+            try {
+                // OSRM API expects format: longitude,latitude;longitude,latitude
+                const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("OSRM API error");
+                const data = await response.json();
+                
+                if (data && data.routes && data.routes.length > 0) {
+                    // Distance returned in meters, convert to Kilometers
+                    const distanceKm = (data.routes[0].distance / 1000).toFixed(2);
+                    return parseFloat(distanceKm);
+                }
+            } catch (error) {
+                console.warn("Road routing API fallback:", error);
+            }
+            // Fallback to Haversine with a road factor if API fails
+            return calculateFallbackDistance(lat1, lon1, lat2, lon2);
+        }
+
+        function calculateFallbackDistance(lat1, lon1, lat2, lon2) {
             const R = 6371;
             const dLat = (lat2 - lat1) * (Math.PI / 180);
             const dLon = (lon2 - lon1) * (Math.PI / 180);
@@ -402,14 +422,18 @@
                 Math.cos(lat2 * (Math.PI / 180)) *
                 Math.sin(dLon / 2) * Math.sin(dLon / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return (R * c).toFixed(2);
+            return parseFloat((R * c * 1.35).toFixed(2));
         }
 
-        // --- 3. LIVE CLOCK & DATE ENGINE (Updates Every Second) ---
+        // Initialize and lock the exact full-route road distance between Home & Office
+        (async function initTotalRoute() {
+            TOTAL_ROAD_KM = await getRoadDistance(HOME_LAT, HOME_LNG, OFFICE_LAT, OFFICE_LNG);
+            document.getElementById('uiTotalDist').textContent = `${TOTAL_ROAD_KM} Km`;
+        })();
+
+        // --- 3. LIVE CLOCK & DATE ENGINE ---
         function updateDeskClock() {
             const now = new Date();
-            
-            // Format: 31/07/1996 | FRIDAY
             const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
             const dayName = days[now.getDay()];
             const dd = String(now.getDate()).padStart(2, '0');
@@ -417,7 +441,6 @@
             const yyyy = now.getFullYear();
             document.getElementById('dateDisplay').textContent = `${dd}/${mm}/${yyyy} | ${dayName}`;
 
-            // Format: 12:33 (24h or 12h bold display)
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             document.getElementById('timeDisplay').textContent = `${hours}:${minutes}`;
@@ -425,7 +448,7 @@
         setInterval(updateDeskClock, 1000);
         updateDeskClock();
 
-        // --- 4. MESSAGE AREA HANDLER (Blinks Red/White & Auto-Scrolls) ---
+        // --- 4. MESSAGE AREA HANDLER ---
         let lastMessage = "";
         function updateMessageArea(msg, blinkFlag) {
             const area = document.getElementById('messageArea');
@@ -441,8 +464,6 @@
             if (msg !== lastMessage) {
                 textEl.textContent = msg.toUpperCase();
                 lastMessage = msg;
-                
-                // Auto scroll if text is long
                 if (msg.length > 22) {
                     textEl.classList.add('scroll');
                 } else {
@@ -450,7 +471,6 @@
                 }
             }
 
-            // Blinking alert trigger
             if (blinkFlag === true || blinkFlag === "true") {
                 area.classList.add('blink');
             } else {
@@ -466,24 +486,40 @@
             if (target) target.classList.add('active');
         }
 
-        // --- 6. LIVE TELEMETRY FETCHER (Auto-refreshes from Google Sheet) ---
+        // --- 6. SMART COORDINATE & ADDRESS PARSER ---
+        function formatCoordinates(latRaw, lonRaw) {
+            const lat = parseFloat(latRaw);
+            const lon = parseFloat(lonRaw);
+            if (!isNaN(lat) && !isNaN(lon)) {
+                return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+            }
+            return "--";
+        }
+
+        function getCleanLocationName(locNameRaw, lonRaw) {
+            if (lonRaw && isNaN(parseFloat(lonRaw)) && String(lonRaw).length > 5) {
+                return String(lonRaw);
+            }
+            return locNameRaw || "Unknown Location";
+        }
+
+        // --- 7. LIVE TELEMETRY FETCHER ---
         async function syncDashboard() {
             try {
                 const res = await fetch(GOOGLE_SCRIPT_URL);
                 if (!res.ok) return;
                 const data = await res.json();
 
-                // Clear running 2-minute reset timer if fresh non-arrival mode data comes in
                 if (autoResetTimer && data.mode !== "OFFICE_ARRIVED") {
                     clearTimeout(autoResetTimer);
                     autoResetTimer = null;
                 }
 
-                // 1. Update Message Area
                 updateMessageArea(data.message, data.blink);
-
-                // 2. Read Active Dashboard Mode
                 const mode = (data.mode || "CLOCK").toUpperCase();
+
+                const cleanCoords = formatCoordinates(data.lat, data.lon || data.lng);
+                const cleanLocName = getCleanLocationName(data.locName, data.lon || data.lng);
 
                 if (mode === "CLOCK") {
                     switchPanel('panel-clock-only');
@@ -497,8 +533,8 @@
                     document.getElementById('uiDriveBattery').textContent = `Battery ${data.battery || '--%'}`;
                     document.getElementById('uiDriveTotalDist').textContent = `${data.totalDist || '0.00'} Km`;
                     document.getElementById('uiDriveLiveDist').textContent = `From Home ${data.liveDist || '0.00'} Km`;
-                    document.getElementById('uiDriveCoords').textContent = `${data.lat || '--'}, ${data.lon || '--'}`;
-                    document.getElementById('uiDriveLocName').textContent = data.locName || 'Unknown Location';
+                    document.getElementById('uiDriveCoords').textContent = cleanCoords;
+                    document.getElementById('uiDriveLocName').textContent = cleanLocName;
                     document.getElementById('uiDriveLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
                 } 
                 // --- DRIVING FROM HOME TO OFFICE ---
@@ -508,23 +544,23 @@
                     document.getElementById('uiBattery').textContent = `Battery ${data.battery || '--%'}`;
                     document.getElementById('uiFromLabel').textContent = "HOME";
                     document.getElementById('uiToLabel').textContent = "OFFICE";
-                    document.getElementById('uiTotalDist').textContent = `${data.totalDist || '0.00'} Km`;
+                    document.getElementById('uiTotalDist').textContent = `${TOTAL_ROAD_KM} Km`;
                     
-                    const pct = Math.min(Math.max(parseFloat(data.progressPct) || 50, 0), 100);
-                    document.getElementById('uiProgressBar').style.width = `${pct}%`;
-                    
-                    // Auto calculate live distance to OFFICE
                     const curLat = parseFloat(data.lat);
                     const curLng = parseFloat(data.lon || data.lng);
+                    let dist = parseFloat(data.liveDist || 0);
+
                     if (!isNaN(curLat) && !isNaN(curLng)) {
-                        const dist = calculateDistance(curLat, curLng, OFFICE_LAT, OFFICE_LNG);
-                        document.getElementById('uiLiveDist').textContent = `${dist} Km`;
-                    } else {
-                        document.getElementById('uiLiveDist').textContent = `${data.liveDist || '0.00'} Km`;
+                        // Dynamically fetch REAL road distance to Office
+                        dist = await getRoadDistance(curLat, curLng, OFFICE_LAT, OFFICE_LNG);
                     }
 
-                    document.getElementById('uiCoords').textContent = `${data.lat || '--'}, ${data.lon || data.lng || '--'}`;
-                    document.getElementById('uiLocName').textContent = data.locName || 'Driving to Office...';
+                    const progressPct = Math.min(Math.max(((TOTAL_ROAD_KM - dist) / TOTAL_ROAD_KM) * 100, 0), 100);
+                    document.getElementById('uiProgressBar').style.width = `${progressPct}%`;
+                    document.getElementById('uiLiveDist').textContent = `${dist.toFixed(2)} Km Left`;
+
+                    document.getElementById('uiCoords').textContent = cleanCoords;
+                    document.getElementById('uiLocName').textContent = cleanLocName;
                     document.getElementById('uiLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
                 }
                 // --- ARRIVED AT OFFICE (HOLDS FOR 2 MINUTES THEN RESTORES CLOCK) ---
@@ -533,11 +569,11 @@
                     updateMessageArea("ARRIVED AT OFFICE! HAVE A GREAT DAY!", true);
                     document.getElementById('uiFromLabel').textContent = "HOME";
                     document.getElementById('uiToLabel').textContent = "OFFICE";
-                    document.getElementById('uiLiveDist').textContent = "0.00 Km";
+                    document.getElementById('uiTotalDist').textContent = `${TOTAL_ROAD_KM} Km`;
+                    document.getElementById('uiLiveDist').textContent = "0.00 Km Left";
                     document.getElementById('uiProgressBar').style.width = "100%";
                     document.getElementById('uiLocName').textContent = "OFFICE";
                     
-                    // Set the 2-Minute (120,000 ms) Auto-Reset back to panel-clock-only
                     if (!autoResetTimer) {
                         autoResetTimer = setTimeout(() => {
                             switchPanel('panel-clock-only');
@@ -553,23 +589,23 @@
                     document.getElementById('uiBattery').textContent = `Battery ${data.battery || '--%'}`;
                     document.getElementById('uiFromLabel').textContent = data.fromLabel || 'OFFICE';
                     document.getElementById('uiToLabel').textContent = data.toLabel || 'HOME';
-                    document.getElementById('uiTotalDist').textContent = `${data.totalDist || '0.00'} Km`;
+                    document.getElementById('uiTotalDist').textContent = `${TOTAL_ROAD_KM} Km`;
                     
-                    const pct = Math.min(Math.max(parseFloat(data.progressPct) || 50, 0), 100);
-                    document.getElementById('uiProgressBar').style.width = `${pct}%`;
-                    
-                    // Auto calculate live distance to HOME
                     const curLat = parseFloat(data.lat);
                     const curLng = parseFloat(data.lon || data.lng);
+                    let dist = parseFloat(data.liveDist || 0);
+
                     if (!isNaN(curLat) && !isNaN(curLng)) {
-                        const dist = calculateDistance(curLat, curLng, HOME_LAT, HOME_LNG);
-                        document.getElementById('uiLiveDist').textContent = `${dist} Km Left`;
-                    } else {
-                        document.getElementById('uiLiveDist').textContent = `${data.liveDist || '0.00'} Km Left`;
+                        // Dynamically fetch REAL road distance to Home
+                        dist = await getRoadDistance(curLat, curLng, HOME_LAT, HOME_LNG);
                     }
 
-                    document.getElementById('uiCoords').textContent = `${data.lat || '--'}, ${data.lon || data.lng || '--'}`;
-                    document.getElementById('uiLocName').textContent = data.locName || 'Heading Home...';
+                    const progressPct = Math.min(Math.max(((TOTAL_ROAD_KM - dist) / TOTAL_ROAD_KM) * 100, 0), 100);
+                    document.getElementById('uiProgressBar').style.width = `${progressPct}%`;
+                    document.getElementById('uiLiveDist').textContent = `${dist.toFixed(2)} Km Left`;
+
+                    document.getElementById('uiCoords').textContent = cleanCoords;
+                    document.getElementById('uiLocName').textContent = cleanLocName;
                     document.getElementById('uiLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
                 }
 
