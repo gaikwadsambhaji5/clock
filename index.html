@@ -483,7 +483,6 @@
                 updateMessageArea(data.message, data.blink);
 
                 // 2. Read Active Dashboard Mode
-                // Modes: "CLOCK" (#01), "COMMUTE" (#02, #05), "TO_OFFICE", "OFFICE_ARRIVED", "DRIVE" (#04), "WELCOME" (#03)
                 const mode = (data.mode || "CLOCK").toUpperCase();
 
                 if (mode === "CLOCK") {
@@ -502,7 +501,7 @@
                     document.getElementById('uiDriveLocName').textContent = data.locName || 'Unknown Location';
                     document.getElementById('uiDriveLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
                 } 
-                // --- NEW MODE: DRIVING FROM HOME TO OFFICE ---
+                // --- DRIVING FROM HOME TO OFFICE ---
                 else if (mode === "TO_OFFICE") {
                     switchPanel('panel-commute');
                     document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
@@ -514,9 +513,11 @@
                     const pct = Math.min(Math.max(parseFloat(data.progressPct) || 50, 0), 100);
                     document.getElementById('uiProgressBar').style.width = `${pct}%`;
                     
-                    // Auto calculate distance to office if coordinates exist
-                    if (data.lat && (data.lon || data.lng)) {
-                        const dist = calculateDistance(data.lat, (data.lon || data.lng), OFFICE_LAT, OFFICE_LNG);
+                    // Auto calculate live distance to OFFICE
+                    const curLat = parseFloat(data.lat);
+                    const curLng = parseFloat(data.lon || data.lng);
+                    if (!isNaN(curLat) && !isNaN(curLng)) {
+                        const dist = calculateDistance(curLat, curLng, OFFICE_LAT, OFFICE_LNG);
                         document.getElementById('uiLiveDist').textContent = `${dist} Km`;
                     } else {
                         document.getElementById('uiLiveDist').textContent = `${data.liveDist || '0.00'} Km`;
@@ -526,7 +527,7 @@
                     document.getElementById('uiLocName').textContent = data.locName || 'Driving to Office...';
                     document.getElementById('uiLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
                 }
-                // --- NEW MODE: ARRIVED AT OFFICE (HOLDS FOR 2 MINUTES THEN RESTORES CLOCK) ---
+                // --- ARRIVED AT OFFICE (HOLDS FOR 2 MINUTES THEN RESTORES CLOCK) ---
                 else if (mode === "OFFICE_ARRIVED") {
                     switchPanel('panel-commute');
                     updateMessageArea("ARRIVED AT OFFICE! HAVE A GREAT DAY!", true);
@@ -536,37 +537,39 @@
                     document.getElementById('uiProgressBar').style.width = "100%";
                     document.getElementById('uiLocName').textContent = "OFFICE";
                     
-                    // Set the 2-Minute (120,000 ms) Auto-Reset back to panel-clock-only (#Image 01)
+                    // Set the 2-Minute (120,000 ms) Auto-Reset back to panel-clock-only
                     if (!autoResetTimer) {
                         autoResetTimer = setTimeout(() => {
                             switchPanel('panel-clock-only');
-                            updateMessageArea("", false); // Clears the alert message
+                            updateMessageArea("", false);
                             autoResetTimer = null;
                         }, 120000);
                     }
                 }
+                // --- DRIVING HOME FROM OFFICE (COMMUTE MODE) ---
                 else {
-                    // Default to COMMUTE panel (#Image 02 To Office & #Image 05 To Home)
                     switchPanel('panel-commute');
                     document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
                     document.getElementById('uiBattery').textContent = `Battery ${data.battery || '--%'}`;
-                    document.getElementById('uiFromLabel').textContent = data.fromLabel || 'HOME';
-                    document.getElementById('uiToLabel').textContent = data.toLabel || 'OFFICE';
+                    document.getElementById('uiFromLabel').textContent = data.fromLabel || 'OFFICE';
+                    document.getElementById('uiToLabel').textContent = data.toLabel || 'HOME';
                     document.getElementById('uiTotalDist').textContent = `${data.totalDist || '0.00'} Km`;
                     
-                    // Progress Bar Calculation
                     const pct = Math.min(Math.max(parseFloat(data.progressPct) || 50, 0), 100);
                     document.getElementById('uiProgressBar').style.width = `${pct}%`;
                     
-                    // Live distance text
-                    if (data.fromLabel === "HOME" && data.toLabel === "OFFICE") {
-                        document.getElementById('uiLiveDist').textContent = `${data.liveDist || '0.00'} Km`;
+                    // Auto calculate live distance to HOME
+                    const curLat = parseFloat(data.lat);
+                    const curLng = parseFloat(data.lon || data.lng);
+                    if (!isNaN(curLat) && !isNaN(curLng)) {
+                        const dist = calculateDistance(curLat, curLng, HOME_LAT, HOME_LNG);
+                        document.getElementById('uiLiveDist').textContent = `${dist} Km Left`;
                     } else {
                         document.getElementById('uiLiveDist').textContent = `${data.liveDist || '0.00'} Km Left`;
                     }
 
-                    document.getElementById('uiCoords').textContent = `${data.lat || '--'}, ${data.lon || '--'}`;
-                    document.getElementById('uiLocName').textContent = data.locName || 'Unknown Location';
+                    document.getElementById('uiCoords').textContent = `${data.lat || '--'}, ${data.lon || data.lng || '--'}`;
+                    document.getElementById('uiLocName').textContent = data.locName || 'Heading Home...';
                     document.getElementById('uiLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
                 }
 
