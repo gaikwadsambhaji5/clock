@@ -3,338 +3,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <title>Realme 2 Pro Desk Clock & Commute Tracker</title>
+    <title>Real-Time Commute Dashboard</title>
     <style>
         :root {
-            --bg-color: #0b0c10;
-            --text-main: #ffffff;
-            --text-muted: #8b9bb4;
-            --accent-blue: #1f8ef1;
-            --accent-green: #00f2c3;
-            --bar-bg: #1e222d;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-green: #4ade80;
+            --accent-yellow: #facc15;
         }
 
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
 
         body {
             background-color: var(--bg-color);
-            color: var(--text-main);
+            color: var(--text-primary);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            overflow: hidden;
-            text-align: center;
+            min-height: 100vh;
             padding: 20px;
         }
 
-        /* CLOCK SECTION */
-        .clock-container {
-            margin-bottom: 30px;
-        }
-
-        #time-display {
-            font-size: 5.5rem;
-            font-weight: 800;
-            letter-spacing: -2px;
-            font-variant-numeric: tabular-nums;
-            line-height: 1;
-        }
-
-        #date-display {
-            font-size: 1.4rem;
-            color: var(--text-muted);
-            margin-top: 10px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        /* COMMUTE TRACKER SECTION */
-        .commute-container {
-            width: 90%;
-            max-width: 500px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            transition: all 0.5s ease;
-        }
-
-        .status-header {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            margin-bottom: 0px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: color 0.3s ease, margin-bottom 0.3s ease;
-        }
-
-        .status-header.active {
-            color: var(--accent-blue);
-            margin-bottom: 15px;
-        }
-
-        .status-header.home {
-            color: var(--accent-green);
-            margin-bottom: 15px;
-        }
-
-        /* PROGRESS BAR */
-        .progress-wrapper {
+        .dashboard-container {
+            background-color: var(--card-bg);
+            border-radius: 24px;
+            padding: 40px;
             width: 100%;
-            background-color: var(--bar-bg);
-            border-radius: 12px;
-            height: 24px;
-            overflow: hidden;
-            position: relative;
-            margin-bottom: 15px;
-            display: none;
+            max-width: 480px;
+            text-align: center;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .progress-bar {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--accent-blue), #60c0ff);
-            border-radius: 12px;
-            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .progress-bar.home {
-            background: linear-gradient(90deg, #00bb96, var(--accent-green));
-            width: 100% !important;
-        }
-
-        /* METRICS & DETAILS */
-        .metrics-row {
-            display: none;
-            justify-content: space-between;
-            font-size: 0.95rem;
-            color: var(--text-muted);
+        .status-badge {
+            display: inline-block;
+            background-color: rgba(56, 189, 248, 0.15);
+            color: var(--accent-blue);
+            padding: 8px 16px;
+            border-radius: 9999px;
             font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 24px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
 
-        .metric-value {
-            color: var(--text-main);
-            font-weight: 700;
+        .status-badge.home {
+            background-color: rgba(74, 222, 128, 0.15);
+            color: var(--accent-green);
         }
 
-        /* LIVE DEBUG BAR AT BOTTOM */
-        #debug-log {
+        .distance-display {
+            font-size: 4.5rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .unit {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-left: 4px;
+        }
+
+        .label {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 32px;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 24px;
+        }
+
+        .detail-card {
+            background: rgba(15, 23, 42, 0.5);
+            padding: 16px;
+            border-radius: 12px;
+        }
+
+        .detail-title {
             font-size: 0.75rem;
-            color: #ffb86c;
-            margin-top: 15px;
-            font-family: monospace;
-            word-break: break-all;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .timestamp {
+            margin-top: 24px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            opacity: 0.7;
         }
     </style>
 </head>
 <body>
 
-    <!-- DIGITAL CLOCK -->
-    <div class="clock-container">
-        <div id="time-display">00:00:00</div>
-        <div id="date-display">Loading Date...</div>
-    </div>
-
-    <!-- LIVE COMMUTE DASHBOARD -->
-    <div class="commute-container" id="commute-box">
-        <div id="commute-status" class="status-header">💤 STANDBY MODE — RUN SHORTCUT TO START</div>
+    <div class="dashboard-container">
+        <div id="statusBadge" class="status-badge">Checking Status...</div>
         
-        <div class="progress-wrapper" id="progress-container">
-            <div id="progress-bar" class="progress-bar"></div>
+        <div class="distance-display">
+            <span id="distanceValue">--</span><span class="unit">km</span>
+        </div>
+        <div class="label">Distance from Home</div>
+
+        <div class="details-grid">
+            <div class="detail-card">
+                <div class="detail-title">Current Lat</div>
+                <div id="latValue" class="detail-value">--</div>
+            </div>
+            <div class="detail-card">
+                <div class="detail-title">Current Lon</div>
+                <div id="lonValue" class="detail-value">--</div>
+            </div>
         </div>
 
-        <div class="metrics-row" id="metrics-container">
-            <div>Distance: <span id="distance-val" class="metric-value">-- km</span></div>
-            <div>ETA: <span id="eta-val" class="metric-value">-- min</span></div>
-        </div>
-
-        <div id="debug-log">Debug: Initializing GPS Sync...</div>
+        <div id="timeValue" class="timestamp">Waiting for GPS data...</div>
     </div>
 
     <script>
-        /* 1. CLOCK CONFIGURATION */
-        function updateClock() {
-            const now = new Date();
-            const timeOptions = { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' };
-            document.getElementById('time-display').textContent = now.toLocaleTimeString([], timeOptions);
-            
-            const dateOptions = { weekday: 'short', month: 'short', day: 'numeric' };
-            document.getElementById('date-display').textContent = now.toLocaleDateString([], dateOptions);
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        /* 2. HOME COORDINATES & VARIABLES */
+        // 1. CONFIGURATION
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzIcu7PV5yRtymEUrim0gVUQ-lBwLOM0VHWpcCayhaNacX9x_Xvkxgt9T1aKptVtxi7QQ/exec';
         const HOME_LAT = 19.865694;
         const HOME_LON = 75.243806;
-        let tripStartDistanceKm = null;
-        let arrivalTimer = null;
-        let isInStandby = true;
+        const REFRESH_RATE_MS = 10000; // Refreshes every 10 seconds
 
-        /* 3. HAVERSINE DISTANCE MATH (IN KM) */
-        function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
+        // 2. HAVERSINE DISTANCE FORMULA (Calculates km between two GPS coordinates)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth's radius in km
+            const dLat = (lat2 - lat1) * (Math.PI / 180);
+            const dLon = (lon2 - lon1) * (Math.PI / 180);
             const a = 
                 Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
                 Math.sin(dLon / 2) * Math.sin(dLon / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
+            return (R * c).toFixed(2); // Returns distance fixed to 2 decimal places
         }
 
-        /* 4. TRIP LOGIC */
-        function processCommuteData(currentLat, currentLon) {
-            const currentDistanceKm = calculateHaversineDistance(
-                currentLat, currentLon,
-                HOME_LAT, HOME_LON
-            );
+        // 3. UPDATE THE DASHBOARD UI
+        function updateUI(lat, lon, timeStr) {
+            const distance = calculateDistance(lat, lon, HOME_LAT, HOME_LON);
 
-            // Within 150 meters = Arrived Home
-            if (currentDistanceKm <= 0.15) {
-                return {
-                    status: "🏡 ARRIVED AT HOME",
-                    progress: 100,
-                    distance: "0.0",
-                    eta: "Arrived",
-                    isHome: true,
-                    rawDist: currentDistanceKm
-                };
+            // Update text elements
+            document.getElementById('distanceValue').textContent = distance;
+            document.getElementById('latValue').textContent = lat.toFixed(4);
+            document.getElementById('lonValue').textContent = lon.toFixed(4);
+            document.getElementById('timeValue').textContent = `Last updated: ${timeStr || 'Just now'}`;
+
+            // Update status badge based on distance
+            const statusBadge = document.getElementById('statusBadge');
+            if (distance < 0.20) {
+                statusBadge.textContent = '🏡 Arrived at Home';
+                statusBadge.classList.add('home');
+            } else {
+                statusBadge.textContent = '🚗 On The Way';
+                statusBadge.classList.remove('home');
             }
-
-            if (arrivalTimer) {
-                clearTimeout(arrivalTimer);
-                arrivalTimer = null;
-            }
-
-            if (tripStartDistanceKm === null || tripStartDistanceKm <= 0.15) {
-                tripStartDistanceKm = currentDistanceKm;
-            }
-
-            const totalTrip = Math.max(tripStartDistanceKm, currentDistanceKm);
-            let progressPercent = ((totalTrip - currentDistanceKm) / totalTrip) * 100;
-            progressPercent = Math.max(5, Math.min(100, progressPercent));
-            const estimatedMinutes = Math.max(1, Math.round(currentDistanceKm * 2));
-
-            return {
-                status: `🚗 DRIVING HOME (${currentDistanceKm.toFixed(1)} KM LEFT)`,
-                progress: progressPercent,
-                distance: currentDistanceKm.toFixed(1),
-                eta: `${estimatedMinutes} min`,
-                isHome: false,
-                rawDist: currentDistanceKm
-            };
         }
 
-        /* 5. FETCH LIVE DATA (SAME-ORIGIN GITHUB PAGES FETCH - NO CORS OR RATE LIMITS!) */
-        async function fetchLiveGPS() {
-            const debugEl = document.getElementById('debug-log');
+        // 4. FETCH DATA FROM GOOGLE APPS SCRIPT
+        async function fetchLocation() {
             try {
-                // Fetch directly from the same website domain with a unique cache-buster!
-                const url = './location.json?cb=' + Date.now();
+                const response = await fetch(GOOGLE_SCRIPT_URL);
+                if (!response.ok) throw new Error('Network response was not ok');
                 
-                const response = await fetch(url, {
-                    method: 'GET',
-                    cache: 'no-store',
-                    headers: {
-                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                        'Pragma': 'no-cache',
-                        'Expires': '0'
-                    }
-                });
+                const data = await response.json();
+                
+                const currentLat = parseFloat(data.lat);
+                const currentLon = parseFloat(data.lon);
+                const lastUpdated = data.time;
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status} (File not found yet)`);
-                }
-
-                const gpsData = await response.json();
-
-                if (gpsData.lat && gpsData.lon) {
-                    const result = processCommuteData(parseFloat(gpsData.lat), parseFloat(gpsData.lon));
-                    
-                    // Automatically wake up UI when fresh coordinates are read
-                    isInStandby = false;
-                    updateDashboardUI(result);
-                    
-                    const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    debugEl.style.color = "#00f2c3";
-                    debugEl.textContent = `Sync OK [${timeString}] | Dist: ${result.rawDist.toFixed(2)} km`;
-
-                    // 10-Second Arrival Delay
-                    if (result.isHome && !arrivalTimer) {
-                        arrivalTimer = setTimeout(() => {
-                            resetToStandby();
-                        }, 10000);
-                    }
+                if (!isNaN(currentLat) && !isNaN(currentLon)) {
+                    updateUI(currentLat, currentLon, lastUpdated);
                 } else {
-                    debugEl.style.color = "#ffb86c";
-                    debugEl.textContent = `Sync OK, but missing lat/lon inside JSON`;
+                    console.error('Invalid coordinates received:', data);
                 }
             } catch (error) {
-                debugEl.style.color = "#ff5555";
-                debugEl.textContent = `Sync Note: ${error.message}`;
+                console.error('Error fetching location data:', error);
+                document.getElementById('timeValue').textContent = 'Error connecting to Google Sheet';
             }
         }
 
-        /* 6. UI TOGGLE & STANDBY RESET */
-        function updateDashboardUI(data) {
-            const statusEl = document.getElementById('commute-status');
-            const barEl = document.getElementById('progress-bar');
-            const distEl = document.getElementById('distance-val');
-            const etaEl = document.getElementById('eta-val');
-            
-            document.getElementById('progress-container').style.display = 'block';
-            document.getElementById('metrics-container').style.display = 'flex';
-
-            statusEl.textContent = data.status;
-            distEl.textContent = `${data.distance} km`;
-            etaEl.textContent = data.eta;
-            barEl.style.width = `${data.progress}%`;
-
-            if (data.isHome) {
-                statusEl.className = 'status-header home';
-                barEl.className = 'progress-bar home';
-            } else {
-                statusEl.className = 'status-header active';
-                barEl.className = 'progress-bar';
-            }
-        }
-
-        function resetToStandby() {
-            tripStartDistanceKm = null;
-            isInStandby = true;
-            if (arrivalTimer) {
-                clearTimeout(arrivalTimer);
-                arrivalTimer = null;
-            }
-            
-            document.getElementById('commute-status').textContent = '💤 STANDBY MODE — RUN SHORTCUT TO START';
-            document.getElementById('commute-status').className = 'status-header';
-            document.getElementById('progress-container').style.display = 'none';
-            document.getElementById('metrics-container').style.display = 'none';
-            document.getElementById('debug-log').style.color = "#8b9bb4";
-            document.getElementById('debug-log').textContent = "Standby Mode Active — Waiting for next commute...";
-        }
-
-        // Start in Standby Mode immediately
-        resetToStandby();
-
-        // Automatically fetch live GPS every 5 seconds (5000 milliseconds)
-        setInterval(fetchLiveGPS, 5000);
-        fetchLiveGPS();
+        // 5. INITIALIZE AND AUTO-REFRESH
+        fetchLocation();
+        setInterval(fetchLocation, REFRESH_RATE_MS);
     </script>
 </body>
 </html>
