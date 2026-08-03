@@ -2,754 +2,117 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RealMe Desk Clock & GPS Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Desk Clock</title>
     <style>
-        :root {
-            --bg-color: #000000;
-            --text-main: #ffffff;
-            --text-dark: #000000;
-            --accent-green: #00e676;
-            --accent-red: #ff1744;
-            --card-bg: #ffffff;
-            --border-line: #e0e0e0;
-        }
-
+        /* Reset margins and prevent scrolling */
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            overflow: hidden;
-            width: 100vw;
+            background-color: #000000; /* Pitch black background */
+            color: #ffffff; /* Crisp white text */
+            /* Using the boldest available system fonts */
+            font-family: 'Arial Black', Impact, 'Segoe UI Black', system-ui, sans-serif; 
             height: 100vh;
-            display: flex;
-            padding: 20px;
-        }
-
-        /* --- MAIN LAYOUT GRID --- */
-        .dashboard {
-            display: grid;
-            grid-template-columns: 42% 58%;
-            grid-template-rows: 60px 1fr;
-            width: 100%;
-            height: 100%;
-            gap: 15px 25px;
-            position: relative;
-        }
-
-        /* --- TOP HEADER (DATE & MESSAGE AREA) --- */
-        .header-left {
-            grid-column: 1 / 2;
-            grid-row: 1 / 2;
-            display: flex;
-            align-items: center;
-            font-size: 1.8rem;
-            font-weight: 800;
-            letter-spacing: 1px;
-            z-index: 20;
-            transition: opacity 0.5s ease;
-        }
-
-        .header-right {
-            grid-column: 2 / 3;
-            grid-row: 1 / 2;
-            display: flex;
-            align-items: center;
-            z-index: 20;
-            transition: opacity 0.5s ease;
-        }
-
-        /* MESSAGE AREA */
-        .message-area {
-            background-color: var(--card-bg);
-            color: var(--text-dark);
-            width: 100%;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            font-size: 1.5rem;
-            font-weight: 700;
-            overflow: hidden;
-            white-space: nowrap;
-            position: relative;
-        }
-
-        @keyframes alertBlink {
-            0%, 100% { background-color: var(--card-bg); color: var(--text-dark); }
-            50% { background-color: var(--accent-red); color: #ffffff; }
-        }
-
-        .message-area.blink {
-            animation: alertBlink 0.8s infinite;
-        }
-
-        .message-text {
-            display: inline-block;
-        }
-
-        .message-text.scroll {
-            padding-left: 100%;
-            animation: scrollText 12s linear infinite;
-        }
-
-        @keyframes scrollText {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(-100%, 0); }
-        }
-
-        /* --- CLOCK CONTAINER --- */
-        .clock-container {
-            grid-column: 1 / 2;
-            grid-row: 2 / 3;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            line-height: 0.82;
-            user-select: none;
-            transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
-            z-index: 10;
-        }
-
-        .clock-time {
-            font-size: 14.5vw;
-            font-weight: 900;
-            letter-spacing: -3px;
-            transition: font-size 0.6s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-
-        /* FULLSCREEN CENTERED CLOCK OVERRIDE (APPLIED ON TIMEOUT) */
-        .clock-container.fullscreen-timeout {
-            position: fixed;
-            top: 0;
-            left: 0;
             width: 100vw;
-            height: 100vh;
-            align-items: center;
+            display: flex;
             justify-content: center;
-            background-color: var(--bg-color);
-            z-index: 1000;
-        }
-
-        .clock-container.fullscreen-timeout .clock-time {
-            font-size: 27vw; /* Massive centered font */
-            letter-spacing: -6px;
-        }
-
-        /* --- RIGHT SIDE: DYNAMIC CARDS --- */
-        .card-container {
-            grid-column: 2 / 3;
-            grid-row: 2 / 3;
-            display: flex;
             align-items: center;
-            justify-content: center;
-            z-index: 10;
-        }
-
-        .view-panel {
-            display: none;
-            width: 100%;
-            height: 100%;
-        }
-
-        .view-panel.active {
-            display: flex;
-        }
-
-        /* --- TELEMETRY CARD STYLE --- */
-        .telemetry-card {
-            background-color: var(--card-bg);
-            color: var(--text-dark);
-            width: 100%;
-            height: 100%;
-            border-radius: 4px;
-            padding: 20px 25px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .telemetry-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 1.1rem;
-            font-weight: 700;
-            border-bottom: 2px solid var(--border-line);
-            padding-bottom: 12px;
-        }
-
-        .battery-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .telemetry-middle {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            flex-grow: 1;
-            padding: 15px 0;
-        }
-
-        .route-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 1.2rem;
-            font-weight: 800;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-        }
-
-        .route-labels span {
-            font-size: 0.9rem;
-            color: #666666;
-            display: block;
-        }
-
-        /* PROGRESS BAR & LIVE DISTANCE */
-        .progress-track {
-            background-color: #ededed;
-            height: 16px;
-            border-radius: 8px;
-            width: 100%;
+            overflow: hidden;
             position: relative;
-            margin: 10px 0;
         }
 
-        .progress-fill {
-            background-color: var(--accent-green);
-            height: 100%;
-            border-radius: 8px;
-            width: 0%;
-            position: relative;
-            transition: width 0.5s ease;
-        }
-
-        .progress-knob {
-            width: 26px;
-            height: 26px;
-            background-color: var(--accent-green);
-            border-radius: 50%;
+        /* Top Left Date Styling */
+        #date-display {
             position: absolute;
-            right: -13px;
-            top: -5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        .live-distance-highlight {
-            text-align: center;
-            font-size: 2.8rem;
-            font-weight: 900;
-            color: var(--accent-green);
-            margin-top: 5px;
-        }
-
-        .live-tag {
-            font-size: 0.9rem;
-            color: var(--accent-red);
-            font-weight: 800;
-            text-align: center;
+            top: 5vh;
+            left: 4vw;
+            font-size: 5vw; 
+            font-weight: bold;
+            color: #aaaaaa; /* Slightly dimmed so it doesn't distract from the time */
+            font-family: system-ui, -apple-system, sans-serif;
             letter-spacing: 1px;
         }
 
-        .telemetry-bottom {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #444444;
-            border-top: 2px solid var(--border-line);
-            padding-top: 12px;
-        }
-
-        /* --- WELCOME HOME SCREEN --- */
-        .welcome-home-card {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background-color: var(--bg-color);
-            border: 4px solid var(--text-main);
-            text-align: center;
-        }
-
-        .welcome-home-card h1 {
-            font-size: 6.5vw;
+        /* Massive Center Time Styling */
+        #time-display {
+            font-size: 35vw; /* Massive text that scales with screen width */
             font-weight: 900;
-            line-height: 0.95;
-            letter-spacing: -2px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            letter-spacing: -2px; /* Pulls the numbers slightly closer together */
+        }
+
+        /* Blinking Colon Animation */
+        #colon {
+            animation: blink 1s infinite;
+            position: relative;
+            top: -2vw; /* Adjusts vertical alignment of the colon */
+            margin: 0 1vw;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        /* Adjustments for when the phone is propped up sideways (Landscape) */
+        @media (orientation: landscape) {
+            #date-display { 
+                font-size: 3vw; /* Smaller relative to width in landscape */
+                top: 6vh;
+                left: 3vw;
+            }
+            #time-display { 
+                font-size: 28vw; /* Optimal size for 19.5:9 aspect ratio screens */
+            }
         }
     </style>
 </head>
 <body>
 
-    <div class="dashboard">
-        <!-- TOP LEFT: DATE DISPLAY -->
-        <div class="header-left" id="headerLeft">
-            <span id="dateDisplay">31/07/1996 | FRIDAY</span>
-        </div>
+    <!-- Date in the upper left corner -->
+    <div id="date-display"></div>
 
-        <!-- TOP RIGHT: MESSAGE AREA -->
-        <div class="header-right" id="headerRight">
-            <div id="messageArea" class="message-area">
-                <div id="messageText" class="message-text">*MESSAGE AREA*</div>
-            </div>
-        </div>
-
-        <!-- BOTTOM LEFT: DESK CLOCK -->
-        <div class="clock-container" id="clockContainer">
-            <div id="timeDisplay" class="clock-time">12:33</div>
-        </div>
-
-        <!-- BOTTOM RIGHT: MODE SWITCHER CARDS -->
-        <div class="card-container" id="cardContainer">
-
-            <!-- MODE 1: CLOCK ONLY (Right side remains blank) -->
-            <div id="panel-clock-only" class="view-panel active"></div>
-
-            <!-- MODE 2 & 4 & 6: COMMUTE & RETURN HOME -->
-            <div id="panel-commute" class="view-panel">
-                <div class="telemetry-card">
-                    <div class="telemetry-top">
-                        <div id="uiSpeed">Speed: 0.00 kmH | Top: 0.00</div>
-                        <div class="battery-status">
-                            <span>📱</span>
-                            <span id="uiBattery">Battery --%</span>
-                        </div>
-                    </div>
-
-                    <div class="telemetry-middle">
-                        <div class="route-labels">
-                            <div><span>From</span><strong id="uiFromLabel">HOME</strong></div>
-                            <div style="text-align: center;"><span>Total Distance</span><strong id="uiTotalDist">-- Km</strong></div>
-                            <div style="text-align: right;"><span>Destination</span><strong id="uiToLabel">OFFICE</strong></div>
-                        </div>
-
-                        <div class="progress-track">
-                            <div id="uiProgressBar" class="progress-fill" style="width: 0%;">
-                                <div class="progress-knob"></div>
-                            </div>
-                        </div>
-
-                        <div id="uiLiveDist" class="live-distance-highlight">0.00 Km Left</div>
-                        <div class="live-tag">LIVE ●</div>
-                    </div>
-
-                    <div class="telemetry-bottom">
-                        <div>
-                            <div>Current Coordinates: <span id="uiCoords">--</span></div>
-                            <div>Location Name: <span id="uiLocName">--</span></div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div>Last Location Update</div>
-                            <div id="uiLastUpdate">--/--/---- | --:--:--</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MODE 5: DRIVE MODE -->
-            <div id="panel-drive" class="view-panel">
-                <div class="telemetry-card">
-                    <div class="telemetry-top">
-                        <div id="uiDriveSpeed">Speed: 0.00 kmH | Top: 0.00</div>
-                        <div class="battery-status">
-                            <span>📱</span>
-                            <span id="uiDriveBattery">Battery --%</span>
-                        </div>
-                    </div>
-
-                    <div class="telemetry-middle">
-                        <div class="route-labels">
-                            <div><span>From</span><strong>HOME</strong></div>
-                            <div style="text-align: right;"><span>Total Distance Traveled</span><strong id="uiDriveTotalDist">0.00 Km</strong></div>
-                        </div>
-
-                        <div class="progress-track">
-                            <div class="progress-fill" style="width: 100%;"></div>
-                        </div>
-
-                        <div id="uiDriveLiveDist" class="live-distance-highlight">From Home 0.00 Km</div>
-                        <div class="live-tag">LIVE ●</div>
-                    </div>
-
-                    <div class="telemetry-bottom">
-                        <div>
-                            <div>Current Coordinates: <span id="uiDriveCoords">--</span></div>
-                            <div>Location Name: <span id="uiDriveLocName">--</span></div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div>Last Location Update</div>
-                            <div id="uiDriveLastUpdate">--/--/---- | --:--:--</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MODE 3: WELCOME HOME -->
-            <div id="panel-welcome" class="view-panel">
-                <div class="welcome-home-card">
-                    <h1>WELCOME<br>HOME</h1>
-                </div>
-            </div>
-
-        </div>
+    <!-- Huge time in the center -->
+    <div id="time-display">
+        <span id="hours"></span><span id="colon">:</span><span id="minutes"></span>
     </div>
 
     <script>
-        // --- 1. GOOGLE APPS SCRIPT WEB APP URL & HARDCODED GPS ---
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwoVN3MISz0MwReTTRI3OCDlz773F8wxH3acISFOpHqo1qd7LhKFD4AWWYic13fBSAuzw/exec';
-
-        const HOME_LAT = 19.86574625237041;
-        const HOME_LNG = 75.2437856839912;
-        const OFFICE_LAT = 19.829540680618862;
-        const OFFICE_LNG = 75.19337422921791;
-
-        // --- STATE & EXPIRATION LOCKS ---
-        let TOTAL_ROAD_KM = 8.90;
-
-        // Mode Expiration Tracking
-        let currentMode = "";
-        let modeExpiryTime = 0;
-        let expiredModes = new Set();
-        let isTimedOutScreen = false;
-
-        // Message Expiration Tracking
-        let lastServerMessage = "";
-        let messageExpiryTime = 0;
-        let isMessageExpired = false;
-        let hasActiveMessage = false;
-
-        // --- 2. STRAIGHT-LINE DISTANCE CHECK ---
-        function calculateStraightDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * (Math.PI / 180);
-            const dLon = (lon2 - lon1) * (Math.PI / 180);
-            const a =
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * (Math.PI / 180)) *
-                Math.cos(lat2 * (Math.PI / 180)) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
-        }
-
-        // --- 3. ASYNC OSRM ROAD DISTANCE ENGINE ---
-        async function getRoadDistance(lat1, lon1, lat2, lon2) {
-            try {
-                const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
-                const response = await fetch(url);
-                if (!response.ok) throw new Error("OSRM API error");
-                const data = await response.json();
-                
-                if (data && data.routes && data.routes.length > 0) {
-                    const distanceKm = (data.routes[0].distance / 1000).toFixed(2);
-                    return parseFloat(distanceKm);
-                }
-            } catch (error) {
-                console.warn("Road routing API fallback:", error);
-            }
-            return parseFloat((calculateStraightDistance(lat1, lon1, lat2, lon2) * 1.35).toFixed(2));
-        }
-
-        // Initialize total road route distance
-        (async function initTotalRoute() {
-            const fetchedRoute = await getRoadDistance(HOME_LAT, HOME_LNG, OFFICE_LAT, OFFICE_LNG);
-            if (fetchedRoute > 0) TOTAL_ROAD_KM = fetchedRoute;
-            document.getElementById('uiTotalDist').textContent = `${TOTAL_ROAD_KM} Km`;
-        })();
-
-        // --- 4. LIVE CLOCK & DATE ENGINE ---
-        function updateDeskClock() {
+        function updateClock() {
             const now = new Date();
-            const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-            const dayName = days[now.getDay()];
-            const dd = String(now.getDate()).padStart(2, '0');
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const yyyy = now.getFullYear();
-            document.getElementById('dateDisplay').textContent = `${dd}/${mm}/${yyyy} | ${dayName}`;
 
+            // Format Hours and Minutes with leading zeros (e.g., 09:05)
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById('timeDisplay').textContent = `${hours}:${minutes}`;
 
-            // --- LOCAL EXPIRATION CHECKER ---
-            const currentTime = Date.now();
+            // Inject time into HTML
+            document.getElementById('hours').textContent = hours;
+            document.getElementById('minutes').textContent = minutes;
 
-            // 1. Check Mode Expiry -> Enable TIMEOUT CLOCK SCREEN
-            if (modeExpiryTime > 0 && currentTime >= modeExpiryTime) {
-                expiredModes.add(currentMode);
-                modeExpiryTime = 0;
-                enterTimeoutScreen();
-            }
+            // Format Date
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const dayName = days[now.getDay()];
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const year = now.getFullYear();
 
-            // 2. Check Message Expiry
-            if (messageExpiryTime > 0 && currentTime >= messageExpiryTime) {
-                isMessageExpired = true;
-                messageExpiryTime = 0;
-                clearMessageUI();
-            }
-        }
-        setInterval(updateDeskClock, 1000);
-        updateDeskClock();
-
-        // --- 5. TIMEOUT FULL-SCREEN HANDLERS ---
-        function enterTimeoutScreen() {
-            isTimedOutScreen = true;
-            switchPanel('panel-clock-only');
-            // Check strictly: only show giant centered clock if there's no active banner message
-            if (!hasActiveMessage) {
-                document.getElementById('clockContainer').classList.add('fullscreen-timeout');
-            } else {
-                document.getElementById('clockContainer').classList.remove('fullscreen-timeout');
-            }
+            // Inject date into HTML in DD/MM/YYYY | Day format
+            document.getElementById('date-display').textContent = `${day}/${month}/${year} | ${dayName}`;
         }
 
-        function exitTimeoutScreen() {
-            isTimedOutScreen = false;
-            document.getElementById('clockContainer').classList.remove('fullscreen-timeout');
-        }
-
-        // --- 6. MESSAGE AREA HANDLER ---
-        function clearMessageUI() {
-            const area = document.getElementById('messageArea');
-            const textEl = document.getElementById('messageText');
-            textEl.textContent = "*MESSAGE AREA*";
-            area.classList.remove('blink');
-            textEl.classList.remove('scroll');
-            hasActiveMessage = false;
-
-            // When a message expires or clears, if we are timed out, instantly pop back to giant centered clock!
-            if (isTimedOutScreen) {
-                document.getElementById('clockContainer').classList.add('fullscreen-timeout');
-            }
-        }
-
-        function updateMessageArea(msg, blinkFlag) {
-            const area = document.getElementById('messageArea');
-            const textEl = document.getElementById('messageText');
-
-            // STRICT Check: Treat null, undefined, "", or blank spaces as NO message
-            if (!msg || String(msg).trim() === "") {
-                lastServerMessage = "";
-                isMessageExpired = false;
-                messageExpiryTime = 0;
-                clearMessageUI();
-                return;
-            }
-
-            // A genuine new custom message has arrived
-            if (msg !== lastServerMessage) {
-                lastServerMessage = msg;
-                isMessageExpired = false;
-                messageExpiryTime = Date.now() + 180000; // 3 Minutes from now
-                hasActiveMessage = true;
-
-                // Make room to read the message by pulling clock out of giant centered mode
-                document.getElementById('clockContainer').classList.remove('fullscreen-timeout');
-
-                textEl.textContent = msg.toUpperCase();
-                if (msg.length > 22) {
-                    textEl.classList.add('scroll');
-                } else {
-                    textEl.classList.remove('scroll');
-                }
-            }
-
-            if (isMessageExpired) {
-                clearMessageUI();
-                return;
-            }
-
-            hasActiveMessage = true;
-
-            if (blinkFlag === true || blinkFlag === "true") {
-                area.classList.add('blink');
-            } else {
-                area.classList.remove('blink');
-            }
-        }
-
-        // --- 7. PANEL SWITCHER ---
-        function switchPanel(panelId) {
-            const panels = document.querySelectorAll('.view-panel');
-            panels.forEach(p => p.classList.remove('active'));
-            const target = document.getElementById(panelId);
-            if (target) target.classList.add('active');
-        }
-
-        // --- 8. SMART COORDINATE & ADDRESS PARSER ---
-        function formatCoordinates(latRaw, lonRaw) {
-            const lat = parseFloat(latRaw);
-            const lon = parseFloat(lonRaw);
-            if (!isNaN(lat) && !isNaN(lon)) {
-                return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-            }
-            return "--";
-        }
-
-        function getCleanLocationName(locNameRaw, lonRaw) {
-            if (lonRaw && isNaN(parseFloat(lonRaw)) && String(lonRaw).length > 5) {
-                return String(lonRaw);
-            }
-            return locNameRaw || "Unknown Location";
-        }
-
-        // --- 9. SMART COMMUTE PROGRESS CALCULATOR ---
-        async function updateCommuteUI(curLat, curLng, targetLat, targetLng, originLat, originLng) {
-            let dist = TOTAL_ROAD_KM;
-            let progressPct = 0;
-
-            if (!isNaN(curLat) && !isNaN(curLng)) {
-                const distFromStart = calculateStraightDistance(curLat, curLng, originLat, originLng);
-                const distFromTarget = calculateStraightDistance(curLat, curLng, targetLat, targetLng);
-                
-                if (distFromTarget < 0.15) {
-                    dist = 0.00;
-                    progressPct = 100;
-                } else if (distFromStart < 0.15) {
-                    dist = TOTAL_ROAD_KM;
-                    progressPct = 0;
-                } else {
-                    dist = await getRoadDistance(curLat, curLng, targetLat, targetLng);
-                    progressPct = Math.min(Math.max(((TOTAL_ROAD_KM - dist) / TOTAL_ROAD_KM) * 100, 0), 100);
-                }
-            }
-
-            document.getElementById('uiProgressBar').style.width = `${progressPct}%`;
-            document.getElementById('uiLiveDist').textContent = `${dist.toFixed(2)} Km Left`;
-            document.getElementById('uiTotalDist').textContent = `${TOTAL_ROAD_KM} Km`;
-        }
-
-        // --- 10. LIVE TELEMETRY FETCHER ---
-        async function syncDashboard() {
-            try {
-                const res = await fetch(GOOGLE_SCRIPT_URL);
-                if (!res.ok) return;
-                const data = await res.json();
-
-                const mode = (data.mode || "CLOCK").toUpperCase();
-
-                // If mode changed on server, clear timeout state and reset timers
-                if (mode !== currentMode) {
-                    currentMode = mode;
-                    expiredModes.delete(mode);
-                    modeExpiryTime = 0;
-                    if (isTimedOutScreen) {
-                        exitTimeoutScreen();
-                    }
-                }
-
-                // Process Custom Message Banner FIRST (Ensures hasActiveMessage is accurate before drawing clock)
-                updateMessageArea(data.message, data.blink);
-
-                const cleanCoords = formatCoordinates(data.lat, data.lon || data.lng);
-                const cleanLocName = getCleanLocationName(data.locName, data.lon || data.lng);
-                const curLat = parseFloat(data.lat);
-                const curLng = parseFloat(data.lon || data.lng);
-
-                let cleanBattery = "--%";
-                if (data.battery !== undefined && data.battery !== null && String(data.battery).trim() !== "") {
-                    cleanBattery = String(data.battery).includes('%') ? String(data.battery) : `${data.battery}%`;
-                }
-
-                // --- TIMEOUT PROTECTION ---
-                // If this mode has timed out locally, KEEP the timed-out screen active
-                if (expiredModes.has(mode)) {
-                    if (!isTimedOutScreen) {
-                        enterTimeoutScreen();
-                    } else if (!hasActiveMessage) {
-                        // Ensure it stays giant if message cleared while we were timed out
-                        document.getElementById('clockContainer').classList.add('fullscreen-timeout');
-                    }
-                    return;
-                }
-
-                // Remove timeout screen when active modes are running
-                exitTimeoutScreen();
-
-                // --- MODE 1: CLOCK ONLY ---
-                if (mode === "CLOCK") {
-                    switchPanel('panel-clock-only');
-                } 
-                // --- MODE 2: WELCOME HOME ---
-                else if (mode === "WELCOME") {
-                    switchPanel('panel-welcome');
-                    if (modeExpiryTime === 0) {
-                        modeExpiryTime = Date.now() + 600000; // 10 Minutes = 600,000ms
-                    }
-                } 
-                // --- MODE 3: DRIVE MODE ---
-                else if (mode === "DRIVE") {
-                    switchPanel('panel-drive');
-                    document.getElementById('uiDriveSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
-                    document.getElementById('uiDriveBattery').textContent = `Battery ${cleanBattery}`;
-                    document.getElementById('uiDriveTotalDist').textContent = `${data.totalDist || '0.00'} Km`;
-                    document.getElementById('uiDriveLiveDist').textContent = `From Home ${data.liveDist || '0.00'} Km`;
-                    document.getElementById('uiDriveCoords').textContent = cleanCoords;
-                    document.getElementById('uiDriveLocName').textContent = cleanLocName;
-                    document.getElementById('uiDriveLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
-                } 
-                // --- MODE 4: DRIVING TO OFFICE ---
-                else if (mode === "TO_OFFICE") {
-                    switchPanel('panel-commute');
-                    document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
-                    document.getElementById('uiBattery').textContent = `Battery ${cleanBattery}`;
-                    document.getElementById('uiFromLabel').textContent = "HOME";
-                    document.getElementById('uiToLabel').textContent = "OFFICE";
-                    await updateCommuteUI(curLat, curLng, OFFICE_LAT, OFFICE_LNG, HOME_LAT, HOME_LNG);
-                    document.getElementById('uiCoords').textContent = cleanCoords;
-                    document.getElementById('uiLocName').textContent = cleanLocName;
-                    document.getElementById('uiLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
-                } 
-                // --- MODE 5: ARRIVED AT OFFICE ---
-                else if (mode === "OFFICE_ARRIVED") {
-                    switchPanel('panel-commute');
-                    updateMessageArea("ARRIVED AT OFFICE! HAVE A GREAT DAY!", true);
-                    
-                    document.getElementById('uiFromLabel').textContent = "HOME";
-                    document.getElementById('uiToLabel').textContent = "OFFICE";
-                    document.getElementById('uiTotalDist').textContent = `${TOTAL_ROAD_KM} Km`;
-                    document.getElementById('uiLiveDist').textContent = "0.00 Km Left";
-                    document.getElementById('uiProgressBar').style.width = "100%";
-                    document.getElementById('uiBattery').textContent = `Battery ${cleanBattery}`;
-                    document.getElementById('uiLocName').textContent = "OFFICE";
-                    document.getElementById('uiCoords').textContent = cleanCoords;
-                    
-                    if (modeExpiryTime === 0) {
-                        modeExpiryTime = Date.now() + 180000; // 3 Minutes = 180,000ms
-                    }
-                } 
-                // --- MODE 6: DRIVING HOME FROM OFFICE ---
-                else {
-                    switchPanel('panel-commute');
-                    document.getElementById('uiSpeed').textContent = `Speed: ${data.speed || 0} kmH | Top: ${data.topSpeed || 0}`;
-                    document.getElementById('uiBattery').textContent = `Battery ${cleanBattery}`;
-                    document.getElementById('uiFromLabel').textContent = "OFFICE";
-                    document.getElementById('uiToLabel').textContent = "HOME";
-                    await updateCommuteUI(curLat, curLng, HOME_LAT, HOME_LNG, OFFICE_LAT, OFFICE_LNG);
-                    document.getElementById('uiCoords').textContent = cleanCoords;
-                    document.getElementById('uiLocName').textContent = cleanLocName;
-                    document.getElementById('uiLastUpdate').textContent = data.lastUpdate || '--/--/---- | --:--:--';
-                }
-
-            } catch (err) {
-                console.warn('Dashboard sync error:', err);
-            }
-        }
-
-        setInterval(syncDashboard, 5000);
-        syncDashboard();
+        // Run immediately so there is no 1-second delay on load
+        updateClock();
+        
+        // Update the clock every 1000 milliseconds (1 second)
+        setInterval(updateClock, 1000);
     </script>
+
 </body>
 </html>
