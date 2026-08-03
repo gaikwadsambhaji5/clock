@@ -19,6 +19,7 @@
             height: 100vh;
             width: 100vw;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             overflow: hidden;
@@ -31,10 +32,10 @@
             top: 6vh;
             left: 0;
             width: 100%;
-            text-align: center; /* Centers the date */
+            text-align: center; 
             font-size: 11vw; /* Massive size */
             font-weight: bold;
-            color: #ffffff; /* Pure white */
+            color: #ffffff; 
             font-family: system-ui, -apple-system, sans-serif;
             letter-spacing: 1px;
         }
@@ -62,14 +63,41 @@
             50%, 100% { opacity: 0; }
         }
 
+        /* Fullscreen Button Styling */
+        #fs-btn {
+            position: absolute;
+            bottom: 5vh;
+            padding: 12px 24px;
+            background-color: #222222;
+            color: #aaaaaa;
+            border: 2px solid #333333;
+            border-radius: 30px;
+            font-size: 4vw;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            z-index: 10;
+            transition: 0.3s ease;
+        }
+
+        #fs-btn:active {
+            background-color: #444444;
+            color: #ffffff;
+        }
+
         /* Adjustments for Landscape Mode */
         @media (orientation: landscape) {
             #date-display { 
-                font-size: 7vw; /* Scaled for landscape */
+                font-size: 7vw; 
                 top: 8vh;
             }
             #time-display { 
                 font-size: 28vw; 
+            }
+            #fs-btn {
+                font-size: 2vw;
+                bottom: 8vh;
+                padding: 10px 20px;
             }
         }
     </style>
@@ -79,10 +107,13 @@
     <!-- Centered Date at the top -->
     <div id="date-display"></div>
 
-    <!-- Huge time in the center (No AM/PM) -->
+    <!-- Huge time in the center -->
     <div id="time-display">
         <span id="hours"></span><span id="colon">:</span><span id="minutes"></span>
     </div>
+
+    <!-- Fullscreen Toggle Button -->
+    <button id="fs-btn">Go Full Screen</button>
 
     <script>
         function updateClock() {
@@ -112,6 +143,32 @@
         
         // Update the clock every 1000 milliseconds
         setInterval(updateClock, 1000);
+
+        // --- FULLSCREEN LOGIC ---
+        const fsBtn = document.getElementById('fs-btn');
+
+        // Request fullscreen when button is tapped
+        fsBtn.addEventListener('click', () => {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            } else if (document.documentElement.webkitRequestFullscreen) { /* Safari/Older Chrome */
+                document.documentElement.webkitRequestFullscreen();
+            }
+        });
+
+        // Listen for fullscreen changes to hide/show the button
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange); // For older mobile browsers
+
+        function handleFullscreenChange() {
+            // If the document is currently in fullscreen mode, hide the button
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                fsBtn.style.display = 'none';
+            } else {
+                // If exiting fullscreen mode, bring the button back
+                fsBtn.style.display = 'block';
+            }
+        }
     </script>
 
 </body>
