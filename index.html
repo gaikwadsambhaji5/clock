@@ -15,7 +15,6 @@
         body {
             background-color: #000000; /* Pitch black background */
             color: #ffffff; /* Crisp white text */
-            /* Using the boldest available system fonts */
             font-family: 'Arial Black', Impact, 'Segoe UI Black', system-ui, sans-serif; 
             height: 100vh;
             width: 100vw;
@@ -26,33 +25,35 @@
             position: relative;
         }
 
-        /* Top Left Date Styling */
+        /* Top Center Date Styling */
         #date-display {
             position: absolute;
             top: 5vh;
-            left: 4vw;
-            font-size: 5vw; 
+            left: 0;
+            width: 100%;
+            text-align: center; /* Centers the date */
+            font-size: 7vw; /* Increased size */
             font-weight: bold;
-            color: #aaaaaa; /* Slightly dimmed so it doesn't distract from the time */
+            color: #ffffff; /* Changed to pure white */
             font-family: system-ui, -apple-system, sans-serif;
             letter-spacing: 1px;
         }
 
         /* Massive Center Time Styling */
         #time-display {
-            font-size: 35vw; /* Massive text that scales with screen width */
+            font-size: 35vw; 
             font-weight: 900;
             line-height: 1;
             display: flex;
             align-items: center;
-            letter-spacing: -2px; /* Pulls the numbers slightly closer together */
+            letter-spacing: -2px; 
         }
 
         /* Blinking Colon Animation */
         #colon {
             animation: blink 1s infinite;
             position: relative;
-            top: -2vw; /* Adjusts vertical alignment of the colon */
+            top: -2vw; 
             margin: 0 1vw;
         }
 
@@ -61,22 +62,21 @@
             50%, 100% { opacity: 0; }
         }
 
-        /* Adjustments for when the phone is propped up sideways (Landscape) */
+        /* Adjustments for Landscape Mode */
         @media (orientation: landscape) {
             #date-display { 
-                font-size: 3vw; /* Smaller relative to width in landscape */
-                top: 6vh;
-                left: 3vw;
+                font-size: 4.5vw; /* Made significantly larger for landscape */
+                top: 8vh;
             }
             #time-display { 
-                font-size: 28vw; /* Optimal size for 19.5:9 aspect ratio screens */
+                font-size: 28vw; 
             }
         }
     </style>
 </head>
 <body>
 
-    <!-- Date in the upper left corner -->
+    <!-- Centered Date at the top -->
     <div id="date-display"></div>
 
     <!-- Huge time in the center -->
@@ -88,7 +88,7 @@
         function updateClock() {
             const now = new Date();
 
-            // Format Hours and Minutes with leading zeros (e.g., 09:05)
+            // Format Hours and Minutes with leading zeros
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
 
@@ -100,17 +100,17 @@
             const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const dayName = days[now.getDay()];
             const day = String(now.getDate()).padStart(2, '0');
-            const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const month = String(now.getMonth() + 1).padStart(2, '0'); 
             const year = now.getFullYear();
 
-            // Inject date into HTML in DD/MM/YYYY | Day format
+            // Inject date into HTML
             document.getElementById('date-display').textContent = `${day}/${month}/${year} | ${dayName}`;
         }
 
-        // Run immediately so there is no 1-second delay on load
+        // Run immediately
         updateClock();
         
-        // Update the clock every 1000 milliseconds (1 second)
+        // Update the clock every 1000 milliseconds
         setInterval(updateClock, 1000);
     </script>
 
