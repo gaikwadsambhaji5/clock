@@ -32,7 +32,7 @@
             left: 0;
             width: 100%;
             text-align: center; /* Centers the date */
-            font-size: 11vw; /* Increased size significantly */
+            font-size: 11vw; /* Massive size */
             font-weight: bold;
             color: #ffffff; /* Pure white */
             font-family: system-ui, -apple-system, sans-serif;
@@ -65,7 +65,7 @@
         /* Adjustments for Landscape Mode */
         @media (orientation: landscape) {
             #date-display { 
-                font-size: 7vw; /* Made significantly larger for landscape */
+                font-size: 7vw; /* Scaled for landscape */
                 top: 8vh;
             }
             #time-display { 
@@ -79,7 +79,7 @@
     <!-- Centered Date at the top -->
     <div id="date-display"></div>
 
-    <!-- Huge time in the center -->
+    <!-- Huge time in the center (No AM/PM) -->
     <div id="time-display">
         <span id="hours"></span><span id="colon">:</span><span id="minutes"></span>
     </div>
@@ -88,7 +88,7 @@
         function updateClock() {
             const now = new Date();
 
-            // Format Hours and Minutes with leading zeros
+            // Format Hours in 24-hour format (00 to 23)
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
 
