@@ -33,7 +33,7 @@
             left: 0;
             width: 100%;
             text-align: center; 
-            font-size: 11vw; /* Massive size */
+            font-size: 11vw; 
             font-weight: bold;
             color: #ffffff; 
             font-family: system-ui, -apple-system, sans-serif;
@@ -42,19 +42,20 @@
 
         /* Massive Center Time Styling */
         #time-display {
-            font-size: 35vw; 
+            font-size: 42vw; /* Increased size (was 35vw) */
             font-weight: 900;
             line-height: 1;
             display: flex;
             align-items: center;
             letter-spacing: -2px; 
+            margin-top: 15vh; /* Shifts the time lower on the screen */
         }
 
         /* Blinking Colon Animation */
         #colon {
             animation: blink 1s infinite;
             position: relative;
-            top: -2vw; 
+            top: -2.5vw; 
             margin: 0 1vw;
         }
 
@@ -92,7 +93,8 @@
                 top: 8vh;
             }
             #time-display { 
-                font-size: 28vw; 
+                font-size: 32vw; /* Increased size (was 28vw) */
+                margin-top: 10vh; /* Shifts the time lower in landscape */
             }
             #fs-btn {
                 font-size: 2vw;
@@ -119,8 +121,13 @@
         function updateClock() {
             const now = new Date();
 
-            // Format Hours in 24-hour format (00 to 23)
-            const hours = String(now.getHours()).padStart(2, '0');
+            // Convert to 12-hour format
+            let rawHours = now.getHours();
+            rawHours = rawHours % 12;
+            rawHours = rawHours ? rawHours : 12; // If hour is 0 (midnight), change to 12
+
+            // Format Hours and Minutes with leading zeros
+            const hours = String(rawHours).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
 
             // Inject time into HTML
