@@ -194,18 +194,19 @@
                 const response = await fetch(SHEET_URL);
                 const data = await response.json();
                 
-                const currentA1 = data.a1;
-                const currentP1 = data.p1;
+                // Trim in case there are invisible spaces in the spreadsheet cell
+                const currentA1 = String(data.a1).trim();
+                const currentP1 = String(data.p1).trim();
 
                 const trackerFrame = document.getElementById('tracker-frame');
 
-                // Check if A1 changed to a different number
-                if (lastA1 !== null && currentA1 !== lastA1) {
+                // Check if A1 just became "0"
+                if (currentA1 === "0" && lastA1 !== "0") {
                     trackerFrame.style.display = 'block'; // Show traker.html
                 }
 
-                // Check if P1 changed to a different number
-                if (lastP1 !== null && currentP1 !== lastP1) {
+                // Check if P1 just became "0"
+                if (currentP1 === "0" && lastP1 !== "0") {
                     trackerFrame.style.display = 'none'; // Hide traker.html, show clock
                 }
 
@@ -218,7 +219,7 @@
             }
         }
 
-        // Check the Google Sheet every 3 seconds (3000 milliseconds)
+        // Check the Google Sheet every 3 seconds
         setInterval(checkSpreadsheet, 3000);
 
     </script>
