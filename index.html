@@ -42,13 +42,13 @@
 
         /* Massive Center Time Styling */
         #time-display {
-            font-size: 42vw; /* Increased size (was 35vw) */
+            font-size: 42vw; 
             font-weight: 900;
             line-height: 1;
             display: flex;
             align-items: center;
             letter-spacing: -2px; 
-            margin-top: 15vh; /* Shifts the time lower on the screen */
+            margin-top: 15vh; 
         }
 
         /* Blinking Colon Animation */
@@ -86,6 +86,19 @@
             color: #ffffff;
         }
 
+        /* Tracker Iframe Styling - Covers the whole screen when active */
+        #tracker-frame {
+            display: none; /* Hidden by default */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            z-index: 100; /* Puts it above the clock */
+            background-color: #000000;
+        }
+
         /* Adjustments for Landscape Mode */
         @media (orientation: landscape) {
             #date-display { 
@@ -93,8 +106,8 @@
                 top: 8vh;
             }
             #time-display { 
-                font-size: 32vw; /* Increased size (was 28vw) */
-                margin-top: 10vh; /* Shifts the time lower in landscape */
+                font-size: 32vw; 
+                margin-top: 10vh; 
             }
             #fs-btn {
                 font-size: 2vw;
@@ -105,6 +118,9 @@
     </style>
 </head>
 <body>
+
+    <!-- Tracker HTML (Hidden until triggered) -->
+    <iframe id="tracker-frame" src="traker.html"></iframe>
 
     <!-- Centered Date at the top -->
     <div id="date-display"></div>
@@ -118,64 +134,93 @@
     <button id="fs-btn">Go Full Screen</button>
 
     <script>
+        // --- CLOCK LOGIC ---
         function updateClock() {
             const now = new Date();
 
-            // Convert to 12-hour format
             let rawHours = now.getHours();
             rawHours = rawHours % 12;
-            rawHours = rawHours ? rawHours : 12; // If hour is 0 (midnight), change to 12
+            rawHours = rawHours ? rawHours : 12; 
 
-            // Format Hours and Minutes with leading zeros
             const hours = String(rawHours).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
 
-            // Inject time into HTML
             document.getElementById('hours').textContent = hours;
             document.getElementById('minutes').textContent = minutes;
 
-            // Format Date
             const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const dayName = days[now.getDay()];
             const day = String(now.getDate()).padStart(2, '0');
             const month = String(now.getMonth() + 1).padStart(2, '0'); 
             const year = now.getFullYear();
 
-            // Inject date into HTML
             document.getElementById('date-display').textContent = `${day}/${month}/${year} | ${dayName}`;
         }
 
-        // Run immediately
         updateClock();
-        
-        // Update the clock every 1000 milliseconds
         setInterval(updateClock, 1000);
 
         // --- FULLSCREEN LOGIC ---
         const fsBtn = document.getElementById('fs-btn');
 
-        // Request fullscreen when button is tapped
         fsBtn.addEventListener('click', () => {
             if (document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen();
-            } else if (document.documentElement.webkitRequestFullscreen) { /* Safari/Older Chrome */
+            } else if (document.documentElement.webkitRequestFullscreen) {
                 document.documentElement.webkitRequestFullscreen();
             }
         });
 
-        // Listen for fullscreen changes to hide/show the button
         document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange); // For older mobile browsers
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
 
         function handleFullscreenChange() {
-            // If the document is currently in fullscreen mode, hide the button
             if (document.fullscreenElement || document.webkitFullscreenElement) {
                 fsBtn.style.display = 'none';
             } else {
-                // If exiting fullscreen mode, bring the button back
                 fsBtn.style.display = 'block';
             }
         }
+
+        // --- GOOGLE SHEETS TRACKER LOGIC ---
+        const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzPai0H1EKC7vjoPrDUxBIGoeZh5okjpruynywCP27JS6J2Kt_e66XIeer70TKlvwNbzA/exec';
+        
+        let lastA1 = null;
+        let lastP1 = null;
+
+        async function checkSpreadsheet() {
+            try {
+                // Fetch the live data from your Google Sheet
+                const response = await fetch(SHEET_URL);
+                const data = await response.json();
+                
+                const currentA1 = data.a1;
+                const currentP1 = data.p1;
+
+                const trackerFrame = document.getElementById('tracker-frame');
+
+                // Check if A1 changed to a different number
+                if (lastA1 !== null && currentA1 !== lastA1) {
+                    trackerFrame.style.display = 'block'; // Show traker.html
+                }
+
+                // Check if P1 changed to a different number
+                if (lastP1 !== null && currentP1 !== lastP1) {
+                    trackerFrame.style.display = 'none'; // Hide traker.html, show clock
+                }
+
+                // Update memory for the next check
+                lastA1 = currentA1;
+                lastP1 = currentP1;
+
+            } catch (error) {
+                console.log("Could not connect to Google Sheets.");
+            }
+        }
+
+        // Check the Google Sheet every 3 seconds (3000 milliseconds)
+        setInterval(checkSpreadsheet, 3000);
+
     </script>
 
 </body>
