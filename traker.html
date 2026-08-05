@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Commute Tracker - Professional</title>
+    <style>
+        :root {
+            --bg-color: #ffffff; 
+            --container-bg: #000000; 
+            --cyan-accent: #00ffea;
+            --yellow-accent: #FFCC00; 
+            --progress-green: #32cd32; 
+            --progress-grey: #e0e0e0;
+            --text-light: #ffffff;
+            --dot-color: #999;
+            --large-red: #ff3b30;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .main-wrapper {
+            width: 95vw;
+            max-width: 1000px;
+            text-align: center;
+        }
+
+        .info-container {
+            background-color: var(--container-bg);
+            border-radius: 20px;
+            padding: 50px 40px;
+            margin-bottom: 70px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            color: var(--text-light);
+            text-align: center;
+        }
+
+        .header-bar {
+            width: 50%;
+            margin: 0 auto 30px auto;
+            border-radius: 15px;
+            padding: 15px 0;
+            transition: background-color 0.4s ease;
+        }
+
+        .header-text {
+            color: #000; 
+            font-size: 32px; 
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+
+        .big-stop-name {
+            font-size: 75px; 
+            font-weight: 900;
+            margin: 15px 0;
+            transition: color 0.4s ease;
+        }
+
+        .separator {
+            width: 80%;
+            height: 2px;
+            background-color: rgba(255,255,255,0.3);
+            margin: 30px auto;
+        }
+
+        .info-label {
+            font-size: 26px; 
+            color: var(--text-light);
+            margin: 0 0 5px 0;
+        }
+
+        .info-value {
+            font-size: 32px; 
+            font-weight: bold;
+            color: var(--text-light);
+            margin: 0;
+        }
+
+        /* State-based styling */
+        .arrived .header-bar { background-color: var(--cyan-accent); }
+        .arrived .big-stop-name { color: var(--cyan-accent); }
+        .arrived .overhead-dot { background-color: var(--large-red); border-color: #ffb3b0; }
+
+        .transit .header-bar { background-color: var(--yellow-accent); }
+        .transit .overhead-dot { background-color: var(--yellow-accent); border-color: #ffe680; }
+
+        /* Breathing Effect for Transit Text */
+        @keyframes text-breathe {
+            0% { color: #FFCC00; text-shadow: 0 0 5px rgba(255, 204, 0, 0.2); }
+            50% { color: #997a00; text-shadow: 0 0 0px rgba(255, 204, 0, 0); }
+            100% { color: #FFCC00; text-shadow: 0 0 5px rgba(255, 204, 0, 0.2); }
+        }
+
+        .transit .big-stop-name { 
+            animation: text-breathe 2.5s infinite ease-in-out;
+        }
+
+        /* Progress Bar Section */
+        .progress-section {
+            width: 100%;
+            position: relative;
+            height: 100px;
+        }
+
+        .progress-base-line {
+            width: 100%;
+            height: 12px;
+            background-color: var(--progress-grey);
+            border-radius: 6px;
+            position: absolute;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+
+        .progress-filled-line {
+            height: 12px;
+            background-color: var(--progress-green);
+            border-radius: 6px;
+            position: absolute;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            z-index: 2;
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .progress-transit-line {
+            height: 12px;
+            background-color: var(--yellow-accent);
+            position: absolute;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            z-index: 2;
+            width: 0%;
+            opacity: 0;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .dots-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 3;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .dot-wrapper {
+            position: absolute;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform: translateX(-50%);
+            height: 100%;
+        }
+
+        .track-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 3px solid var(--dot-color);
+            background-color: white;
+            z-index: 3;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            transition: background-color 0.4s ease, border-color 0.4s ease;
+        }
+
+        .dot-wrapper.current .track-dot {
+            width: 24px;
+            height: 24px;
+            border-width: 5px;
+            border-color: var(--progress-green);
+            background-color: var(--progress-green);
+            animation: pulse-green 1.5s infinite;
+        }
+
+        .dot-wrapper.visited .track-dot {
+            border-color: var(--progress-green);
+            background-color: var(--progress-green);
+            width: 16px;
+            height: 16px;
+        }
+
+        .overhead-indicator {
+            position: absolute;
+            top: -45px; 
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.4s ease, left 0.4s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 5;
+        }
+
+        .overhead-indicator::after {
+            content: '';
+            width: 2px;
+            height: 25px;
+            background-color: #ccc;
+            margin-top: 5px;
+        }
+
+        .overhead-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 4px solid var(--text-light);
+            z-index: 5;
+            transition: background-color 0.4s ease, border-color 0.4s ease;
+        }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(50, 205, 50, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(50, 205, 50, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(50, 205, 50, 0); }
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 59, 48, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+        }
+        @keyframes pulse-yellow {
+            0% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 204, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0); }
+        }
+
+        .arrived .overhead-dot { animation: pulse-red 1.5s infinite; }
+        .transit .overhead-dot { animation: pulse-yellow 1.5s infinite; }
+
+        .end-labels-container {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            position: absolute;
+            bottom: -40px;
+            left: 0;
+            font-size: 22px;
+            font-weight: bold;
+            color: #000;
+        }
+        .end-label { width: 80px; }
+    </style>
+</head>
+<body class="arrived">
+
+    <div class="main-wrapper" id="main-ui">
+        <div class="info-container" id="status-panel">
+            <div class="header-bar">
+                <div class="header-text" id="status-text">सध्याचे ठिकाण:</div>
+            </div>
+            <h1 class="big-stop-name" id="stop-name">लोड होत आहे...</h1>
+            <div class="separator"></div>
+            <div class="info-line">
+                <p class="info-label" id="next-stop-label">पुढील स्टॉप:</p>
+                <p class="info-value" id="next-stop-value">लोड होत आहे...</p>
+            </div>
+        </div>
+
+        <div class="progress-section">
+            <div class="progress-base-line"></div>
+            <div class="progress-filled-line" id="filled-line"></div>
+            <div class="progress-transit-line" id="transit-line"></div>
+            
+            <div class="dots-container" id="dots-container">
+                <div class="overhead-indicator" id="overhead-dot-indicator">
+                    <div class="overhead-dot"></div>
+                </div>
+            </div>
+
+            <div class="end-labels-container">
+                <div class="end-label start-label">ऑफिस</div>
+                <div class="end-label end-label">घर</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwZ_oT4-g3cZYZrLoxxuWWKlla6JrWr4f4QH7H1KmbbylbC_r68iAnk8lkHw60tVNtLjw/exec";
+
+        let locations = [];
+        let excelRow1 = [];
+        let mapInitialized = false;
+        
+        // Restore last known index from browser memory if page is refreshed
+        let storedIndex = localStorage.getItem('myCommuteLastIndex');
+        let lastKnownIndex = storedIndex !== null ? parseInt(storedIndex) : -1;
+        
+        // Track transit animation state so it doesn't reset every 5 seconds
+        let currentTransitState = -1; 
+
+        async function fetchLiveData() {
+            try {
+                let currentUrl = WEB_APP_URL + "?t=" + new Date().getTime();
+                let response = await fetch(currentUrl, { cache: "no-store" });
+                let rawText = await response.text(); 
+
+                try {
+                    let data = JSON.parse(rawText); 
+                    locations = data.names;
+                    excelRow1 = data.status;
+
+                    if (!mapInitialized) {
+                        initializeMap();
+                        mapInitialized = true;
+                    }
+                    processExcelData(excelRow1);
+                } catch (parseError) {
+                    console.error("Parse Error:", rawText);
+                    setErrorState("Access Error! Check Permissions");
+                }
+            } catch (error) {
+                console.error("Network error:", error);
+                // We deliberately DO NOT show an error screen on minor network blips anymore, 
+                // we just silently try again in 5 seconds to prevent flashing UI.
+            } finally {
+                // Recursive polling instead of setInterval (Forces continuous background updating)
+                setTimeout(fetchLiveData, 5000);
+            }
+        }
+
+        function initializeMap() {
+            const dotsContainer = document.getElementById('dots-container');
+            const totalStations = locations.length;
+            const spacerPercent = 100 / (totalStations - 1);
+            
+            dotsContainer.innerHTML = ''; 
+            dotsContainer.innerHTML = `
+                <div class="overhead-indicator" id="overhead-dot-indicator">
+                    <div class="overhead-dot"></div>
+                </div>
+            `;
+            
+            for (let i = 0; i < totalStations; i++) {
+                const dotWrapper = document.createElement('div');
+                dotWrapper.className = `dot-wrapper station-${i}`;
+                const posPercent = i * spacerPercent;
+                dotWrapper.style.left = `${posPercent}%`;
+
+                const trackDot = document.createElement('div');
+                trackDot.className = 'track-dot';
+
+                dotWrapper.appendChild(trackDot);
+                dotsContainer.appendChild(dotWrapper);
+            }
+        }
+
+        function processExcelData(dataArray) {
+            const currentIndex = dataArray.indexOf(1);
+            const mainUI = document.getElementById('main-ui');
+            const statusText = document.getElementById('status-text');
+            const stopName = document.getElementById('stop-name');
+            const nextStopLabel = document.getElementById('next-stop-label');
+            const nextStopValue = document.getElementById('next-stop-value');
+            const filledLine = document.getElementById('filled-line');
+            const transitLine = document.getElementById('transit-line');
+            const overheadDotIndicator = document.getElementById('overhead-dot-indicator');
+            const totalStations = locations.length;
+            const spacerPercent = 100 / (totalStations - 1);
+
+            // Clean previous state classes
+            mainUI.className = 'main-wrapper';
+            document.querySelectorAll('.dot-wrapper').forEach(el => {
+                el.classList.remove('current', 'visited');
+            });
+
+            // Journey Complete
+            if (lastKnownIndex === totalStations - 1 && currentIndex === -1) {
+                mainUI.className = 'main-wrapper arrived journey-complete';
+                statusText.innerText = "प्रवास पूर्ण झाला:";
+                stopName.innerText = locations[totalStations-1];
+                nextStopLabel.innerText = "पुढील स्टॉप:";
+                nextStopValue.innerText = locations[totalStations-1];
+                document.querySelectorAll('.dot-wrapper').forEach(el => el.classList.add('visited'));
+                filledLine.style.width = '100%';
+                transitLine.style.opacity = '0';
+                overheadDotIndicator.style.display = 'none';
+                return;
+            }
+
+            if (currentIndex !== -1) {
+                // --- WE ARRIVED AT A POINT ---
+                mainUI.className = 'main-wrapper arrived';
+                lastKnownIndex = currentIndex;
+                localStorage.setItem('myCommuteLastIndex', lastKnownIndex); // Save to browser memory
+                currentTransitState = -1; // Reset transit animation memory
+                
+                overheadDotIndicator.style.display = 'flex';
+                transitLine.style.opacity = '0';
+                
+                const nextIndex = currentIndex + 1;
+                const nextStop = nextIndex < totalStations ? locations[nextIndex] : locations[totalStations-1]; 
+
+                statusText.innerText = "सध्याचे ठिकाण:";
+                stopName.innerText = locations[currentIndex];
+                nextStopLabel.innerText = "पुढील स्टॉप:";
+                nextStopValue.innerText = nextStop;
+
+                for (let i = 0; i < currentIndex; i++) {
+                    document.querySelector(`.station-${i}`).classList.add('visited');
+                }
+                document.querySelector(`.station-${currentIndex}`).classList.add('current');
+                filledLine.style.width = `${currentIndex * spacerPercent}%`;
+
+                overheadDotIndicator.style.left = `${currentIndex * spacerPercent}%`;
+                overheadDotIndicator.style.opacity = '1';
+
+            } else {
+                // --- WE ARE IN TRANSIT (All cells are 0) ---
+                if (lastKnownIndex >= 0 && lastKnownIndex < totalStations - 1) {
+                    mainUI.className = 'main-wrapper transit';
+                    overheadDotIndicator.style.display = 'flex';
+                    
+                    const previousStop = locations[lastKnownIndex];
+                    const targetIndex = lastKnownIndex + 1;
+                    const nextStopName = locations[targetIndex];
+
+                    statusText.innerText = "पुढील स्टॉप:";
+                    stopName.innerText = nextStopName;
+                    nextStopLabel.innerText = "निघाले:";
+                    nextStopValue.innerText = previousStop;
+
+                    for (let i = 0; i <= lastKnownIndex; i++) {
+                        document.querySelector(`.station-${i}`).classList.add('visited');
+                    }
+
+                    filledLine.style.width = `${lastKnownIndex * spacerPercent}%`;
+
+                    // Handle the slow crawling transit line
+                    const startPercent = lastKnownIndex * spacerPercent;
+                    transitLine.style.left = `${startPercent}%`;
+                    transitLine.style.opacity = '1';
+                    
+                    // Only start the slow animation if we just entered this transit leg
+                    if (currentTransitState !== lastKnownIndex) {
+                        currentTransitState = lastKnownIndex;
+                        transitLine.style.transition = 'none'; // reset line
+                        transitLine.style.width = '0%';
+                        
+                        // Small delay to allow reset, then apply the 120-second decelerating crawl
+                        setTimeout(() => {
+                            transitLine.style.transition = 'width 120s cubic-bezier(0.1, 0.9, 0.2, 1)';
+                            transitLine.style.width = `${spacerPercent * 0.95}%`; // Stop just short of the next dot
+                        }, 50);
+                    }
+
+                    overheadDotIndicator.style.left = `${targetIndex * spacerPercent}%`;
+                    overheadDotIndicator.style.opacity = '1';
+
+                } else if (lastKnownIndex === -1 && currentIndex === -1) {
+                   // Clean slate, hasn't reached office yet
+                   mainUI.className = 'main-wrapper waiting';
+                   statusText.innerText = "प्रवासाची प्रतीक्षा:";
+                   stopName.innerText = locations[0] ? locations[0] : "लोड होत आहे...";
+                   nextStopLabel.innerText = "पुढील स्टॉप:";
+                   nextStopValue.innerText = locations[1] ? locations[1] : "लोड होत आहे...";
+                   overheadDotIndicator.style.display = 'none';
+                   transitLine.style.opacity = '0';
+                }
+            }
+        }
+
+        function setErrorState(msg) {
+             document.getElementById('status-text').innerText = "त्रुटी (Error)";
+             document.getElementById('stop-name').innerText = "डेटा तपासत आहे...";
+             console.error(msg);
+        }
+
+        // Start the polling loop
+        fetchLiveData();
+    </script>
+</body>
+</html>
