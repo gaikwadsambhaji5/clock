@@ -185,6 +185,13 @@
         // --- GOOGLE SHEETS TRACKER LOGIC ---
         const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzPai0H1EKC7vjoPrDUxBIGoeZh5okjpruynywCP27JS6J2Kt_e66XIeer70TKlvwNbzA/exec';
         
+        const trackerFrame = document.getElementById('tracker-frame');
+
+        // REFRESH PROTECTION: Instantly load the saved state if the page was refreshed
+        if (localStorage.getItem('trackerState') === 'block') {
+            trackerFrame.style.display = 'block';
+        }
+
         let lastA1 = null;
         let lastP1 = null;
 
@@ -194,20 +201,20 @@
                 const response = await fetch(SHEET_URL);
                 const data = await response.json();
                 
-                // Trim in case there are invisible spaces in the spreadsheet cell
+                // Trim spaces just in case
                 const currentA1 = String(data.a1).trim();
                 const currentP1 = String(data.p1).trim();
-
-                const trackerFrame = document.getElementById('tracker-frame');
 
                 // Check if A1 just became "0"
                 if (currentA1 === "0" && lastA1 !== "0") {
                     trackerFrame.style.display = 'block'; // Show traker.html
+                    localStorage.setItem('trackerState', 'block'); // Save state to memory
                 }
 
-                // Check if P1 just became "0"
-                if (currentP1 === "0" && lastP1 !== "0") {
+                // Check if P1 just became "1"
+                if (currentP1 === "1" && lastP1 !== "1") {
                     trackerFrame.style.display = 'none'; // Hide traker.html, show clock
+                    localStorage.setItem('trackerState', 'none'); // Save state to memory
                 }
 
                 // Update memory for the next check
