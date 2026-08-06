@@ -98,7 +98,6 @@
         .transit .header-bar { background-color: var(--yellow-accent); }
         .transit .overhead-dot { background-color: var(--yellow-accent); border-color: #ffe680; }
 
-        /* Breathing Effect for Transit Text */
         @keyframes text-breathe {
             0% { color: #FFCC00; text-shadow: 0 0 5px rgba(255, 204, 0, 0.2); }
             50% { color: #997a00; text-shadow: 0 0 0px rgba(255, 204, 0, 0); }
@@ -111,7 +110,8 @@
 
         /* Progress Bar Section */
         .progress-section {
-            width: 100%;
+            width: 90%; 
+            margin: 0 auto;
             position: relative;
             height: 100px;
         }
@@ -250,10 +250,9 @@
         .arrived .overhead-dot { animation: pulse-red 1.5s infinite; }
         .transit .overhead-dot { animation: pulse-yellow 1.5s infinite; }
 
+        /* End Labels */
         .end-labels-container {
             width: 100%;
-            display: flex;
-            justify-content: space-between;
             position: absolute;
             bottom: -40px;
             left: 0;
@@ -261,7 +260,18 @@
             font-weight: bold;
             color: #000;
         }
-        .end-label { width: 120px; }
+        .start-label {
+            position: absolute;
+            left: 0;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+        .end-label-text {
+            position: absolute;
+            right: 0;
+            transform: translateX(50%);
+            text-align: center;
+        }
     </style>
 </head>
 <body class="arrived">
@@ -291,8 +301,8 @@
             </div>
 
             <div class="end-labels-container">
-                <div class="end-label start-label" id="bottom-left-label">लोड होत आहे...</div>
-                <div class="end-label end-label" id="bottom-right-label" style="text-align: right;">लोड होत आहे...</div>
+                <div class="start-label" id="bottom-left-label">लोड होत आहे...</div>
+                <div class="end-label-text" id="bottom-right-label">लोड होत आहे...</div>
             </div>
         </div>
     </div>
@@ -320,20 +330,20 @@
                     let data = JSON.parse(rawText); 
                     if (!data.names || !data.status) return;
 
-                    // --- SMART FILTER ---
-                    // Automatically removes empty columns (like B and D) 
-                    // and adjusts the tracker to perfectly fit exactly the points you typed.
+                    // --- STRICT INDEX FILTER ---
+                    // It specifically checks Columns A (0), C (2), E (4), F (5), G (6)
+                    const targetColumns = [0, 2, 4, 5, 6]; 
+                    
                     let cleanLocations = [];
                     let cleanStatus = [];
 
-                    for (let i = 0; i < data.names.length; i++) {
-                        if (data.names[i] && data.names[i].toString().trim() !== "") {
-                            cleanLocations.push(data.names[i]);
-                            cleanStatus.push(data.status[i] === "" ? 0 : parseInt(data.status[i]));
+                    for (let colIndex of targetColumns) {
+                        if (data.names.length > colIndex) {
+                            cleanLocations.push(data.names[colIndex] ? data.names[colIndex].toString().trim() : "");
+                            cleanStatus.push(data.status[colIndex] === "" || data.status[colIndex] === undefined ? 0 : parseInt(data.status[colIndex]));
                         }
                     }
 
-                    // If the number of points changed (e.g., from 16 to 5), force a map redraw
                     if (locations.length !== cleanLocations.length) {
                         locations = cleanLocations;
                         mapInitialized = false; 
