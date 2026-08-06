@@ -301,7 +301,7 @@
 
     <script>
         // BRAND NEW URL INSERTED HERE
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw3zmhAASgsZFy9GhRDs845S98g-fGAQFVzJtBpLGimpLJyQeQAuoZlMcvKENLcGuhs3g/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzp1EprIMsMgNoTZpFQY9d2Licz54YIutk8Ufj8U8dG6STob4EPDHNKDAuEp7bIWT4Y8Q/exec";
 
         let locations = [];
         let excelRow1 = [];
@@ -319,6 +319,13 @@
 
                 try {
                     let data = JSON.parse(rawText); 
+                    
+                    // Failsafe in case the script sends undefined data
+                    if (!data.names || !data.status) {
+                        console.error("Data formatted incorrectly:", data);
+                        return;
+                    }
+
                     locations = data.names;
                     excelRow1 = data.status;
 
