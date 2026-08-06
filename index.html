@@ -13,8 +13,8 @@
         }
 
         body {
-            background-color: #000000; /* Pitch black background */
-            color: #ffffff; /* Crisp white text */
+            background-color: #000000;
+            color: #ffffff;
             font-family: 'Arial Black', Impact, 'Segoe UI Black', system-ui, sans-serif; 
             height: 100vh;
             width: 100vw;
@@ -26,7 +26,6 @@
             position: relative;
         }
 
-        /* Top Center Date Styling */
         #date-display {
             position: absolute;
             top: 6vh;
@@ -40,7 +39,6 @@
             letter-spacing: 1px;
         }
 
-        /* Massive Center Time Styling */
         #time-display {
             font-size: 42vw; 
             font-weight: 900;
@@ -51,7 +49,6 @@
             margin-top: 15vh; 
         }
 
-        /* Blinking Colon Animation */
         #colon {
             animation: blink 1s infinite;
             position: relative;
@@ -64,7 +61,6 @@
             50%, 100% { opacity: 0; }
         }
 
-        /* Fullscreen Button Styling */
         #fs-btn {
             position: absolute;
             bottom: 5vh;
@@ -86,20 +82,18 @@
             color: #ffffff;
         }
 
-        /* Tracker Iframe Styling - Covers the whole screen when active */
         #tracker-frame {
-            display: none; /* Hidden by default */
+            display: none; 
             position: absolute;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
             border: none;
-            z-index: 100; /* Puts it above the clock */
+            z-index: 100; 
             background-color: #000000;
         }
 
-        /* Adjustments for Landscape Mode */
         @media (orientation: landscape) {
             #date-display { 
                 font-size: 7vw; 
@@ -119,25 +113,17 @@
 </head>
 <body>
 
-    <!-- Tracker HTML (Hidden until triggered) -->
     <iframe id="tracker-frame" src="traker.html"></iframe>
-
-    <!-- Centered Date at the top -->
     <div id="date-display"></div>
-
-    <!-- Huge time in the center -->
     <div id="time-display">
         <span id="hours"></span><span id="colon">:</span><span id="minutes"></span>
     </div>
-
-    <!-- Fullscreen Toggle Button -->
     <button id="fs-btn">Go Full Screen</button>
 
     <script>
         // --- CLOCK LOGIC ---
         function updateClock() {
             const now = new Date();
-
             let rawHours = now.getHours();
             rawHours = rawHours % 12;
             rawHours = rawHours ? rawHours : 12; 
@@ -188,75 +174,81 @@
         const trackerFrame = document.getElementById('tracker-frame');
         let hideTrackerTimeout;
 
-        // Function to securely hide the tracker and clear memory
         function hideTracker() {
             trackerFrame.style.display = 'none';
             localStorage.setItem('trackerState', 'none');
             localStorage.removeItem('trackerHideTime');
         }
 
-        // REFRESH PROTECTION: Check memory on page load
+        // 1. REFRESH PROTECTION (Runs immediately when the page opens)
         const savedState = localStorage.getItem('trackerState');
         const hideTime = localStorage.getItem('trackerHideTime');
 
         if (savedState === 'block') {
             if (hideTime) {
-                // If there was a 1-minute timer running, calculate time left
                 const timeLeft = parseInt(hideTime, 10) - Date.now();
                 if (timeLeft > 0) {
                     trackerFrame.style.display = 'block';
                     hideTrackerTimeout = setTimeout(hideTracker, timeLeft);
                 } else {
-                    // Time expired while the page was refreshed
-                    hideTracker();
+                    hideTracker(); // Timer expired while page was closed/refreshed
                 }
             } else {
-                // It was on permanent display (traveling mode)
-                trackerFrame.style.display = 'block';
+                trackerFrame.style.display = 'block'; // Traveling mode
             }
         }
 
-        let lastA1 = null;
-        let lastP1 = null;
+        // 2. LIVE TRACKING LOGIC
+        let lastState = null; // Will track if we are "traveling" or at a "destination"
 
         async function checkSpreadsheet() {
             try {
-                // Fetch live data
                 const response = await fetch(SHEET_URL);
                 const data = await response.json();
                 
                 const currentA1 = String(data.a1).trim();
                 const currentP1 = String(data.p1).trim();
 
-                // Check if we just ARRIVED at Home (A1=1) or Office (P1=1)
-                const arrivedHome = (currentA1 === "1" && lastA1 !== "1" && lastA1 !== null);
-                const arrivedOffice = (currentP1 === "1" && lastP1 !== "1" && lastP1 !== null);
-
-                // Check if we just STARTED TRAVELING (A1=0 or P1=0)
-                const leftHome = (currentA1 === "0" && lastA1 !== "0" && lastA1 !== null);
-                const leftOffice = (currentP1 === "0" && lastP1 !== "0" && lastP1 !== null);
-
-                if (arrivedHome || arrivedOffice) {
-                    // Reached destination! Show tracker for exactly 1 minute (60,000 ms)
-                    trackerFrame.style.display = 'block';
-                    localStorage.setItem('trackerState', 'block');
-                    localStorage.setItem('trackerHideTime', Date.now() + 60000); // Save exact expiry time
-                    
-                    clearTimeout(hideTrackerTimeout); // Reset any old timers
-                    hideTrackerTimeout = setTimeout(hideTracker, 60000);
-                } 
-                else if (leftHome || leftOffice) {
-                    // Traveling! Show tracker permanently until we arrive
-                    trackerFrame.style.display = 'block';
-                    localStorage.setItem('trackerState', 'block');
-                    localStorage.removeItem('trackerHideTime'); // Remove the timer memory
-                    
-                    clearTimeout(hideTrackerTimeout); // Cancel any running timers
+                // If ANY cell is 1, you are at a destination (Home or Office). 
+                // Otherwise (both 0), you are traveling.
+                let currentState = "traveling";
+                if (currentA1 === "1" || currentP1 === "1") {
+                    currentState = "destination";
                 }
 
-                // Update memory for the next check
-                lastA1 = currentA1;
-                lastP1 = currentP1;
+                // Run this if the state just changed, OR if this is the very first check after loading the page
+                if (currentState !== lastState) {
+                    
+                    if (currentState === "destination") {
+                        // WE ARE AT HOME OR OFFICE
+                        if (lastState !== null) {
+                            // We JUST arrived right now! Show tracker and start 1-minute timer (60,000 ms).
+                            trackerFrame.style.display = 'block';
+                            localStorage.setItem('trackerState', 'block');
+                            localStorage.setItem('trackerHideTime', Date.now() + 60000); 
+                            
+                            clearTimeout(hideTrackerTimeout);
+                            hideTrackerTimeout = setTimeout(hideTracker, 60000);
+                        } else {
+                            // The page just loaded and we are already at a destination.
+                            // Double-check if the timer has expired. If it has, force the clock to show.
+                            const savedTime = localStorage.getItem('trackerHideTime');
+                            if (!savedTime || (parseInt(savedTime, 10) - Date.now() <= 0)) {
+                                hideTracker();
+                            }
+                        }
+                    } 
+                    else if (currentState === "traveling") {
+                        // WE ARE TRAVELING
+                        trackerFrame.style.display = 'block';
+                        localStorage.setItem('trackerState', 'block');
+                        localStorage.removeItem('trackerHideTime'); // Clear timer so tracker stays on forever
+                        clearTimeout(hideTrackerTimeout);
+                    }
+                }
+
+                // Save the current state for the next 3-second check
+                lastState = currentState;
 
             } catch (error) {
                 console.log("Could not connect to Google Sheets.");
