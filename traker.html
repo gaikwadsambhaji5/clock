@@ -134,7 +134,6 @@
             border-radius: 6px;
             position: absolute;
             top: 50%;
-            left: 0;
             transform: translateY(-50%);
             z-index: 2;
             width: 0%;
@@ -146,12 +145,10 @@
             background-color: var(--yellow-accent);
             position: absolute;
             top: 50%;
-            left: 0;
             transform: translateY(-50%);
             z-index: 2;
             width: 0%;
             opacity: 0;
-            border-radius: 0 6px 6px 0;
         }
 
         .dots-container {
@@ -294,14 +291,13 @@
             </div>
 
             <div class="end-labels-container">
-                <div class="end-label start-label">ऑफिस</div>
-                <div class="end-label end-label">घर</div>
+                <div class="end-label start-label" id="bottom-left-label">ऑफिस</div>
+                <div class="end-label end-label" id="bottom-right-label">घर</div>
             </div>
         </div>
     </div>
 
     <script>
-        // BRAND NEW CORRECT API URL
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby4JWDHSouc5Unp9TzZi3u1AZqcbiY4pgvbUQ1srGiHVykBFyaVM1oAbqU2qQXltawPGw/exec";
 
         let locations = [];
@@ -311,6 +307,9 @@
         let storedIndex = localStorage.getItem('myCommuteLastIndex');
         let lastKnownIndex = storedIndex !== null ? parseInt(storedIndex) : -1;
         let currentTransitState = -1; 
+        
+        // NEW: Bidirectional Memory
+        let currentDirection = localStorage.getItem('myCommuteDirection') || 'forward';
 
         async function fetchLiveData() {
             try {
@@ -320,11 +319,7 @@
 
                 try {
                     let data = JSON.parse(rawText); 
-                    
-                    if (!data.names || !data.status) {
-                        console.error("Data formatted incorrectly:", data);
-                        return;
-                    }
+                    if (!data.names || !data.status) return;
 
                     locations = data.names;
                     excelRow1 = data.status;
@@ -335,11 +330,10 @@
                     }
                     processExcelData(excelRow1);
                 } catch (parseError) {
-                    console.error("Parse Error:", rawText);
-                    setErrorState("Access Error! Check Permissions");
+                    console.error("Parse Error");
                 }
             } catch (error) {
-                console.error("Network error:", error);
+                console.error("Network error");
             } finally {
                 setTimeout(fetchLiveData, 5000);
             }
@@ -350,29 +344,32 @@
             const totalStations = locations.length;
             const spacerPercent = 100 / (totalStations - 1);
             
-            dotsContainer.innerHTML = ''; 
-            dotsContainer.innerHTML = `
-                <div class="overhead-indicator" id="overhead-dot-indicator">
-                    <div class="overhead-dot"></div>
-                </div>
-            `;
+            dotsContainer.innerHTML = `<div class="overhead-indicator" id="overhead-dot-indicator"><div class="overhead-dot"></div></div>`;
             
             for (let i = 0; i < totalStations; i++) {
                 const dotWrapper = document.createElement('div');
                 dotWrapper.className = `dot-wrapper station-${i}`;
-                const posPercent = i * spacerPercent;
-                dotWrapper.style.left = `${posPercent}%`;
-
-                const trackDot = document.createElement('div');
-                trackDot.className = 'track-dot';
-
-                dotWrapper.appendChild(trackDot);
+                dotWrapper.style.left = `${i * spacerPercent}%`;
+                dotWrapper.innerHTML = `<div class="track-dot"></div>`;
                 dotsContainer.appendChild(dotWrapper);
             }
+        }
+
+        // NEW: Helper function to deliver exact text based on direction/state
+        function getStopName(index, context = 'default') {
+            let baseName = locations[index];
+            const totalStations = locations.length;
             
-            // Update Start/End labels based on JSON payload
-            document.querySelector('.start-label').innerText = locations[0];
-            document.querySelector('.end-label').innerText = locations[totalStations - 1];
+            if (index === totalStations - 1) { // Home Station logic
+                if (currentDirection === 'forward') {
+                    if (context === 'arrived-current') return "WELCOME HOME";
+                    return baseName; // "घरी पोहोचत आहे"
+                } else { 
+                    if (context === 'transit-left-from') return "घरून निघत आहे";
+                    return "घर"; 
+                }
+            }
+            return baseName;
         }
 
         function processExcelData(dataArray) {
@@ -388,27 +385,32 @@
             const totalStations = locations.length;
             const spacerPercent = 100 / (totalStations - 1);
 
-            mainUI.className = 'main-wrapper';
-            document.querySelectorAll('.dot-wrapper').forEach(el => {
-                el.classList.remove('current', 'visited');
-            });
-
-            // Journey Complete
-            if (lastKnownIndex === totalStations - 1 && currentIndex === -1) {
-                mainUI.className = 'main-wrapper arrived journey-complete';
-                statusText.innerText = "प्रवास पूर्ण झाला:";
-                stopName.innerText = locations[totalStations-1];
-                nextStopLabel.innerText = "पुढील स्टॉप:";
-                nextStopValue.innerText = locations[totalStations-1];
-                document.querySelectorAll('.dot-wrapper').forEach(el => el.classList.add('visited'));
-                filledLine.style.width = '100%';
-                transitLine.style.opacity = '0';
-                overheadDotIndicator.style.display = 'none';
-                return;
+            // 1. DIRECTION DETECTION ENGINE
+            if (currentIndex !== -1 && lastKnownIndex !== -1 && currentIndex !== lastKnownIndex) {
+                currentDirection = currentIndex > lastKnownIndex ? 'forward' : 'reverse';
+                localStorage.setItem('myCommuteDirection', currentDirection);
+            } else if (currentIndex === -1 && lastKnownIndex === totalStations - 1 && currentDirection === 'forward') {
+                // Instantly detects you cleared the sheet to leave Home
+                currentDirection = 'reverse';
+                localStorage.setItem('myCommuteDirection', currentDirection);
+            } else if (currentIndex === -1 && lastKnownIndex === 0 && currentDirection === 'reverse') {
+                // Instantly detects you cleared the sheet to leave Office
+                currentDirection = 'forward';
+                localStorage.setItem('myCommuteDirection', currentDirection);
             }
 
+            // Update bottom labels dynamically
+            document.getElementById('bottom-left-label').innerText = locations[0];
+            document.getElementById('bottom-right-label').innerText = getStopName(totalStations - 1, 'default');
+
+            // Reset Styles
+            mainUI.className = 'main-wrapper';
+            document.querySelectorAll('.dot-wrapper').forEach(el => el.classList.remove('current', 'visited'));
+            filledLine.style.left = 'auto'; filledLine.style.right = 'auto';
+            transitLine.style.left = 'auto'; transitLine.style.right = 'auto';
+
             if (currentIndex !== -1) {
-                // We Arrived
+                // --- ARRIVED STATE ---
                 mainUI.className = 'main-wrapper arrived';
                 lastKnownIndex = currentIndex;
                 localStorage.setItem('myCommuteLastIndex', lastKnownIndex); 
@@ -417,46 +419,65 @@
                 overheadDotIndicator.style.display = 'flex';
                 transitLine.style.opacity = '0';
                 
-                const nextIndex = currentIndex + 1;
-                const nextStop = nextIndex < totalStations ? locations[nextIndex] : locations[totalStations-1]; 
+                let nextIndex = currentDirection === 'forward' ? currentIndex + 1 : currentIndex - 1;
 
                 statusText.innerText = "सध्याचे ठिकाण:";
-                stopName.innerText = locations[currentIndex];
-                nextStopLabel.innerText = "पुढील स्टॉप:";
-                nextStopValue.innerText = nextStop;
-
-                for (let i = 0; i < currentIndex; i++) {
-                    document.querySelector(`.station-${i}`).classList.add('visited');
+                stopName.innerText = getStopName(currentIndex, 'arrived-current');
+                
+                if ((currentIndex === totalStations - 1 && currentDirection === 'forward') || 
+                    (currentIndex === 0 && currentDirection === 'reverse')) {
+                    nextStopLabel.innerText = "प्रवास पूर्ण:";
+                    nextStopValue.innerText = "--";
+                } else {
+                    nextStopLabel.innerText = "पुढील स्टॉप:";
+                    nextStopValue.innerText = getStopName(nextIndex, 'default');
                 }
-                document.querySelector(`.station-${currentIndex}`).classList.add('current');
-                filledLine.style.width = `${currentIndex * spacerPercent}%`;
 
+                // Render Green Line & Dots based on Direction
+                if (currentDirection === 'forward') {
+                    for (let i = 0; i < currentIndex; i++) document.querySelector(`.station-${i}`).classList.add('visited');
+                    filledLine.style.left = '0%';
+                    filledLine.style.width = `${currentIndex * spacerPercent}%`;
+                } else {
+                    for (let i = totalStations - 1; i > currentIndex; i--) document.querySelector(`.station-${i}`).classList.add('visited');
+                    filledLine.style.right = '0%';
+                    filledLine.style.width = `${100 - (currentIndex * spacerPercent)}%`;
+                }
+
+                document.querySelector(`.station-${currentIndex}`).classList.add('current');
                 overheadDotIndicator.style.left = `${currentIndex * spacerPercent}%`;
                 overheadDotIndicator.style.opacity = '1';
 
             } else {
-                // In Transit
-                if (lastKnownIndex >= 0 && lastKnownIndex < totalStations - 1) {
+                // --- TRANSIT STATE ---
+                if (lastKnownIndex >= 0) {
                     mainUI.className = 'main-wrapper transit';
                     overheadDotIndicator.style.display = 'flex';
                     
-                    const previousStop = locations[lastKnownIndex];
-                    const targetIndex = lastKnownIndex + 1;
-                    const nextStopName = locations[targetIndex];
+                    let targetIndex = currentDirection === 'forward' ? lastKnownIndex + 1 : lastKnownIndex - 1;
+                    if (targetIndex >= totalStations) targetIndex = totalStations - 1;
+                    if (targetIndex < 0) targetIndex = 0;
 
                     statusText.innerText = "पुढील स्टॉप:";
-                    stopName.innerText = nextStopName;
+                    stopName.innerText = getStopName(targetIndex, 'default');
                     nextStopLabel.innerText = "निघाले:";
-                    nextStopValue.innerText = previousStop;
+                    nextStopValue.innerText = getStopName(lastKnownIndex, 'transit-left-from');
 
-                    for (let i = 0; i <= lastKnownIndex; i++) {
-                        document.querySelector(`.station-${i}`).classList.add('visited');
+                    // Render Transit Bars based on direction
+                    if (currentDirection === 'forward') {
+                        for (let i = 0; i <= lastKnownIndex; i++) document.querySelector(`.station-${i}`).classList.add('visited');
+                        filledLine.style.left = '0%';
+                        filledLine.style.width = `${lastKnownIndex * spacerPercent}%`;
+                        transitLine.style.left = `${lastKnownIndex * spacerPercent}%`;
+                        transitLine.style.borderRadius = '0 6px 6px 0';
+                    } else {
+                        for (let i = totalStations - 1; i >= lastKnownIndex; i--) document.querySelector(`.station-${i}`).classList.add('visited');
+                        filledLine.style.right = '0%';
+                        filledLine.style.width = `${100 - (lastKnownIndex * spacerPercent)}%`;
+                        transitLine.style.right = `${100 - (lastKnownIndex * spacerPercent)}%`;
+                        transitLine.style.borderRadius = '6px 0 0 6px';
                     }
 
-                    filledLine.style.width = `${lastKnownIndex * spacerPercent}%`;
-
-                    const startPercent = lastKnownIndex * spacerPercent;
-                    transitLine.style.left = `${startPercent}%`;
                     transitLine.style.opacity = '1';
                     
                     if (currentTransitState !== lastKnownIndex) {
@@ -473,22 +494,16 @@
                     overheadDotIndicator.style.left = `${targetIndex * spacerPercent}%`;
                     overheadDotIndicator.style.opacity = '1';
 
-                } else if (lastKnownIndex === -1 && currentIndex === -1) {
+                } else {
                    mainUI.className = 'main-wrapper waiting';
                    statusText.innerText = "प्रवासाची प्रतीक्षा:";
-                   stopName.innerText = locations[0] ? locations[0] : "लोड होत आहे...";
+                   stopName.innerText = getStopName(0, 'default');
                    nextStopLabel.innerText = "पुढील स्टॉप:";
-                   nextStopValue.innerText = locations[1] ? locations[1] : "लोड होत आहे...";
+                   nextStopValue.innerText = getStopName(1, 'default');
                    overheadDotIndicator.style.display = 'none';
                    transitLine.style.opacity = '0';
                 }
             }
-        }
-
-        function setErrorState(msg) {
-             document.getElementById('status-text').innerText = "त्रुटी (Error)";
-             document.getElementById('stop-name').innerText = "डेटा तपासत आहे...";
-             console.error(msg);
         }
 
         fetchLiveData();
