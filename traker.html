@@ -261,7 +261,7 @@
             font-weight: bold;
             color: #000;
         }
-        .end-label { width: 80px; }
+        .end-label { width: 120px; }
     </style>
 </head>
 <body class="arrived">
@@ -291,8 +291,8 @@
             </div>
 
             <div class="end-labels-container">
-                <div class="end-label start-label" id="bottom-left-label">ऑफिस</div>
-                <div class="end-label end-label" id="bottom-right-label">घर</div>
+                <div class="end-label start-label" id="bottom-left-label">लोड होत आहे...</div>
+                <div class="end-label end-label" id="bottom-right-label" style="text-align: right;">लोड होत आहे...</div>
             </div>
         </div>
     </div>
@@ -308,7 +308,6 @@
         let lastKnownIndex = storedIndex !== null ? parseInt(storedIndex) : -1;
         let currentTransitState = -1; 
         
-        // NEW: Bidirectional Memory
         let currentDirection = localStorage.getItem('myCommuteDirection') || 'forward';
 
         async function fetchLiveData() {
@@ -321,8 +320,27 @@
                     let data = JSON.parse(rawText); 
                     if (!data.names || !data.status) return;
 
-                    locations = data.names;
-                    excelRow1 = data.status;
+                    // --- SMART FILTER ---
+                    // Automatically removes empty columns (like B and D) 
+                    // and adjusts the tracker to perfectly fit exactly the points you typed.
+                    let cleanLocations = [];
+                    let cleanStatus = [];
+
+                    for (let i = 0; i < data.names.length; i++) {
+                        if (data.names[i] && data.names[i].toString().trim() !== "") {
+                            cleanLocations.push(data.names[i]);
+                            cleanStatus.push(data.status[i] === "" ? 0 : parseInt(data.status[i]));
+                        }
+                    }
+
+                    // If the number of points changed (e.g., from 16 to 5), force a map redraw
+                    if (locations.length !== cleanLocations.length) {
+                        locations = cleanLocations;
+                        mapInitialized = false; 
+                    } else {
+                        locations = cleanLocations;
+                    }
+                    excelRow1 = cleanStatus;
 
                     if (!mapInitialized) {
                         initializeMap();
@@ -342,7 +360,7 @@
         function initializeMap() {
             const dotsContainer = document.getElementById('dots-container');
             const totalStations = locations.length;
-            const spacerPercent = 100 / (totalStations - 1);
+            const spacerPercent = totalStations > 1 ? (100 / (totalStations - 1)) : 100;
             
             dotsContainer.innerHTML = `<div class="overhead-indicator" id="overhead-dot-indicator"><div class="overhead-dot"></div></div>`;
             
@@ -355,15 +373,14 @@
             }
         }
 
-        // NEW: Helper function to deliver exact text based on direction/state
         function getStopName(index, context = 'default') {
             let baseName = locations[index];
             const totalStations = locations.length;
             
-            if (index === totalStations - 1) { // Home Station logic
+            if (index === totalStations - 1) { 
                 if (currentDirection === 'forward') {
                     if (context === 'arrived-current') return "WELCOME HOME";
-                    return baseName; // "घरी पोहोचत आहे"
+                    return baseName; 
                 } else { 
                     if (context === 'transit-left-from') return "घरून निघत आहे";
                     return "घर"; 
@@ -383,34 +400,28 @@
             const transitLine = document.getElementById('transit-line');
             const overheadDotIndicator = document.getElementById('overhead-dot-indicator');
             const totalStations = locations.length;
-            const spacerPercent = 100 / (totalStations - 1);
+            const spacerPercent = totalStations > 1 ? (100 / (totalStations - 1)) : 100;
 
-            // 1. DIRECTION DETECTION ENGINE
             if (currentIndex !== -1 && lastKnownIndex !== -1 && currentIndex !== lastKnownIndex) {
                 currentDirection = currentIndex > lastKnownIndex ? 'forward' : 'reverse';
                 localStorage.setItem('myCommuteDirection', currentDirection);
             } else if (currentIndex === -1 && lastKnownIndex === totalStations - 1 && currentDirection === 'forward') {
-                // Instantly detects you cleared the sheet to leave Home
                 currentDirection = 'reverse';
                 localStorage.setItem('myCommuteDirection', currentDirection);
             } else if (currentIndex === -1 && lastKnownIndex === 0 && currentDirection === 'reverse') {
-                // Instantly detects you cleared the sheet to leave Office
                 currentDirection = 'forward';
                 localStorage.setItem('myCommuteDirection', currentDirection);
             }
 
-            // Update bottom labels dynamically
-            document.getElementById('bottom-left-label').innerText = locations[0];
+            document.getElementById('bottom-left-label').innerText = locations[0] || "";
             document.getElementById('bottom-right-label').innerText = getStopName(totalStations - 1, 'default');
 
-            // Reset Styles
             mainUI.className = 'main-wrapper';
             document.querySelectorAll('.dot-wrapper').forEach(el => el.classList.remove('current', 'visited'));
             filledLine.style.left = 'auto'; filledLine.style.right = 'auto';
             transitLine.style.left = 'auto'; transitLine.style.right = 'auto';
 
             if (currentIndex !== -1) {
-                // --- ARRIVED STATE ---
                 mainUI.className = 'main-wrapper arrived';
                 lastKnownIndex = currentIndex;
                 localStorage.setItem('myCommuteLastIndex', lastKnownIndex); 
@@ -433,7 +444,6 @@
                     nextStopValue.innerText = getStopName(nextIndex, 'default');
                 }
 
-                // Render Green Line & Dots based on Direction
                 if (currentDirection === 'forward') {
                     for (let i = 0; i < currentIndex; i++) document.querySelector(`.station-${i}`).classList.add('visited');
                     filledLine.style.left = '0%';
@@ -449,7 +459,6 @@
                 overheadDotIndicator.style.opacity = '1';
 
             } else {
-                // --- TRANSIT STATE ---
                 if (lastKnownIndex >= 0) {
                     mainUI.className = 'main-wrapper transit';
                     overheadDotIndicator.style.display = 'flex';
@@ -463,7 +472,6 @@
                     nextStopLabel.innerText = "निघाले:";
                     nextStopValue.innerText = getStopName(lastKnownIndex, 'transit-left-from');
 
-                    // Render Transit Bars based on direction
                     if (currentDirection === 'forward') {
                         for (let i = 0; i <= lastKnownIndex; i++) document.querySelector(`.station-${i}`).classList.add('visited');
                         filledLine.style.left = '0%';
