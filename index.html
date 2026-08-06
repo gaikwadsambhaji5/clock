@@ -186,10 +186,34 @@
         const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzPai0H1EKC7vjoPrDUxBIGoeZh5okjpruynywCP27JS6J2Kt_e66XIeer70TKlvwNbzA/exec';
         
         const trackerFrame = document.getElementById('tracker-frame');
+        let hideTrackerTimeout;
 
-        // REFRESH PROTECTION: Instantly load the saved state if the page was refreshed
-        if (localStorage.getItem('trackerState') === 'block') {
-            trackerFrame.style.display = 'block';
+        // Function to securely hide the tracker and clear memory
+        function hideTracker() {
+            trackerFrame.style.display = 'none';
+            localStorage.setItem('trackerState', 'none');
+            localStorage.removeItem('trackerHideTime');
+        }
+
+        // REFRESH PROTECTION: Check memory on page load
+        const savedState = localStorage.getItem('trackerState');
+        const hideTime = localStorage.getItem('trackerHideTime');
+
+        if (savedState === 'block') {
+            if (hideTime) {
+                // If there was a 1-minute timer running, calculate time left
+                const timeLeft = parseInt(hideTime, 10) - Date.now();
+                if (timeLeft > 0) {
+                    trackerFrame.style.display = 'block';
+                    hideTrackerTimeout = setTimeout(hideTracker, timeLeft);
+                } else {
+                    // Time expired while the page was refreshed
+                    hideTracker();
+                }
+            } else {
+                // It was on permanent display (traveling mode)
+                trackerFrame.style.display = 'block';
+            }
         }
 
         let lastA1 = null;
@@ -197,24 +221,37 @@
 
         async function checkSpreadsheet() {
             try {
-                // Fetch the live data from your Google Sheet
+                // Fetch live data
                 const response = await fetch(SHEET_URL);
                 const data = await response.json();
                 
-                // Trim spaces just in case
                 const currentA1 = String(data.a1).trim();
                 const currentP1 = String(data.p1).trim();
 
-                // Check if A1 just became "0"
-                if (currentA1 === "0" && lastA1 !== "0") {
-                    trackerFrame.style.display = 'block'; // Show traker.html
-                    localStorage.setItem('trackerState', 'block'); // Save state to memory
-                }
+                // Check if we just ARRIVED at Home (A1=1) or Office (P1=1)
+                const arrivedHome = (currentA1 === "1" && lastA1 !== "1" && lastA1 !== null);
+                const arrivedOffice = (currentP1 === "1" && lastP1 !== "1" && lastP1 !== null);
 
-                // Check if P1 just became "1"
-                if (currentP1 === "1" && lastP1 !== "1") {
-                    trackerFrame.style.display = 'none'; // Hide traker.html, show clock
-                    localStorage.setItem('trackerState', 'none'); // Save state to memory
+                // Check if we just STARTED TRAVELING (A1=0 or P1=0)
+                const leftHome = (currentA1 === "0" && lastA1 !== "0" && lastA1 !== null);
+                const leftOffice = (currentP1 === "0" && lastP1 !== "0" && lastP1 !== null);
+
+                if (arrivedHome || arrivedOffice) {
+                    // Reached destination! Show tracker for exactly 1 minute (60,000 ms)
+                    trackerFrame.style.display = 'block';
+                    localStorage.setItem('trackerState', 'block');
+                    localStorage.setItem('trackerHideTime', Date.now() + 60000); // Save exact expiry time
+                    
+                    clearTimeout(hideTrackerTimeout); // Reset any old timers
+                    hideTrackerTimeout = setTimeout(hideTracker, 60000);
+                } 
+                else if (leftHome || leftOffice) {
+                    // Traveling! Show tracker permanently until we arrive
+                    trackerFrame.style.display = 'block';
+                    localStorage.setItem('trackerState', 'block');
+                    localStorage.removeItem('trackerHideTime'); // Remove the timer memory
+                    
+                    clearTimeout(hideTrackerTimeout); // Cancel any running timers
                 }
 
                 // Update memory for the next check
