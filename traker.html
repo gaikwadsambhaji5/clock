@@ -308,6 +308,8 @@
     </div>
 
     <script>
+        console.log("Tracker Version: 5-Point Strict Mode - Active!");
+        
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby4JWDHSouc5Unp9TzZi3u1AZqcbiY4pgvbUQ1srGiHVykBFyaVM1oAbqU2qQXltawPGw/exec";
 
         let locations = [];
@@ -330,8 +332,7 @@
                     let data = JSON.parse(rawText); 
                     if (!data.names || !data.status) return;
 
-                    // --- STRICT INDEX FILTER ---
-                    // It specifically checks Columns A (0), C (2), E (4), F (5), G (6)
+                    // STRICT INDEX FILTER: 0 (A), 2 (C), 4 (E), 5 (F), 6 (G)
                     const targetColumns = [0, 2, 4, 5, 6]; 
                     
                     let cleanLocations = [];
