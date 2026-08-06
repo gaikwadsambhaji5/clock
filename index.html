@@ -207,12 +207,12 @@
                 const data = await response.json();
                 
                 const currentA1 = String(data.a1).trim();
-                const currentP1 = String(data.p1).trim();
+                const currentG1 = String(data.g1).trim(); // Changed to check G1
 
                 // If ANY cell is 1, you are at a destination (Home or Office). 
                 // Otherwise (both 0), you are traveling.
                 let currentState = "traveling";
-                if (currentA1 === "1" || currentP1 === "1") {
+                if (currentA1 === "1" || currentG1 === "1") {
                     currentState = "destination";
                 }
 
@@ -220,7 +220,7 @@
                 if (currentState !== lastState) {
                     
                     if (currentState === "destination") {
-                        // WE ARE AT HOME OR OFFICE
+                        // WE ARE AT HOME (G1=1) OR OFFICE (A1=1)
                         if (lastState !== null) {
                             // We JUST arrived right now! Show tracker and start 1-minute timer (60,000 ms).
                             trackerFrame.style.display = 'block';
@@ -239,7 +239,7 @@
                         }
                     } 
                     else if (currentState === "traveling") {
-                        // WE ARE TRAVELING
+                        // WE ARE TRAVELING (A1=0 AND G1=0)
                         trackerFrame.style.display = 'block';
                         localStorage.setItem('trackerState', 'block');
                         localStorage.removeItem('trackerHideTime'); // Clear timer so tracker stays on forever
