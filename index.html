@@ -3,262 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Desk Clock</title>
+    <title>Scrolling Odometer Clock</title>
     <style>
-        /* Reset margins and prevent scrolling */
+        /* Base Reset & Optimization for Mobile */
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            background-color: #000000;
+            background-color: #0d0d12;
             color: #ffffff;
-            font-family: 'Arial Black', Impact, 'Segoe UI Black', system-ui, sans-serif; 
-            height: 100vh;
-            width: 100vw;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
+            height: 100vh;
             overflow: hidden;
-            position: relative;
         }
 
-        #date-display {
+        /* Ambient Glow Background */
+        .ambient-glow {
             position: absolute;
-            top: 6vh;
-            left: 0;
-            width: 100%;
-            text-align: center; 
-            font-size: 11vw; 
-            font-weight: bold;
-            color: #ffffff; 
-            font-family: system-ui, -apple-system, sans-serif;
-            letter-spacing: 1px;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(0,255,170,0.15) 0%, rgba(0,0,0,0) 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            animation: pulseGlow 4s infinite alternate ease-in-out;
         }
 
-        #time-display {
-            font-size: 42vw; 
-            font-weight: 900;
-            line-height: 1;
+        @keyframes pulseGlow {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+        }
+
+        /* Glassmorphism Clock Container */
+        .clock-container {
+            position: relative;
+            z-index: 1;
             display: flex;
             align-items: center;
-            letter-spacing: -2px; 
-            margin-top: 15vh; 
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 20px 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
 
-        #colon {
-            animation: blink 1s infinite;
+        /* The Scrolling Window for Digits */
+        .digit-window {
+            height: 120px; /* Shows previous, current, and next digits */
+            overflow: hidden;
             position: relative;
-            top: -2.5vw; 
-            margin: 0 1vw;
+            display: flex;
+            margin: 0 2px;
+            /* Gradient overlay to fade out top and bottom digits */
+            mask-image: linear-gradient(to bottom, transparent 0%, black 35%, black 65%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 35%, black 65%, transparent 100%);
+        }
+
+        /* The moving strip of numbers */
+        .digit-strip {
+            display: flex;
+            flex-direction: column;
+            /* Hardware acceleration & Elastic bounce transition */
+            transition: transform 0.8s cubic-bezier(0.5, -0.5, 0.2, 1.5);
+            will-change: transform; 
+        }
+
+        .digit {
+            height: 40px;
+            line-height: 40px;
+            font-size: 32px;
+            font-weight: 700;
+            text-align: center;
+            width: 32px;
+            color: #00ffaa;
+            text-shadow: 0 0 15px rgba(0, 255, 170, 0.6);
+        }
+
+        .colon {
+            font-size: 32px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.3);
+            margin: 0 5px;
+            animation: blink 1s infinite;
         }
 
         @keyframes blink {
-            0%, 49% { opacity: 1; }
-            50%, 100% { opacity: 0; }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
         }
 
-        #fs-btn {
+        /* Design accent for Realme display */
+        .brand-text {
             position: absolute;
-            bottom: 5vh;
-            padding: 12px 24px;
-            background-color: #222222;
-            color: #aaaaaa;
-            border: 2px solid #333333;
-            border-radius: 30px;
-            font-size: 4vw;
-            font-weight: bold;
+            bottom: 30px;
+            font-size: 10px;
+            letter-spacing: 4px;
+            color: rgba(255,255,255,0.3);
             text-transform: uppercase;
-            cursor: pointer;
-            z-index: 10;
-            transition: 0.3s ease;
-        }
-
-        #fs-btn:active {
-            background-color: #444444;
-            color: #ffffff;
-        }
-
-        #tracker-frame {
-            display: none; 
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            border: none;
-            z-index: 100; 
-            background-color: #000000;
-        }
-
-        @media (orientation: landscape) {
-            #date-display { 
-                font-size: 7vw; 
-                top: 8vh;
-            }
-            #time-display { 
-                font-size: 32vw; 
-                margin-top: 10vh; 
-            }
-            #fs-btn {
-                font-size: 2vw;
-                bottom: 8vh;
-                padding: 10px 20px;
-            }
         }
     </style>
 </head>
 <body>
 
-    <iframe id="tracker-frame" src="traker.html"></iframe>
-    <div id="date-display"></div>
-    <div id="time-display">
-        <span id="hours"></span><span id="colon">:</span><span id="minutes"></span>
+    <div class="ambient-glow"></div>
+
+    <div class="clock-container" id="clock">
+        <!-- Hours -->
+        <div class="digit-window"><div class="digit-strip" id="h-tens"></div></div>
+        <div class="digit-window"><div class="digit-strip" id="h-units"></div></div>
+        
+        <div class="colon">:</div>
+        
+        <!-- Minutes -->
+        <div class="digit-window"><div class="digit-strip" id="m-tens"></div></div>
+        <div class="digit-window"><div class="digit-strip" id="m-units"></div></div>
+        
+        <div class="colon">:</div>
+        
+        <!-- Seconds -->
+        <div class="digit-window"><div class="digit-strip" id="s-tens"></div></div>
+        <div class="digit-window"><div class="digit-strip" id="s-units"></div></div>
     </div>
-    <button id="fs-btn">Go Full Screen</button>
+
+    <div class="brand-text">Active Scroll Engine</div>
 
     <script>
-        // --- CLOCK LOGIC ---
+        // Configuration
+        const DIGIT_HEIGHT = 40; // Must match CSS height of .digit
+        // Window is 120px, so 3 digits fit. To center the active digit, 
+        // we offset by exactly one digit height (40px).
+        const CENTER_OFFSET = DIGIT_HEIGHT; 
+
+        // Generate the HTML for the number strips automatically
+        function buildStrip(id, maxNumber) {
+            const strip = document.getElementById(id);
+            let html = '';
+            for (let i = 0; i <= maxNumber; i++) {
+                html += `<div class="digit">${i}</div>`;
+            }
+            strip.innerHTML = html;
+        }
+
+        // We render 0-9 for everything except the first hour/minute/second digits
+        buildStrip('h-tens', 2);
+        buildStrip('h-units', 9);
+        buildStrip('m-tens', 5);
+        buildStrip('m-units', 9);
+        buildStrip('s-tens', 5);
+        buildStrip('s-units', 9);
+
+        // Function to move the strip to the correct number
+        function updateStrip(id, value) {
+            const strip = document.getElementById(id);
+            // Calculate position: (Center Offset) - (Value * Digit Height)
+            const translateY = CENTER_OFFSET - (value * DIGIT_HEIGHT);
+            
+            // translate3d forces the GPU to render the movement, saving CPU cycles
+            strip.style.transform = `translate3d(0, ${translateY}px, 0)`;
+        }
+
         function updateClock() {
             const now = new Date();
-            let rawHours = now.getHours();
-            rawHours = rawHours % 12;
-            rawHours = rawHours ? rawHours : 12; 
-
-            const hours = String(rawHours).padStart(2, '0');
+            
+            // Format time into 2-digit strings (e.g., "09", "23")
+            const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
 
-            document.getElementById('hours').textContent = hours;
-            document.getElementById('minutes').textContent = minutes;
+            // Apply to the UI
+            updateStrip('h-tens', parseInt(hours[0]));
+            updateStrip('h-units', parseInt(hours[1]));
+            
+            updateStrip('m-tens', parseInt(minutes[0]));
+            updateStrip('m-units', parseInt(minutes[1]));
+            
+            updateStrip('s-tens', parseInt(seconds[0]));
+            updateStrip('s-units', parseInt(seconds[1]));
 
-            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            const dayName = days[now.getDay()];
-            const day = String(now.getDate()).padStart(2, '0');
-            const month = String(now.getMonth() + 1).padStart(2, '0'); 
-            const year = now.getFullYear();
-
-            document.getElementById('date-display').textContent = `${day}/${month}/${year} | ${dayName}`;
+            // requestAnimationFrame is much smoother and battery-friendly than setInterval
+            requestAnimationFrame(updateClock);
         }
 
+        // Initialize clock
         updateClock();
-        setInterval(updateClock, 1000);
-
-        // --- FULLSCREEN LOGIC ---
-        const fsBtn = document.getElementById('fs-btn');
-
-        fsBtn.addEventListener('click', () => {
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen();
-            } else if (document.documentElement.webkitRequestFullscreen) {
-                document.documentElement.webkitRequestFullscreen();
-            }
-        });
-
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-
-        function handleFullscreenChange() {
-            if (document.fullscreenElement || document.webkitFullscreenElement) {
-                fsBtn.style.display = 'none';
-            } else {
-                fsBtn.style.display = 'block';
-            }
-        }
-
-        // --- GOOGLE SHEETS TRACKER LOGIC ---
-        const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzPai0H1EKC7vjoPrDUxBIGoeZh5okjpruynywCP27JS6J2Kt_e66XIeer70TKlvwNbzA/exec';
-        
-        const trackerFrame = document.getElementById('tracker-frame');
-        let hideTrackerTimeout;
-
-        function hideTracker() {
-            trackerFrame.style.display = 'none';
-            localStorage.setItem('trackerState', 'none');
-            localStorage.removeItem('trackerHideTime');
-        }
-
-        // 1. REFRESH PROTECTION (Runs immediately when the page opens)
-        const savedState = localStorage.getItem('trackerState');
-        const hideTime = localStorage.getItem('trackerHideTime');
-
-        if (savedState === 'block') {
-            if (hideTime) {
-                const timeLeft = parseInt(hideTime, 10) - Date.now();
-                if (timeLeft > 0) {
-                    trackerFrame.style.display = 'block';
-                    hideTrackerTimeout = setTimeout(hideTracker, timeLeft);
-                } else {
-                    hideTracker(); // Timer expired while page was closed/refreshed
-                }
-            } else {
-                trackerFrame.style.display = 'block'; // Traveling mode
-            }
-        }
-
-        // 2. LIVE TRACKING LOGIC
-        let lastState = null; // Will track if we are "traveling" or at a "destination"
-
-        async function checkSpreadsheet() {
-            try {
-                const response = await fetch(SHEET_URL);
-                const data = await response.json();
-                
-                const currentA1 = String(data.a1).trim();
-                const currentG1 = String(data.g1).trim(); // Changed to check G1
-
-                // If ANY cell is 1, you are at a destination (Home or Office). 
-                // Otherwise (both 0), you are traveling.
-                let currentState = "traveling";
-                if (currentA1 === "1" || currentG1 === "1") {
-                    currentState = "destination";
-                }
-
-                // Run this if the state just changed, OR if this is the very first check after loading the page
-                if (currentState !== lastState) {
-                    
-                    if (currentState === "destination") {
-                        // WE ARE AT HOME (G1=1) OR OFFICE (A1=1)
-                        if (lastState !== null) {
-                            // We JUST arrived right now! Show tracker and start 1-minute timer (60,000 ms).
-                            trackerFrame.style.display = 'block';
-                            localStorage.setItem('trackerState', 'block');
-                            localStorage.setItem('trackerHideTime', Date.now() + 60000); 
-                            
-                            clearTimeout(hideTrackerTimeout);
-                            hideTrackerTimeout = setTimeout(hideTracker, 60000);
-                        } else {
-                            // The page just loaded and we are already at a destination.
-                            // Double-check if the timer has expired. If it has, force the clock to show.
-                            const savedTime = localStorage.getItem('trackerHideTime');
-                            if (!savedTime || (parseInt(savedTime, 10) - Date.now() <= 0)) {
-                                hideTracker();
-                            }
-                        }
-                    } 
-                    else if (currentState === "traveling") {
-                        // WE ARE TRAVELING (A1=0 AND G1=0)
-                        trackerFrame.style.display = 'block';
-                        localStorage.setItem('trackerState', 'block');
-                        localStorage.removeItem('trackerHideTime'); // Clear timer so tracker stays on forever
-                        clearTimeout(hideTrackerTimeout);
-                    }
-                }
-
-                // Save the current state for the next 3-second check
-                lastState = currentState;
-
-            } catch (error) {
-                console.log("Could not connect to Google Sheets.");
-            }
-        }
-
-        // Check the Google Sheet every 3 seconds
-        setInterval(checkSpreadsheet, 3000);
-
     </script>
-
 </body>
 </html>
