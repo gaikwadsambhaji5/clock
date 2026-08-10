@@ -49,13 +49,12 @@
             transform-origin: top center;
             z-index: 10;
             padding: 10px;
-            /* Adjusted X to 0 for perfect centering, kept your slight scale */
             transform: translate(0px, 15px) scale(1.05, 1);
         }
 
         /* FUTURE-PROOFED HEADER: Spring-loaded spacing */
         .date-header {
-            width: 86%; /* Reduced from 95% to ensure corners have empty space */
+            width: 86%; 
             display: flex;
             justify-content: space-between; 
             align-items: baseline;
@@ -85,7 +84,7 @@
         }
 
         .divider {
-            width: 86%; /* Matches the date-header width to ensure corners have space */
+            width: 86%; 
             height: 5px;
             background-color: #ffffff;
             margin-bottom: 0px; 
@@ -99,8 +98,8 @@
             transform-origin: top center;
             margin-top: 25px; 
             padding: 10px;
-            /* Your custom coordinates for the time */
-            transform: translate(-24px, -11px) scale(1.05, 0.9);
+            /* Shifted X to 15px to push it right, away from the camera notch */
+            transform: translate(15px, -11px) scale(1.05, 0.9);
         }
 
         .time-container {
