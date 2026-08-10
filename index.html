@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Teko Scrolling Clock</title>
+    <title>Teko Bold Scrolling Clock</title>
     <style>
-        /* Load the local Teko-SemiBold font */
+        /* Load the local Teko-Bold font */
         @font-face {
             font-family: 'Teko';
-            src: url('Teko-SemiBold.ttf') format('truetype');
-            font-weight: 600;
+            src: url('Teko-Bold.ttf') format('truetype');
+            font-weight: bold;
             font-style: normal;
         }
 
@@ -41,13 +41,13 @@
 
         /* Top Header Container (Day | Month | Date) */
         .date-header {
-            font-size: 45px; /* Adjust size to match reference */
+            font-size: 45px; 
             display: flex;
             gap: 12px;
             align-items: baseline;
             letter-spacing: 1px;
             line-height: 1;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
 
         .pipe {
@@ -60,20 +60,21 @@
             width: 100%;
             height: 4px;
             background-color: #ffffff;
-            margin-bottom: 5px;
+            margin-bottom: 0px; /* Reduced to bring digits closer to line */
         }
 
-        /* Clock Container with Reflection Effect */
+        /* Clock Container */
         .time-container {
             display: flex;
-            gap: 10px;
-            /* Creates the exact fading reflection seen in the image */
-            -webkit-box-reflect: below -20px linear-gradient(to bottom, transparent 40%, rgba(255, 255, 255, 0.6) 100%);
+            align-items: center;
+            gap: 2px; /* Pulls the hours and minutes blocks tighter together */
+            /* Adjusted the 'below' offset to pull the reflection up tighter to the text */
+            -webkit-box-reflect: below -45px linear-gradient(to bottom, transparent 35%, rgba(255, 255, 255, 0.7) 100%);
         }
 
         /* The Window that clips exactly one digit */
         .digit-window {
-            height: 250px;
+            height: 280px;
             overflow: hidden;
             position: relative;
         }
@@ -82,18 +83,32 @@
         .digit-strip {
             display: flex;
             flex-direction: column;
-            /* Hardware acceleration & Elastic transition for the scroll */
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             will-change: transform;
         }
 
-        /* Individual Digit Styling */
+        /* Individual Digit Styling - Made much larger and closer */
         .digit {
-            height: 250px;
-            line-height: 250px;
-            font-size: 280px; /* Oversized to fill the block perfectly */
+            height: 280px;
+            line-height: 280px;
+            font-size: 380px; /* Massively increased size */
             text-align: center;
-            width: 140px;
+            width: 125px; /* Narrowed width to push numbers together */
+        }
+
+        /* Blinking Vertical Line */
+        .separator {
+            font-size: 220px;
+            line-height: 280px;
+            font-weight: normal;
+            margin: 0 5px; /* Slight breathing room around the line */
+            transform: translateY(-10px); /* Optically centers the pipe */
+            animation: blink 1s step-end infinite; /* step-end gives it a sharp ON/OFF blink */
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
         }
     </style>
 </head>
@@ -118,6 +133,9 @@
             <div class="digit-window"><div class="digit-strip" id="h-tens"></div></div>
             <div class="digit-window"><div class="digit-strip" id="h-units"></div></div>
             
+            <!-- Blinking Vertical Line -->
+            <div class="separator">|</div>
+
             <!-- Minutes -->
             <div class="digit-window"><div class="digit-strip" id="m-tens"></div></div>
             <div class="digit-window"><div class="digit-strip" id="m-units"></div></div>
@@ -126,7 +144,7 @@
 
     <script>
         // Configuration
-        const DIGIT_HEIGHT = 250; // Must exactly match the CSS height of .digit
+        const DIGIT_HEIGHT = 280; // Updated to match the new 280px height of .digit
 
         // Marathi Localization Arrays
         const marathiDays = ["रविवार", "सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
@@ -184,10 +202,9 @@
             updateStrip('m-tens', parseInt(minutes[0]));
             updateStrip('m-units', parseInt(minutes[1]));
 
-            // Update Date (doing this in the loop ensures midnight rollover works)
+            // Update Date
             updateDateHeader(now);
 
-            // Using requestAnimationFrame for battery-friendly, smooth rendering
             requestAnimationFrame(updateClock);
         }
 
