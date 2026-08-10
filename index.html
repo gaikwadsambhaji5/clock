@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Teko Bold Scrolling Clock - Fixed</title>
+    <title>Teko Bold Scrolling Clock - Final</title>
     <style>
         /* Load the local Teko-Bold font */
         @font-face {
@@ -39,7 +39,7 @@
             align-items: center;
         }
 
-        /* Top Header Container (Day | Month | Date) */
+        /* Top Header Container (Day | Month | Date | Sec) */
         .date-header {
             font-size: 45px; 
             display: flex;
@@ -60,7 +60,7 @@
             width: 100%;
             height: 4px;
             background-color: #ffffff;
-            margin-bottom: 5px; /* Slight gap to let the digits breathe */
+            margin-bottom: 5px; 
         }
 
         /* Clock Container */
@@ -68,15 +68,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0px; /* Numbers as close together as possible */
-            /* Adjusted reflection offset to touch the bottom perfectly */
+            gap: 0px; 
+            /* Reflection perfectly touching the bottom */
             -webkit-box-reflect: below -25px linear-gradient(to bottom, transparent 35%, rgba(255, 255, 255, 0.65) 100%);
         }
 
         /* The Window that clips exactly one digit */
         .digit-window {
-            height: 250px; /* Lock height to match JS translation */
-            width: 130px;  /* Lock width to keep everything perfectly aligned */
+            height: 250px; 
+            width: 130px;  
             overflow: hidden;
             position: relative;
         }
@@ -89,27 +89,26 @@
             will-change: transform;
         }
 
-        /* Individual Digit Styling - PROPORTIONS FIXED */
+        /* Individual Digit Styling */
         .digit {
-            height: 250px; /* Must identically match .digit-window */
+            height: 250px; 
             line-height: 250px;
-            font-size: 280px; /* Safe maximum size before internal font-clipping happens */
+            font-size: 280px; 
             width: 130px; 
             text-align: center;
-            /* Flexbox ensures the raw text stays centered inside the block regardless of font baselines */
             display: flex;
             justify-content: center;
             align-items: center;
         }
 
-        /* Blinking Vertical Line */
+        /* Blinking Vertical Line - Now a pure CSS shape for exact thickness/height control */
         .separator {
-            font-size: 200px;
-            line-height: 250px;
-            font-weight: normal;
-            margin: 0 5px;
-            transform: translateY(-12px); /* Optically centers the pipe vertically */
-            animation: blink 1s step-end infinite; /* step-end gives it a sharp ON/OFF blink */
+            width: 9px; /* Reduced thickness */
+            height: 170px; /* Reduced height to sit nicely between the numbers */
+            background-color: #ffffff;
+            margin: 0 10px; /* Gives it breathing room */
+            animation: blink 1s step-end infinite;
+            border-radius: 1px;
         }
 
         @keyframes blink {
@@ -121,13 +120,15 @@
 <body>
 
     <div class="clock-wrapper">
-        <!-- Date Header -->
+        <!-- Date Header with Seconds Added -->
         <div class="date-header">
             <span id="day-marathi">सोमवार</span> 
             <span class="pipe">|</span> 
             <span id="month-marathi">ऑगस्ट</span> 
             <span class="pipe">|</span> 
             <span id="date-num">10/08/2026</span>
+            <span class="pipe">|</span> 
+            <span id="sec-num">00</span>
         </div>
 
         <!-- Horizontal Line -->
@@ -139,8 +140,8 @@
             <div class="digit-window"><div class="digit-strip" id="h-tens"></div></div>
             <div class="digit-window"><div class="digit-strip" id="h-units"></div></div>
             
-            <!-- Blinking Vertical Line -->
-            <div class="separator">|</div>
+            <!-- Custom CSS Blinking Vertical Line -->
+            <div class="separator"></div>
 
             <!-- Minutes -->
             <div class="digit-window"><div class="digit-strip" id="m-tens"></div></div>
@@ -150,7 +151,7 @@
 
     <script>
         // Configuration
-        const DIGIT_HEIGHT = 250; // Updated to match the new locked 250px height
+        const DIGIT_HEIGHT = 250; 
 
         // Marathi Localization Arrays
         const marathiDays = ["रविवार", "सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
@@ -166,7 +167,7 @@
             strip.innerHTML = html;
         }
 
-        // Build the strips (24-hour format: 23:59 max)
+        // Build the strips
         buildStrip('h-tens', 2);
         buildStrip('h-units', 9);
         buildStrip('m-tens', 5);
@@ -179,7 +180,7 @@
             strip.style.transform = `translate3d(0, ${translateY}px, 0)`;
         }
 
-        // Function to update the date header in Marathi
+        // Function to update the date header in Marathi (Now includes Seconds)
         function updateDateHeader(now) {
             const day = marathiDays[now.getDay()];
             const month = marathiMonths[now.getMonth()];
@@ -188,10 +189,14 @@
             const mm = String(now.getMonth() + 1).padStart(2, '0');
             const yyyy = now.getFullYear();
             const dateString = `${dd}/${mm}/${yyyy}`;
+            
+            // Get seconds for the header
+            const ss = String(now.getSeconds()).padStart(2, '0');
 
             document.getElementById('day-marathi').textContent = day;
             document.getElementById('month-marathi').textContent = month;
             document.getElementById('date-num').textContent = dateString;
+            document.getElementById('sec-num').textContent = ss;
         }
 
         // Main clock loop
@@ -208,7 +213,7 @@
             updateStrip('m-tens', parseInt(minutes[0]));
             updateStrip('m-units', parseInt(minutes[1]));
 
-            // Update Date
+            // Update Date & Header Seconds
             updateDateHeader(now);
 
             requestAnimationFrame(updateClock);
