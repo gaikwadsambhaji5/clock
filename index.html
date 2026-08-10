@@ -49,29 +49,28 @@
             transform-origin: top center;
             z-index: 10;
             padding: 10px;
-            /* Your custom coordinates */
-            transform: translate(-3px, 15px) scale(1.15, 1);
+            /* Adjusted X to 0 for perfect centering, kept your slight scale */
+            transform: translate(0px, 15px) scale(1.05, 1);
         }
 
         /* FUTURE-PROOFED HEADER: Spring-loaded spacing */
         .date-header {
-            width: 95%; /* Matches the divider line width exactly */
+            width: 86%; /* Reduced from 95% to ensure corners have empty space */
             display: flex;
-            justify-content: space-between; /* Spaces compress dynamically for long words */
+            justify-content: space-between; 
             align-items: baseline;
             letter-spacing: 1px;
             line-height: 1;
             margin-bottom: 0px;
             font-variant-numeric: tabular-nums; 
-            /* Uses a formula to slightly scale down text ONLY if space is critically low */
             font-size: clamp(35px, 5.5vw, 55px); 
-            white-space: nowrap; /* Prevents text from breaking into two lines */
+            white-space: nowrap; 
         }
 
         .pipe {
-            font-size: 0.8em; /* Scales proportionately to the header font */
+            font-size: 0.8em; 
             transform: translateY(-2px);
-            opacity: 0.8; /* Slight fade so the text pops more */
+            opacity: 0.8; 
         }
 
         #date-num {
@@ -81,12 +80,12 @@
         
         #sec-num {
             display: inline-block;
-            width: 1.2em; /* Scales dynamically with the font size instead of fixed pixels */
-            text-align: right; /* Locks to the right edge of the white line */
+            width: 1.2em; 
+            text-align: right; 
         }
 
         .divider {
-            width: 95%; 
+            width: 86%; /* Matches the date-header width to ensure corners have space */
             height: 5px;
             background-color: #ffffff;
             margin-bottom: 0px; 
@@ -100,7 +99,7 @@
             transform-origin: top center;
             margin-top: 25px; 
             padding: 10px;
-            /* Your custom coordinates */
+            /* Your custom coordinates for the time */
             transform: translate(-24px, -11px) scale(1.05, 0.9);
         }
 
