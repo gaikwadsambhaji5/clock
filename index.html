@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Teko Bold Scrolling Clock - Final</title>
+    <title>Teko Bold Scrolling Clock - Pro Version</title>
     <style>
         /* Load the local Teko-Bold font */
         @font-face {
@@ -30,6 +30,9 @@
             align-items: center;
             height: 100vh;
             overflow: hidden;
+            /* Prevents accidental selection when double tapping */
+            user-select: none; 
+            -webkit-user-select: none;
         }
 
         /* Main Wrapper to contain Header and Clock */
@@ -39,7 +42,7 @@
             align-items: center;
         }
 
-        /* Top Header Container (Day | Month | Date | Sec) */
+        /* Top Header Container */
         .date-header {
             font-size: 45px; 
             display: flex;
@@ -68,7 +71,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0px; 
             /* Reflection perfectly touching the bottom */
             -webkit-box-reflect: below -25px linear-gradient(to bottom, transparent 35%, rgba(255, 255, 255, 0.65) 100%);
         }
@@ -101,25 +103,97 @@
             align-items: center;
         }
 
-        /* Blinking Vertical Line - Now a pure CSS shape for exact thickness/height control */
+        /* Blinking Colon Separator - Now spaced nicely */
         .separator {
-            width: 9px; /* Reduced thickness */
-            height: 170px; /* Reduced height to sit nicely between the numbers */
-            background-color: #ffffff;
-            margin: 0 10px; /* Gives it breathing room */
+            font-size: 220px;
+            line-height: 250px;
+            font-weight: bold;
+            margin: 0 15px; /* Adds the small space you requested */
+            transform: translateY(-22px); /* Centers the colon properly */
             animation: blink 1s step-end infinite;
-            border-radius: 1px;
         }
 
         @keyframes blink {
             0%, 100% { opacity: 1; }
             50% { opacity: 0; }
         }
+
+        /* Hidden Settings Popup */
+        .settings-overlay {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 20, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 30px;
+            border-radius: 20px;
+            z-index: 1000;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            font-family: -apple-system, sans-serif; /* Standard readable font for UI */
+        }
+
+        /* Settings UI Elements */
+        .settings-btn {
+            background: #ffffff;
+            color: #000000;
+            border: none;
+            padding: 12px 24px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .settings-btn:active {
+            background: #cccccc;
+        }
+
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            gap: 20px;
+            font-size: 18px;
+        }
+
+        /* Custom Checkbox Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #555; transition: .4s;
+            border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 20px; width: 20px;
+            left: 4px; bottom: 4px;
+            background-color: white; transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #00ffaa; }
+        input:checked + .slider:before { transform: translateX(22px); }
+
     </style>
 </head>
 <body>
 
-    <div class="clock-wrapper">
+    <div class="clock-wrapper" id="main-clock">
         <!-- Date Header with Seconds Added -->
         <div class="date-header">
             <span id="day-marathi">सोमवार</span> 
@@ -140,8 +214,8 @@
             <div class="digit-window"><div class="digit-strip" id="h-tens"></div></div>
             <div class="digit-window"><div class="digit-strip" id="h-units"></div></div>
             
-            <!-- Custom CSS Blinking Vertical Line -->
-            <div class="separator"></div>
+            <!-- Colon Separator -->
+            <div class="separator">:</div>
 
             <!-- Minutes -->
             <div class="digit-window"><div class="digit-strip" id="m-tens"></div></div>
@@ -149,15 +223,27 @@
         </div>
     </div>
 
-    <script>
-        // Configuration
-        const DIGIT_HEIGHT = 250; 
+    <!-- Hidden Settings Menu -->
+    <div class="settings-overlay" id="settings-menu">
+        <button class="settings-btn" id="fullscreen-btn">Toggle Full Screen</button>
+        
+        <div class="toggle-row">
+            <span>12-Hour Format</span>
+            <label class="switch">
+                <input type="checkbox" id="format-toggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
 
-        // Marathi Localization Arrays
+    <script>
+        // --- CLOCK ENGINE ---
+        const DIGIT_HEIGHT = 250; 
+        let is12Hour = false;
+
         const marathiDays = ["रविवार", "सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
         const marathiMonths = ["जानेवारी", "फेब्रुवारी", "मार्च", "एप्रिल", "मे", "जून", "जुलै", "ऑगस्ट", "सप्टेंबर", "ऑक्टोबर", "नोव्हेंबर", "डिसेंबर"];
 
-        // Function to build HTML for the number strips
         function buildStrip(id, maxNumber) {
             const strip = document.getElementById(id);
             let html = '';
@@ -167,20 +253,17 @@
             strip.innerHTML = html;
         }
 
-        // Build the strips
         buildStrip('h-tens', 2);
         buildStrip('h-units', 9);
         buildStrip('m-tens', 5);
         buildStrip('m-units', 9);
 
-        // Function to move the strip to the correct number
         function updateStrip(id, value) {
             const strip = document.getElementById(id);
             const translateY = -(value * DIGIT_HEIGHT);
             strip.style.transform = `translate3d(0, ${translateY}px, 0)`;
         }
 
-        // Function to update the date header in Marathi (Now includes Seconds)
         function updateDateHeader(now) {
             const day = marathiDays[now.getDay()];
             const month = marathiMonths[now.getMonth()];
@@ -188,39 +271,104 @@
             const dd = String(now.getDate()).padStart(2, '0');
             const mm = String(now.getMonth() + 1).padStart(2, '0');
             const yyyy = now.getFullYear();
-            const dateString = `${dd}/${mm}/${yyyy}`;
             
-            // Get seconds for the header
             const ss = String(now.getSeconds()).padStart(2, '0');
 
             document.getElementById('day-marathi').textContent = day;
             document.getElementById('month-marathi').textContent = month;
-            document.getElementById('date-num').textContent = dateString;
+            document.getElementById('date-num').textContent = `${dd}/${mm}/${yyyy}`;
             document.getElementById('sec-num').textContent = ss;
         }
 
-        // Main clock loop
         function updateClock() {
             const now = new Date();
             
-            // Format time into 2-digit strings (HH:MM)
-            const hours = String(now.getHours()).padStart(2, '0');
+            let rawHours = now.getHours();
+            
+            // 12/24 Hour Logic
+            if (is12Hour) {
+                rawHours = rawHours % 12;
+                rawHours = rawHours ? rawHours : 12; // if hour is 0, make it 12
+            }
+
+            const hours = String(rawHours).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
 
-            // Apply scroll translations
             updateStrip('h-tens', parseInt(hours[0]));
             updateStrip('h-units', parseInt(hours[1]));
             updateStrip('m-tens', parseInt(minutes[0]));
             updateStrip('m-units', parseInt(minutes[1]));
 
-            // Update Date & Header Seconds
             updateDateHeader(now);
-
             requestAnimationFrame(updateClock);
         }
 
-        // Initialize clock
         updateClock();
+
+        // --- SETTINGS INTERFACE LOGIC ---
+        const settingsMenu = document.getElementById('settings-menu');
+        const formatToggle = document.getElementById('format-toggle');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        let hideTimeout;
+
+        // Function to show settings and start the 10-second timer
+        function showSettings() {
+            settingsMenu.style.display = 'flex';
+            resetHideTimer();
+        }
+
+        // Function to hide the settings immediately
+        function hideSettings() {
+            settingsMenu.style.display = 'none';
+            clearTimeout(hideTimeout);
+        }
+
+        // Function to (re)start the 10-second auto-hide timer
+        function resetHideTimer() {
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(hideSettings, 10000); // 10 seconds
+        }
+
+        // Double-tap detector (Works for mobile touch and desktop click)
+        let lastTap = 0;
+        document.body.addEventListener('touchend', function(e) {
+            // Ignore if we are tapping inside the settings menu
+            if (e.target.closest('#settings-menu')) return; 
+            
+            let currentTime = new Date().getTime();
+            let tapLength = currentTime - lastTap;
+            if (tapLength < 400 && tapLength > 0) {
+                showSettings();
+            }
+            lastTap = currentTime;
+        });
+        
+        // Desktop backup for double clicking
+        document.body.addEventListener('dblclick', function(e) {
+            if (e.target.closest('#settings-menu')) return;
+            showSettings();
+        });
+
+        // 12/24 Hour Toggle Event
+        formatToggle.addEventListener('change', function(e) {
+            is12Hour = e.target.checked;
+            resetHideTimer(); // keep menu open longer while interacting
+        });
+
+        // Fullscreen Toggle Event
+        fullscreenBtn.addEventListener('click', function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+            hideSettings(); // Hide immediately after clicking
+        });
+
     </script>
 </body>
 </html>
