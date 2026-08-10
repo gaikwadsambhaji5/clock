@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Scrolling Clock - Layout Catcher</title>
+    <title>Scrolling Clock - Final Permanent Layout</title>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@700&family=Oswald:wght@700&family=Rajdhani:wght@700&family=Righteous&family=Rubik+Mono+One&family=Share+Tech+Mono&display=swap');
@@ -39,6 +39,7 @@
             transition: font-family 0.3s ease;
         }
 
+        /* --- HARDCODED HEADER LAYOUT --- */
         #header-positioner {
             width: 100%;
             display: flex;
@@ -46,10 +47,10 @@
             align-items: center;
             margin-top: 20px;
             transform-origin: top center;
-            cursor: grab;
             z-index: 10;
             padding: 10px;
-            border: 2px solid transparent;
+            /* Your custom values */
+            transform: translate(-3px, 15px) scale(1.15, 1);
         }
 
         .date-header {
@@ -86,34 +87,22 @@
             margin-bottom: 0px; 
         }
 
+        /* --- HARDCODED CLOCK LAYOUT --- */
         #clock-positioner {
             display: flex;
             justify-content: center;
             align-items: center;
             transform-origin: top center;
-            cursor: grab;
             margin-top: 25px; 
             padding: 10px;
-            border: 2px solid transparent;
-        }
-
-        .edit-mode #header-positioner,
-        .edit-mode #clock-positioner {
-            border: 2px dashed rgba(255, 255, 255, 0.3);
-            border-radius: 20px;
-        }
-
-        .edit-mode #header-positioner.active-target,
-        .edit-mode #clock-positioner.active-target {
-            border: 2px dashed rgba(0, 255, 170, 0.8);
-            background: rgba(0, 255, 170, 0.05);
+            /* Your custom values */
+            transform: translate(-24px, -11px) scale(1.05, 0.9);
         }
 
         .time-container {
             display: flex;
             align-items: center;
             justify-content: center;
-            pointer-events: none; 
         }
 
         .digit-window {
@@ -159,6 +148,7 @@
             50% { opacity: 0; }
         }
 
+        /* --- MENUS --- */
         .settings-overlay {
             display: none; 
             position: fixed;
@@ -205,11 +195,6 @@
             width: 100%;
         }
 
-        .settings-btn.accent {
-            background: #00ffaa;
-            color: #000;
-        }
-
         .toggle-row {
             display: flex;
             justify-content: space-between;
@@ -230,80 +215,6 @@
             font-weight: bold;
             outline: none;
             width: 150px;
-        }
-
-        .layout-panel {
-            display: none;
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(10, 10, 10, 0.95);
-            border: 2px solid #00ffaa;
-            border-radius: 15px;
-            padding: 15px 20px;
-            width: 90%;
-            max-width: 500px;
-            z-index: 2000;
-            font-family: -apple-system, sans-serif;
-            flex-direction: column;
-            gap: 12px;
-            box-shadow: 0 10px 30px rgba(0,255,170,0.2);
-        }
-
-        .layout-panel h3 {
-            margin: 0;
-            text-align: center;
-            color: #00ffaa;
-            font-size: 16px;
-        }
-
-        .slider-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        
-        .slider-group label {
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        input[type=range] {
-            width: 100%;
-            accent-color: #00ffaa;
-        }
-
-        .layout-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 5px;
-        }
-        
-        .layout-actions button {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        
-        .btn-save { background: #00ffaa; color: #000; }
-        .btn-reset { background: #555; color: #fff; }
-        
-        /* New Export Button Style */
-        .btn-export {
-            background: #007bff;
-            color: #fff;
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 5px;
         }
 
         .switch {
@@ -333,7 +244,7 @@
 </head>
 <body>
 
-    <div id="header-positioner" data-target="header">
+    <div id="header-positioner">
         <div class="date-header">
             <span id="day-marathi">सोमवार</span> 
             <span class="pipe">|</span> 
@@ -346,7 +257,7 @@
         <div class="divider"></div>
     </div>
 
-    <div id="clock-positioner" data-target="time">
+    <div id="clock-positioner">
         <div class="time-container" id="clock">
             <div class="digit-window tens-window"><div class="digit-strip" id="h-tens"></div></div>
             <div class="digit-window"><div class="digit-strip" id="h-units"></div></div>
@@ -359,7 +270,6 @@
     <div class="settings-overlay" id="settings-menu">
         <button class="close-btn" id="close-settings">✕</button>
         <button class="settings-btn" id="fullscreen-btn">Toggle Full Screen</button>
-        <button class="settings-btn accent" id="edit-layout-btn">Edit Layout (Drag & Stretch)</button>
         
         <div class="toggle-row">
             <span>Font Style</span>
@@ -384,28 +294,6 @@
                 <span class="slider"></span>
             </label>
         </div>
-    </div>
-
-    <div class="layout-panel" id="layout-panel">
-        <h3 id="layout-title">EDITING: CLOCK (Tap Header to edit text)</h3>
-        
-        <div class="slider-group">
-            <label>Stretch Width (Sides)</label>
-            <input type="range" id="scale-x" min="0.5" max="2.5" step="0.05" value="1">
-        </div>
-        
-        <div class="slider-group">
-            <label>Stretch Height (Top/Bottom)</label>
-            <input type="range" id="scale-y" min="0.5" max="2.5" step="0.05" value="1">
-        </div>
-
-        <div class="layout-actions">
-            <button class="btn-reset" id="layout-reset">Reset Layout</button>
-            <button class="btn-save" id="layout-save">Save & Exit</button>
-        </div>
-        
-        <!-- NEW EXPORT BUTTON -->
-        <button class="btn-export" id="layout-export">📋 Copy Layout Values</button>
     </div>
 
     <script>
@@ -477,150 +365,6 @@
 
         updateClock();
 
-        // --- DUAL LAYOUT DRAG & STRETCH ENGINE ---
-        const timePos = document.getElementById('clock-positioner');
-        const headerPos = document.getElementById('header-positioner');
-        const layoutPanel = document.getElementById('layout-panel');
-        const layoutTitle = document.getElementById('layout-title');
-        const scaleXSlider = document.getElementById('scale-x');
-        const scaleYSlider = document.getElementById('scale-y');
-        
-        let isEditMode = false;
-        let activeTarget = 'time'; 
-
-        let layout = {
-            time:   { x: 0, y: 0, sx: 1, sy: 1 },
-            header: { x: 0, y: 0, sx: 1, sy: 1 }
-        };
-
-        const savedLayout = JSON.parse(localStorage.getItem('dualLayout'));
-        if (savedLayout) {
-            layout = savedLayout;
-        }
-
-        function applyTransforms() {
-            timePos.style.transform = `translate(${layout.time.x}px, ${layout.time.y}px) scale(${layout.time.sx}, ${layout.time.sy})`;
-            headerPos.style.transform = `translate(${layout.header.x}px, ${layout.header.y}px) scale(${layout.header.sx}, ${layout.header.sy})`;
-        }
-        applyTransforms();
-
-        function loadTargetToSliders() {
-            scaleXSlider.value = layout[activeTarget].sx;
-            scaleYSlider.value = layout[activeTarget].sy;
-            
-            timePos.classList.remove('active-target');
-            headerPos.classList.remove('active-target');
-            
-            if(activeTarget === 'time') {
-                timePos.classList.add('active-target');
-                layoutTitle.textContent = "EDITING: CLOCK (Tap Header to edit)";
-            } else {
-                headerPos.classList.add('active-target');
-                layoutTitle.textContent = "EDITING: HEADER (Tap Clock to edit)";
-            }
-        }
-
-        scaleXSlider.addEventListener('input', (e) => { 
-            layout[activeTarget].sx = e.target.value; 
-            applyTransforms(); 
-        });
-        scaleYSlider.addEventListener('input', (e) => { 
-            layout[activeTarget].sy = e.target.value; 
-            applyTransforms(); 
-        });
-
-        let isDragging = false;
-        let startX, startY, initialX, initialY;
-        let dragTarget = null; 
-
-        function startDrag(e, targetStr) {
-            if (!isEditMode) return;
-            isDragging = true;
-            dragTarget = targetStr;
-            activeTarget = targetStr; 
-            loadTargetToSliders();    
-
-            let touch = e.touches ? e.touches[0] : e;
-            startX = touch.clientX;
-            startY = touch.clientY;
-            initialX = layout[dragTarget].x;
-            initialY = layout[dragTarget].y;
-        }
-
-        function moveDrag(e) {
-            if (!isDragging || !isEditMode || !dragTarget) return;
-            e.preventDefault(); 
-            let touch = e.touches ? e.touches[0] : e;
-            const dx = touch.clientX - startX;
-            const dy = touch.clientY - startY;
-            layout[dragTarget].x = initialX + dx;
-            layout[dragTarget].y = initialY + dy;
-            applyTransforms();
-        }
-
-        function endDrag() {
-            isDragging = false;
-            dragTarget = null;
-        }
-
-        timePos.addEventListener('touchstart', (e) => startDrag(e, 'time'));
-        timePos.addEventListener('mousedown', (e) => startDrag(e, 'time'));
-        
-        headerPos.addEventListener('touchstart', (e) => startDrag(e, 'header'));
-        headerPos.addEventListener('mousedown', (e) => startDrag(e, 'header'));
-
-        window.addEventListener('touchmove', moveDrag, {passive: false});
-        window.addEventListener('mousemove', moveDrag);
-        window.addEventListener('touchend', endDrag);
-        window.addEventListener('mouseup', endDrag);
-
-
-        // --- MENUS ---
-        document.getElementById('edit-layout-btn').addEventListener('click', () => {
-            hideSettings();
-            isEditMode = true;
-            document.body.classList.add('edit-mode');
-            layoutPanel.style.display = 'flex';
-            activeTarget = 'time'; 
-            loadTargetToSliders();
-        });
-
-        document.getElementById('layout-save').addEventListener('click', () => {
-            isEditMode = false;
-            document.body.classList.remove('edit-mode');
-            layoutPanel.style.display = 'none';
-            timePos.classList.remove('active-target');
-            headerPos.classList.remove('active-target');
-            localStorage.setItem('dualLayout', JSON.stringify(layout));
-        });
-
-        document.getElementById('layout-reset').addEventListener('click', () => {
-            layout = {
-                time:   { x: 0, y: 0, sx: 1, sy: 1 },
-                header: { x: 0, y: 0, sx: 1, sy: 1 }
-            };
-            loadTargetToSliders();
-            applyTransforms();
-        });
-        
-        // --- NEW EXPORT LOGIC ---
-        document.getElementById('layout-export').addEventListener('click', () => {
-            const layoutCode = JSON.stringify(layout);
-            
-            // Try to use the modern clipboard API
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(layoutCode).then(() => {
-                    alert("✅ Layout successfully copied to clipboard!\n\nPaste this in the chat.");
-                }).catch(() => {
-                    // Fallback for secure context issues
-                    prompt("Copy the code below and paste it in the chat:", layoutCode);
-                });
-            } else {
-                // Fallback for older mobile browsers
-                prompt("Copy the code below and paste it in the chat:", layoutCode);
-            }
-        });
-
         // --- SETTINGS & SCREEN WAKE LOGIC ---
         const settingsMenu = document.getElementById('settings-menu');
         const formatToggle = document.getElementById('format-toggle');
@@ -649,7 +393,6 @@
         }
 
         function showSettings() {
-            if(isEditMode) return; 
             settingsMenu.style.display = 'flex';
             resetHideTimer();
         }
@@ -670,7 +413,7 @@
         let tapTimer;
         
         function handleTap(e) {
-            if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || isEditMode) return; 
+            if (e.target.closest('#settings-menu')) return; 
             
             tapCount++;
             clearTimeout(tapTimer);
