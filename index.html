@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Teko Bold Scrolling Clock</title>
+    <title>Teko Bold Scrolling Clock - Fixed</title>
     <style>
         /* Load the local Teko-Bold font */
         @font-face {
@@ -60,21 +60,23 @@
             width: 100%;
             height: 4px;
             background-color: #ffffff;
-            margin-bottom: 0px; /* Reduced to bring digits closer to line */
+            margin-bottom: 5px; /* Slight gap to let the digits breathe */
         }
 
         /* Clock Container */
         .time-container {
             display: flex;
             align-items: center;
-            gap: 2px; /* Pulls the hours and minutes blocks tighter together */
-            /* Adjusted the 'below' offset to pull the reflection up tighter to the text */
-            -webkit-box-reflect: below -45px linear-gradient(to bottom, transparent 35%, rgba(255, 255, 255, 0.7) 100%);
+            justify-content: center;
+            gap: 0px; /* Numbers as close together as possible */
+            /* Adjusted reflection offset to touch the bottom perfectly */
+            -webkit-box-reflect: below -25px linear-gradient(to bottom, transparent 35%, rgba(255, 255, 255, 0.65) 100%);
         }
 
         /* The Window that clips exactly one digit */
         .digit-window {
-            height: 280px;
+            height: 250px; /* Lock height to match JS translation */
+            width: 130px;  /* Lock width to keep everything perfectly aligned */
             overflow: hidden;
             position: relative;
         }
@@ -87,22 +89,26 @@
             will-change: transform;
         }
 
-        /* Individual Digit Styling - Made much larger and closer */
+        /* Individual Digit Styling - PROPORTIONS FIXED */
         .digit {
-            height: 280px;
-            line-height: 280px;
-            font-size: 380px; /* Massively increased size */
+            height: 250px; /* Must identically match .digit-window */
+            line-height: 250px;
+            font-size: 280px; /* Safe maximum size before internal font-clipping happens */
+            width: 130px; 
             text-align: center;
-            width: 125px; /* Narrowed width to push numbers together */
+            /* Flexbox ensures the raw text stays centered inside the block regardless of font baselines */
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         /* Blinking Vertical Line */
         .separator {
-            font-size: 220px;
-            line-height: 280px;
+            font-size: 200px;
+            line-height: 250px;
             font-weight: normal;
-            margin: 0 5px; /* Slight breathing room around the line */
-            transform: translateY(-10px); /* Optically centers the pipe */
+            margin: 0 5px;
+            transform: translateY(-12px); /* Optically centers the pipe vertically */
             animation: blink 1s step-end infinite; /* step-end gives it a sharp ON/OFF blink */
         }
 
@@ -144,7 +150,7 @@
 
     <script>
         // Configuration
-        const DIGIT_HEIGHT = 280; // Updated to match the new 280px height of .digit
+        const DIGIT_HEIGHT = 250; // Updated to match the new locked 250px height
 
         // Marathi Localization Arrays
         const marathiDays = ["रविवार", "सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
