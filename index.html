@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Scrolling Clock - Ultimate Custom Edition</title>
+    <title>Scrolling Clock - Layout Catcher</title>
     
-    <!-- Load 9 external Google Fonts for the new Font Selector -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@700&family=Oswald:wght@700&family=Rajdhani:wght@700&family=Righteous&family=Rubik+Mono+One&family=Share+Tech+Mono&display=swap');
     </style>
 
     <style>
-        /* 1. Load the local Teko-Bold font (Your Default) */
         @font-face {
             font-family: 'Teko Local';
             src: url('Teko-Bold.ttf') format('truetype');
@@ -19,7 +17,6 @@
             font-style: normal;
         }
 
-        /* Base Reset & Centering */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -30,7 +27,7 @@
         body {
             background-color: #000000;
             color: #ffffff;
-            font-family: 'Teko Local', sans-serif; /* Default */
+            font-family: 'Teko Local', sans-serif; 
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -38,14 +35,10 @@
             overflow: hidden;
             user-select: none; 
             -webkit-user-select: none;
-            padding: 0 45px; /* Safe padding for camera notch */
+            padding: 0 45px; 
             transition: font-family 0.3s ease;
         }
 
-        /* 
-         * HEADER POSITIONER 
-         * Now draggable and stretchable just like the clock!
-         */
         #header-positioner {
             width: 100%;
             display: flex;
@@ -86,7 +79,6 @@
             text-align: left;
         }
 
-        /* Horizontal Divider Line */
         .divider {
             width: 95%; 
             height: 5px;
@@ -94,9 +86,6 @@
             margin-bottom: 0px; 
         }
 
-        /* 
-         * CLOCK POSITIONER 
-         */
         #clock-positioner {
             display: flex;
             justify-content: center;
@@ -108,7 +97,6 @@
             border: 2px solid transparent;
         }
 
-        /* Edit Mode Highlights */
         .edit-mode #header-positioner,
         .edit-mode #clock-positioner {
             border: 2px dashed rgba(255, 255, 255, 0.3);
@@ -121,7 +109,6 @@
             background: rgba(0, 255, 170, 0.05);
         }
 
-        /* Clock Container */
         .time-container {
             display: flex;
             align-items: center;
@@ -129,7 +116,6 @@
             pointer-events: none; 
         }
 
-        /* The Window that clips exactly one digit */
         .digit-window {
             height: 380px; 
             width: 180px;  
@@ -141,7 +127,6 @@
             margin-right: 15px; 
         }
 
-        /* The strip of numbers */
         .digit-strip {
             display: flex;
             flex-direction: column;
@@ -149,7 +134,6 @@
             will-change: transform;
         }
 
-        /* Individual Digit Styling */
         .digit {
             height: 380px; 
             line-height: 380px;
@@ -161,7 +145,6 @@
             align-items: center;
         }
 
-        /* Blinking Colon Separator */
         .separator {
             font-size: 300px; 
             line-height: 380px;
@@ -175,8 +158,6 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0; }
         }
-
-        /* --- MENUS & OVERLAYS --- */
 
         .settings-overlay {
             display: none; 
@@ -239,7 +220,6 @@
             font-weight: bold;
         }
 
-        /* Font Selector Dropdown */
         .custom-select {
             background: #333;
             color: #fff;
@@ -252,7 +232,6 @@
             width: 150px;
         }
 
-        /* Edit Layout Control Panel */
         .layout-panel {
             display: none;
             position: fixed;
@@ -312,8 +291,21 @@
         
         .btn-save { background: #00ffaa; color: #000; }
         .btn-reset { background: #555; color: #fff; }
+        
+        /* New Export Button Style */
+        .btn-export {
+            background: #007bff;
+            color: #fff;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 5px;
+        }
 
-        /* Custom Checkbox Switch */
         .switch {
             position: relative;
             display: inline-block;
@@ -341,7 +333,6 @@
 </head>
 <body>
 
-    <!-- Draggable & Stretchable Header -->
     <div id="header-positioner" data-target="header">
         <div class="date-header">
             <span id="day-marathi">सोमवार</span> 
@@ -355,7 +346,6 @@
         <div class="divider"></div>
     </div>
 
-    <!-- Draggable & Stretchable Clock -->
     <div id="clock-positioner" data-target="time">
         <div class="time-container" id="clock">
             <div class="digit-window tens-window"><div class="digit-strip" id="h-tens"></div></div>
@@ -366,7 +356,6 @@
         </div>
     </div>
 
-    <!-- Hidden Settings Menu -->
     <div class="settings-overlay" id="settings-menu">
         <button class="close-btn" id="close-settings">✕</button>
         <button class="settings-btn" id="fullscreen-btn">Toggle Full Screen</button>
@@ -397,7 +386,6 @@
         </div>
     </div>
 
-    <!-- Layout Control Panel -->
     <div class="layout-panel" id="layout-panel">
         <h3 id="layout-title">EDITING: CLOCK (Tap Header to edit text)</h3>
         
@@ -415,13 +403,15 @@
             <button class="btn-reset" id="layout-reset">Reset Layout</button>
             <button class="btn-save" id="layout-save">Save & Exit</button>
         </div>
+        
+        <!-- NEW EXPORT BUTTON -->
+        <button class="btn-export" id="layout-export">📋 Copy Layout Values</button>
     </div>
 
     <script>
         // --- CLOCK ENGINE ---
         const DIGIT_HEIGHT = 380; 
         
-        // Load settings from local storage
         let is12Hour = localStorage.getItem('is12Hour') === 'true';
         let savedFont = localStorage.getItem('clockFont') || "'Teko Local', sans-serif";
         document.body.style.fontFamily = savedFont;
@@ -496,9 +486,8 @@
         const scaleYSlider = document.getElementById('scale-y');
         
         let isEditMode = false;
-        let activeTarget = 'time'; // 'time' or 'header'
+        let activeTarget = 'time'; 
 
-        // Default layout state for BOTH elements
         let layout = {
             time:   { x: 0, y: 0, sx: 1, sy: 1 },
             header: { x: 0, y: 0, sx: 1, sy: 1 }
@@ -515,7 +504,6 @@
         }
         applyTransforms();
 
-        // Update Sliders when switching targets
         function loadTargetToSliders() {
             scaleXSlider.value = layout[activeTarget].sx;
             scaleYSlider.value = layout[activeTarget].sy;
@@ -532,7 +520,6 @@
             }
         }
 
-        // Sliders change active target
         scaleXSlider.addEventListener('input', (e) => { 
             layout[activeTarget].sx = e.target.value; 
             applyTransforms(); 
@@ -542,17 +529,16 @@
             applyTransforms(); 
         });
 
-        // Touch Dragging Logic (Supports interacting with BOTH)
         let isDragging = false;
         let startX, startY, initialX, initialY;
-        let dragTarget = null; // Element currently being dragged
+        let dragTarget = null; 
 
         function startDrag(e, targetStr) {
             if (!isEditMode) return;
             isDragging = true;
             dragTarget = targetStr;
-            activeTarget = targetStr; // Switch focus
-            loadTargetToSliders();    // Update UI
+            activeTarget = targetStr; 
+            loadTargetToSliders();    
 
             let touch = e.touches ? e.touches[0] : e;
             startX = touch.clientX;
@@ -577,15 +563,12 @@
             dragTarget = null;
         }
 
-        // Bind events to Time
         timePos.addEventListener('touchstart', (e) => startDrag(e, 'time'));
         timePos.addEventListener('mousedown', (e) => startDrag(e, 'time'));
         
-        // Bind events to Header
         headerPos.addEventListener('touchstart', (e) => startDrag(e, 'header'));
         headerPos.addEventListener('mousedown', (e) => startDrag(e, 'header'));
 
-        // Bind move/end to window to prevent dropping if finger slips off
         window.addEventListener('touchmove', moveDrag, {passive: false});
         window.addEventListener('mousemove', moveDrag);
         window.addEventListener('touchend', endDrag);
@@ -598,7 +581,7 @@
             isEditMode = true;
             document.body.classList.add('edit-mode');
             layoutPanel.style.display = 'flex';
-            activeTarget = 'time'; // Default back to time
+            activeTarget = 'time'; 
             loadTargetToSliders();
         });
 
@@ -619,6 +602,24 @@
             loadTargetToSliders();
             applyTransforms();
         });
+        
+        // --- NEW EXPORT LOGIC ---
+        document.getElementById('layout-export').addEventListener('click', () => {
+            const layoutCode = JSON.stringify(layout);
+            
+            // Try to use the modern clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(layoutCode).then(() => {
+                    alert("✅ Layout successfully copied to clipboard!\n\nPaste this in the chat.");
+                }).catch(() => {
+                    // Fallback for secure context issues
+                    prompt("Copy the code below and paste it in the chat:", layoutCode);
+                });
+            } else {
+                // Fallback for older mobile browsers
+                prompt("Copy the code below and paste it in the chat:", layoutCode);
+            }
+        });
 
         // --- SETTINGS & SCREEN WAKE LOGIC ---
         const settingsMenu = document.getElementById('settings-menu');
@@ -630,7 +631,6 @@
 
         formatToggle.checked = is12Hour;
 
-        // Font Change Event
         fontSelect.addEventListener('change', (e) => {
             document.body.style.fontFamily = e.target.value;
             localStorage.setItem('clockFont', e.target.value);
@@ -666,7 +666,6 @@
 
         document.getElementById('close-settings').addEventListener('click', hideSettings);
 
-        // 5-Tap logic
         let tapCount = 0;
         let tapTimer;
         
