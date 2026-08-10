@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Scrolling Clock - Final Permanent Layout</title>
+    <title>Scrolling Clock - Responsive Permanent Layout</title>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@700&family=Oswald:wght@700&family=Rajdhani:wght@700&family=Righteous&family=Rubik+Mono+One&family=Share+Tech+Mono&display=swap');
@@ -49,24 +49,29 @@
             transform-origin: top center;
             z-index: 10;
             padding: 10px;
-            /* Your custom values */
+            /* Your custom coordinates */
             transform: translate(-3px, 15px) scale(1.15, 1);
         }
 
+        /* FUTURE-PROOFED HEADER: Spring-loaded spacing */
         .date-header {
-            font-size: 55px; 
+            width: 95%; /* Matches the divider line width exactly */
             display: flex;
-            gap: 15px;
+            justify-content: space-between; /* Spaces compress dynamically for long words */
             align-items: baseline;
             letter-spacing: 1px;
             line-height: 1;
             margin-bottom: 0px;
             font-variant-numeric: tabular-nums; 
+            /* Uses a formula to slightly scale down text ONLY if space is critically low */
+            font-size: clamp(35px, 5.5vw, 55px); 
+            white-space: nowrap; /* Prevents text from breaking into two lines */
         }
 
         .pipe {
-            font-size: 45px;
+            font-size: 0.8em; /* Scales proportionately to the header font */
             transform: translateY(-2px);
+            opacity: 0.8; /* Slight fade so the text pops more */
         }
 
         #date-num {
@@ -76,8 +81,8 @@
         
         #sec-num {
             display: inline-block;
-            width: 55px; 
-            text-align: left;
+            width: 1.2em; /* Scales dynamically with the font size instead of fixed pixels */
+            text-align: right; /* Locks to the right edge of the white line */
         }
 
         .divider {
@@ -95,7 +100,7 @@
             transform-origin: top center;
             margin-top: 25px; 
             padding: 10px;
-            /* Your custom values */
+            /* Your custom coordinates */
             transform: translate(-24px, -11px) scale(1.05, 0.9);
         }
 
