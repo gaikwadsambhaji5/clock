@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Teko Bold Scrolling Clock - Perfect Fit</title>
+    <title>Teko Bold Scrolling Clock - Stretched Fit</title>
     <style>
         /* Load the local Teko-Bold font */
         @font-face {
@@ -32,7 +32,7 @@
             overflow: hidden;
             user-select: none; 
             -webkit-user-select: none;
-            /* Adds safe padding to keep text away from the camera notch */
+            /* Safe padding to keep text away from the camera notch */
             padding: 0 45px; 
         }
 
@@ -46,7 +46,7 @@
 
         /* Top Header Container */
         .date-header {
-            font-size: 45px; /* Sized down slightly to fit screen height */
+            font-size: 45px; 
             display: flex;
             gap: 15px;
             align-items: baseline;
@@ -77,20 +77,23 @@
             width: 100%; 
             height: 5px;
             background-color: #ffffff;
-            margin-bottom: 15px; /* Balanced gap */
+            margin-bottom: 15px; 
         }
 
-        /* Clock Container - Reflection Removed */
+        /* Clock Container - STRETCHED VERTICALLY */
         .time-container {
             display: flex;
             align-items: center;
             justify-content: center;
+            /* This pulls the text down to fill the bottom without making it wider */
+            transform: scaleY(1.45); 
+            transform-origin: top center; /* Pins the top in place */
         }
 
         /* The Window that clips exactly one digit */
         .digit-window {
-            height: 270px; /* Reduced to fit within phone screen limits */
-            width: 140px;  /* Narrowed slightly to avoid notch */
+            height: 210px; /* Locked height */
+            width: 140px;  
             overflow: hidden;
             position: relative;
         }
@@ -108,11 +111,11 @@
             will-change: transform;
         }
 
-        /* Individual Digit Styling */
+        /* Individual Digit Styling - PERFECTLY BOUNDED to stop bleeding/shadows */
         .digit {
-            height: 270px; /* MUST MATCH WINDOW HEIGHT */
-            line-height: 270px;
-            font-size: 350px; /* Keeps the tall stretched look but fits the screen */
+            height: 210px; /* Matches window exactly */
+            line-height: 210px; /* Matches height exactly */
+            font-size: 210px; /* Matches height exactly to prevent overflow */
             width: 140px; 
             text-align: center;
             display: flex;
@@ -122,11 +125,11 @@
 
         /* Blinking Colon Separator */
         .separator {
-            font-size: 240px; 
-            line-height: 270px;
+            font-size: 170px; 
+            line-height: 210px;
             font-weight: bold;
             margin: 0 10px; 
-            transform: translateY(-25px); 
+            transform: translateY(-12px); 
             animation: blink 1s step-end infinite;
         }
 
@@ -227,7 +230,7 @@
 <body>
 
     <div class="clock-wrapper" id="main-clock">
-        <!-- Date Header with Locked Widths -->
+        <!-- Date Header -->
         <div class="date-header">
             <span id="day-marathi">सोमवार</span> 
             <span class="pipe">|</span> 
@@ -272,7 +275,8 @@
 
     <script>
         // --- CLOCK ENGINE ---
-        const DIGIT_HEIGHT = 270; // Adjusted for perfect screen fit
+        // DIGIT_HEIGHT perfectly matches CSS to eliminate all bleed/shadow issues
+        const DIGIT_HEIGHT = 210; 
         let is12Hour = false;
 
         const marathiDays = ["रविवार", "सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
