@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Teko Bold Scrolling Clock - Pro Version</title>
+    <title>Teko Bold Scrolling Clock - Max Screen</title>
     <style>
         /* Load the local Teko-Bold font */
         @font-face {
@@ -30,38 +30,52 @@
             align-items: center;
             height: 100vh;
             overflow: hidden;
-            /* Prevents accidental selection when double tapping */
             user-select: none; 
             -webkit-user-select: none;
         }
 
-        /* Main Wrapper to contain Header and Clock */
+        /* Main Wrapper */
         .clock-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
+            width: 100%;
         }
 
         /* Top Header Container */
         .date-header {
-            font-size: 45px; 
+            font-size: 55px; /* Increased font size for better distance visibility */
             display: flex;
-            gap: 12px;
+            gap: 15px;
             align-items: baseline;
             letter-spacing: 1px;
             line-height: 1;
-            margin-bottom: 2px;
+            margin-bottom: 0px;
+            /* Keeps numeric widths uniform to prevent shifting */
+            font-variant-numeric: tabular-nums; 
         }
 
         .pipe {
-            font-size: 40px;
+            font-size: 45px;
             transform: translateY(-2px);
+        }
+
+        /* Locking widths prevents the shaking/shifting when numbers change */
+        #date-num {
+            display: inline-block;
+            text-align: center;
+        }
+        
+        #sec-num {
+            display: inline-block;
+            width: 55px; /* Fixed width stops horizontal shifting */
+            text-align: left;
         }
 
         /* Horizontal Divider Line */
         .divider {
-            width: 100%;
-            height: 4px;
+            width: 95%; /* Stretches wider across the screen */
+            height: 5px;
             background-color: #ffffff;
             margin-bottom: 5px; 
         }
@@ -71,19 +85,19 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            /* Reflection perfectly touching the bottom */
-            -webkit-box-reflect: below -25px linear-gradient(to bottom, transparent 35%, rgba(255, 255, 255, 0.65) 100%);
+            /* Pulled the reflection much closer (-45px) and made it brighter */
+            -webkit-box-reflect: below -45px linear-gradient(to bottom, transparent 15%, rgba(255, 255, 255, 0.95) 100%);
         }
 
-        /* The Window that clips exactly one digit */
+        /* The Window that clips exactly one digit - Massively Increased */
         .digit-window {
-            height: 250px; 
-            width: 130px;  
+            height: 330px; 
+            width: 175px;  
             overflow: hidden;
             position: relative;
         }
 
-        /* The strip of numbers that slides up and down */
+        /* The strip of numbers that slides */
         .digit-strip {
             display: flex;
             flex-direction: column;
@@ -93,23 +107,23 @@
 
         /* Individual Digit Styling */
         .digit {
-            height: 250px; 
-            line-height: 250px;
-            font-size: 280px; 
-            width: 130px; 
+            height: 330px; 
+            line-height: 330px;
+            font-size: 400px; /* Scaled up heavily for full screen dominance */
+            width: 175px; 
             text-align: center;
             display: flex;
             justify-content: center;
             align-items: center;
         }
 
-        /* Blinking Colon Separator - Now spaced nicely */
+        /* Blinking Colon Separator */
         .separator {
-            font-size: 220px;
-            line-height: 250px;
+            font-size: 280px; /* Scaled to match new digits */
+            line-height: 330px;
             font-weight: bold;
-            margin: 0 15px; /* Adds the small space you requested */
-            transform: translateY(-22px); /* Centers the colon properly */
+            margin: 0 5px; 
+            transform: translateY(-30px); 
             animation: blink 1s step-end infinite;
         }
 
@@ -120,41 +134,56 @@
 
         /* Hidden Settings Popup */
         .settings-overlay {
-            display: none; /* Hidden by default */
+            display: none; 
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(20, 20, 20, 0.85);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 30px;
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            padding: 40px 30px 30px 30px; /* Extra top padding for the X */
             border-radius: 20px;
             z-index: 1000;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-            font-family: -apple-system, sans-serif; /* Standard readable font for UI */
+            gap: 25px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+            font-family: -apple-system, sans-serif;
+            min-width: 300px;
         }
+
+        /* Close X Button */
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+
+        .close-btn:active { opacity: 1; }
 
         /* Settings UI Elements */
         .settings-btn {
             background: #ffffff;
             color: #000000;
             border: none;
-            padding: 12px 24px;
-            font-size: 18px;
+            padding: 15px 24px;
+            font-size: 20px;
             font-weight: bold;
             border-radius: 10px;
             cursor: pointer;
             width: 100%;
         }
 
-        .settings-btn:active {
-            background: #cccccc;
-        }
+        .settings-btn:active { background: #cccccc; }
 
         .toggle-row {
             display: flex;
@@ -162,39 +191,40 @@
             align-items: center;
             width: 100%;
             gap: 20px;
-            font-size: 18px;
+            font-size: 20px;
+            font-weight: bold;
         }
 
         /* Custom Checkbox Switch */
         .switch {
             position: relative;
             display: inline-block;
-            width: 50px;
-            height: 28px;
+            width: 60px;
+            height: 34px;
         }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
             position: absolute; cursor: pointer;
             top: 0; left: 0; right: 0; bottom: 0;
             background-color: #555; transition: .4s;
-            border-radius: 28px;
+            border-radius: 34px;
         }
         .slider:before {
             position: absolute; content: "";
-            height: 20px; width: 20px;
+            height: 26px; width: 26px;
             left: 4px; bottom: 4px;
             background-color: white; transition: .4s;
             border-radius: 50%;
         }
         input:checked + .slider { background-color: #00ffaa; }
-        input:checked + .slider:before { transform: translateX(22px); }
+        input:checked + .slider:before { transform: translateX(26px); }
 
     </style>
 </head>
 <body>
 
     <div class="clock-wrapper" id="main-clock">
-        <!-- Date Header with Seconds Added -->
+        <!-- Date Header with Locked Widths -->
         <div class="date-header">
             <span id="day-marathi">सोमवार</span> 
             <span class="pipe">|</span> 
@@ -225,6 +255,7 @@
 
     <!-- Hidden Settings Menu -->
     <div class="settings-overlay" id="settings-menu">
+        <button class="close-btn" id="close-settings">✕</button>
         <button class="settings-btn" id="fullscreen-btn">Toggle Full Screen</button>
         
         <div class="toggle-row">
@@ -238,7 +269,7 @@
 
     <script>
         // --- CLOCK ENGINE ---
-        const DIGIT_HEIGHT = 250; 
+        const DIGIT_HEIGHT = 330; // Updated to match new CSS height
         let is12Hour = false;
 
         const marathiDays = ["रविवार", "सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
@@ -285,10 +316,9 @@
             
             let rawHours = now.getHours();
             
-            // 12/24 Hour Logic
             if (is12Hour) {
                 rawHours = rawHours % 12;
-                rawHours = rawHours ? rawHours : 12; // if hour is 0, make it 12
+                rawHours = rawHours ? rawHours : 12; 
             }
 
             const hours = String(rawHours).padStart(2, '0');
@@ -305,70 +335,105 @@
 
         updateClock();
 
-        // --- SETTINGS INTERFACE LOGIC ---
+        // --- SETTINGS & SCREEN WAKE LOGIC ---
         const settingsMenu = document.getElementById('settings-menu');
         const formatToggle = document.getElementById('format-toggle');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const closeBtn = document.getElementById('close-settings');
         let hideTimeout;
+        let wakeLock = null;
 
-        // Function to show settings and start the 10-second timer
+        // Wake Lock API to prevent screen sleep
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Screen Wake Lock active');
+                } catch (err) {
+                    console.error(`${err.name}, ${err.message}`);
+                }
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock !== null) {
+                wakeLock.release()
+                    .then(() => {
+                        wakeLock = null;
+                        console.log('Screen Wake Lock released');
+                    });
+            }
+        }
+
+        // Handle settings visibility
         function showSettings() {
             settingsMenu.style.display = 'flex';
             resetHideTimer();
         }
 
-        // Function to hide the settings immediately
         function hideSettings() {
             settingsMenu.style.display = 'none';
             clearTimeout(hideTimeout);
         }
 
-        // Function to (re)start the 10-second auto-hide timer
         function resetHideTimer() {
             clearTimeout(hideTimeout);
-            hideTimeout = setTimeout(hideSettings, 10000); // 10 seconds
+            hideTimeout = setTimeout(hideSettings, 10000); 
         }
 
-        // Double-tap detector (Works for mobile touch and desktop click)
-        let lastTap = 0;
-        document.body.addEventListener('touchend', function(e) {
-            // Ignore if we are tapping inside the settings menu
+        // Close button event
+        closeBtn.addEventListener('click', hideSettings);
+
+        // 5-Tap detector
+        let tapCount = 0;
+        let tapTimer;
+        
+        function handleTap(e) {
             if (e.target.closest('#settings-menu')) return; 
             
-            let currentTime = new Date().getTime();
-            let tapLength = currentTime - lastTap;
-            if (tapLength < 400 && tapLength > 0) {
+            tapCount++;
+            clearTimeout(tapTimer);
+            
+            if (tapCount >= 5) {
                 showSettings();
+                tapCount = 0;
+            } else {
+                tapTimer = setTimeout(() => { tapCount = 0; }, 600); // Reset tap count if pause is > 600ms
             }
-            lastTap = currentTime;
-        });
-        
-        // Desktop backup for double clicking
-        document.body.addEventListener('dblclick', function(e) {
-            if (e.target.closest('#settings-menu')) return;
-            showSettings();
-        });
+        }
 
-        // 12/24 Hour Toggle Event
+        document.body.addEventListener('touchend', handleTap);
+        document.body.addEventListener('click', handleTap); // Backup for desktop/mouse testing
+
         formatToggle.addEventListener('change', function(e) {
             is12Hour = e.target.checked;
-            resetHideTimer(); // keep menu open longer while interacting
+            resetHideTimer(); 
         });
 
-        // Fullscreen Toggle Event
+        // Fullscreen Toggle Event + Wake Lock Triggers
         fullscreenBtn.addEventListener('click', function() {
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
+                document.documentElement.requestFullscreen().then(() => {
+                    requestWakeLock();
+                }).catch(err => {
                     console.log(`Error attempting to enable fullscreen: ${err.message}`);
                 });
             } else {
                 if (document.exitFullscreen) {
-                    document.exitFullscreen();
+                    document.exitFullscreen().then(() => {
+                        releaseWakeLock();
+                    });
                 }
             }
-            hideSettings(); // Hide immediately after clicking
+            hideSettings();
         });
 
+        // Re-request wake lock if tab is changed and brought back while in fullscreen
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
     </script>
 </body>
 </html>
