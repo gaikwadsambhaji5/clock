@@ -27,12 +27,13 @@
             margin: 0;
             padding: 0;
             -webkit-tap-highlight-color: transparent;
+            /* Prevents browser from showing popups on long press */
+            -webkit-touch-callout: none; 
         }
 
         body {
             background-color: #000000;
             color: var(--clock-color);
-            font-family: 'Teko Local', sans-serif; 
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -41,7 +42,7 @@
             user-select: none; 
             -webkit-user-select: none;
             padding: 0 45px; 
-            transition: font-family 0.3s ease, color 1s ease;
+            transition: color 1s ease;
         }
 
         /* --- HEADER LAYOUT --- */
@@ -56,6 +57,7 @@
             padding: 10px;
             border: 2px solid transparent;
             cursor: grab;
+            transition: font-family 0.3s ease;
         }
 
         .date-header {
@@ -85,7 +87,7 @@
         #sec-wrapper {
             display: flex;
             align-items: center;
-            gap: 8px; /* Space between seconds and network dot */
+            gap: 8px; 
         }
 
         #sec-num {
@@ -102,21 +104,9 @@
             display: inline-block;
             transition: background-color 0.5s ease, box-shadow 0.5s ease;
         }
-        .network-dot.green {
-            background-color: #00ffaa;
-            box-shadow: 0 0 10px #00ffaa;
-            animation: none;
-        }
-        .network-dot.yellow {
-            background-color: #ffcc00;
-            box-shadow: 0 0 10px #ffcc00;
-            animation: none;
-        }
-        .network-dot.red {
-            background-color: #ff3333;
-            box-shadow: 0 0 10px #ff3333;
-            animation: blink-dot 1s infinite;
-        }
+        .network-dot.green { background-color: #00ffaa; box-shadow: 0 0 10px #00ffaa; animation: none; }
+        .network-dot.yellow { background-color: #ffcc00; box-shadow: 0 0 10px #ffcc00; animation: none; }
+        .network-dot.red { background-color: #ff3333; box-shadow: 0 0 10px #ff3333; animation: blink-dot 1s infinite; }
 
         @keyframes blink-dot {
             0%, 100% { opacity: 1; }
@@ -141,9 +131,9 @@
             padding: 10px;
             border: 2px solid transparent;
             cursor: grab;
+            transition: font-family 0.3s ease;
         }
 
-        /* Edit Mode Highlights */
         .edit-mode #header-positioner,
         .edit-mode #clock-positioner {
             border: 2px dashed rgba(255, 255, 255, 0.3);
@@ -160,7 +150,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            pointer-events: none; /* Let the wrapper handle touch */
+            pointer-events: none; 
         }
 
         .digit-window {
@@ -170,9 +160,7 @@
             position: relative;
         }
         
-        .tens-window {
-            margin-right: 15px; 
-        }
+        .tens-window { margin-right: 15px; }
 
         .digit-strip {
             display: flex;
@@ -253,10 +241,7 @@
             width: 100%;
         }
 
-        .settings-btn.accent {
-            background: #00ffaa;
-            color: #000;
-        }
+        .settings-btn.accent { background: #00ffaa; color: #000; }
 
         .toggle-row {
             display: flex;
@@ -409,20 +394,6 @@
         <button class="close-btn" id="close-settings">✕</button>
         <button class="settings-btn" id="fullscreen-btn">Toggle Full Screen</button>
         <button class="settings-btn accent" id="edit-layout-btn">Edit Layout (Restricted Boundaries)</button>
-        
-        <div class="toggle-row">
-            <span>Font Style</span>
-            <select id="font-select" class="custom-select">
-                <option value="'Teko Local', sans-serif">Teko (Local)</option>
-                <option value="'Orbitron', sans-serif">Orbitron</option>
-                <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
-                <option value="'Oswald', sans-serif">Oswald</option>
-                <option value="'Rajdhani', sans-serif">Rajdhani</option>
-                <option value="'Righteous', cursive">Righteous</option>
-                <option value="'Share Tech Mono', monospace">Share Tech Mono</option>
-                <option value="'Rubik Mono One', sans-serif">Rubik Mono</option>
-            </select>
-        </div>
 
         <div class="toggle-row">
             <span>Day Color</span>
@@ -455,6 +426,20 @@
         <h3 id="layout-title">EDITING: CLOCK (Tap Header to edit text)</h3>
         
         <div class="slider-group">
+            <label>Selected Element Font</label>
+            <select id="layout-font-select" class="custom-select" style="width: 100%;">
+                <option value="'Teko Local', sans-serif">Teko (Local)</option>
+                <option value="'Orbitron', sans-serif">Orbitron</option>
+                <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
+                <option value="'Oswald', sans-serif">Oswald</option>
+                <option value="'Rajdhani', sans-serif">Rajdhani</option>
+                <option value="'Righteous', cursive">Righteous</option>
+                <option value="'Share Tech Mono', monospace">Share Tech Mono</option>
+                <option value="'Rubik Mono One', sans-serif">Rubik Mono</option>
+            </select>
+        </div>
+
+        <div class="slider-group">
             <label>Stretch Width (Max Limit Applied)</label>
             <input type="range" id="scale-x" min="0.5" max="1.2" step="0.01" value="1">
         </div>
@@ -471,19 +456,28 @@
     </div>
 
     <script>
+        // --- DISABLE CONTEXT MENU (Prevents browser popup on long press) ---
+        window.oncontextmenu = function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
+        };
+
         // --- DATA & SETTINGS LOAD ---
         const DIGIT_HEIGHT = 380; 
         
-        // Settings State
         let is12Hour = localStorage.getItem('is12Hour') === 'true';
-        let savedFont = localStorage.getItem('clockFont') || "'Teko Local', sans-serif";
+        let headerFont = localStorage.getItem('headerFont') || "'Teko Local', sans-serif";
+        let timeFont = localStorage.getItem('timeFont') || "'Teko Local', sans-serif";
         let dayColor = localStorage.getItem('dayColor') || "#ffffff";
         let nightColor = localStorage.getItem('nightColor') || "#00aaff";
-        let autoNightMode = localStorage.getItem('autoNightMode') !== 'false'; // defaults true
+        let autoNightMode = localStorage.getItem('autoNightMode') !== 'false';
         
-        // Apply immediate settings
-        document.body.style.fontFamily = savedFont;
-        document.getElementById('font-select').value = savedFont;
+        // Apply Initial Fonts
+        document.getElementById('header-positioner').style.fontFamily = headerFont;
+        document.getElementById('clock-positioner').style.fontFamily = timeFont;
+        
+        // Apply Settings State to DOM
         document.getElementById('format-toggle').checked = is12Hour;
         document.getElementById('day-color').value = dayColor;
         document.getElementById('night-color').value = nightColor;
@@ -493,24 +487,17 @@
         const networkDot = document.getElementById('network-dot');
         function checkNetwork() {
             if (!navigator.onLine) {
-                // Completely Offline (No WiFi)
                 networkDot.className = 'network-dot red';
             } else {
-                // Connected to WiFi, but check if actual internet is flowing
-                // Fetches a tiny invisible request to a guaranteed active server
                 fetch('https://1.1.1.1/cdn-cgi/trace', { mode: 'no-cors', cache: 'no-store' })
-                .then(() => {
-                    networkDot.className = 'network-dot green'; // Active Internet
-                })
-                .catch(() => {
-                    networkDot.className = 'network-dot yellow'; // Connected to router, no internet
-                });
+                .then(() => { networkDot.className = 'network-dot green'; })
+                .catch(() => { networkDot.className = 'network-dot yellow'; });
             }
         }
         window.addEventListener('online', checkNetwork);
         window.addEventListener('offline', checkNetwork);
-        setInterval(checkNetwork, 10000); // Check every 10 seconds
-        checkNetwork(); // Initial check
+        setInterval(checkNetwork, 10000); 
+        checkNetwork();
 
         // --- COLOR LOGIC ---
         function updateColors() {
@@ -521,10 +508,9 @@
                 document.documentElement.style.setProperty('--clock-color', dayColor);
             }
         }
-        setInterval(updateColors, 60000); // Check time every minute
-        updateColors(); // Initial check
+        setInterval(updateColors, 60000); 
+        updateColors(); 
 
-        // --- EVENT LISTENERS FOR SETTINGS ---
         document.getElementById('day-color').addEventListener('input', (e) => {
             dayColor = e.target.value;
             localStorage.setItem('dayColor', dayColor);
@@ -551,16 +537,10 @@
         function buildStrip(id, maxNumber) {
             const strip = document.getElementById(id);
             let html = '';
-            for (let i = 0; i <= maxNumber; i++) {
-                html += `<div class="digit">${i}</div>`;
-            }
+            for (let i = 0; i <= maxNumber; i++) { html += `<div class="digit">${i}</div>`; }
             strip.innerHTML = html;
         }
-
-        buildStrip('h-tens', 2);
-        buildStrip('h-units', 9);
-        buildStrip('m-tens', 5);
-        buildStrip('m-units', 9);
+        buildStrip('h-tens', 2); buildStrip('h-units', 9); buildStrip('m-tens', 5); buildStrip('m-units', 9);
 
         function updateStrip(id, value) {
             const strip = document.getElementById(id);
@@ -569,6 +549,15 @@
         }
 
         function updateDateHeader(now) {
+            // "Sample Mode" logic while editing
+            if (isEditMode) {
+                document.getElementById('day-marathi').textContent = "WWWWW";
+                document.getElementById('month-marathi').textContent = "MMMM";
+                document.getElementById('date-num').textContent = "DD/MM/YYYY";
+                document.getElementById('sec-num').textContent = "SS";
+                return; // Skips applying real time while editing
+            }
+
             const day = marathiDays[now.getDay()];
             const month = marathiMonths[now.getMonth()];
             const dd = String(now.getDate()).padStart(2, '0');
@@ -604,24 +593,24 @@
         }
         updateClock();
 
-        // --- BOUNDED LAYOUT DRAG & STRETCH ENGINE ---
+        // --- BOUNDED LAYOUT DRAG, STRETCH & FONT ENGINE ---
         const timePos = document.getElementById('clock-positioner');
         const headerPos = document.getElementById('header-positioner');
         const layoutPanel = document.getElementById('layout-panel');
         const layoutTitle = document.getElementById('layout-title');
         const scaleXSlider = document.getElementById('scale-x');
         const scaleYSlider = document.getElementById('scale-y');
+        const layoutFontSelect = document.getElementById('layout-font-select');
         
         let isEditMode = false;
         let activeTarget = 'time'; 
 
-        // Load Defaults (The Perfect Layout we set earlier)
         const DEFAULT_LAYOUT = {
             time:   { x: 15, y: -11, sx: 1.05, sy: 0.9 },
             header: { x: 0, y: 15, sx: 1.05, sy: 1 }
         };
 
-        let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); // deep copy
+        let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
         const savedLayout = JSON.parse(localStorage.getItem('dualLayout'));
         if (savedLayout) { layout = savedLayout; }
 
@@ -638,17 +627,31 @@
             timePos.classList.remove('active-target');
             headerPos.classList.remove('active-target');
             
-            // Adjust slider max boundaries based on target so they can't break screen edges
             if(activeTarget === 'time') {
                 timePos.classList.add('active-target');
                 layoutTitle.textContent = "EDITING: CLOCK (Tap Header to edit)";
-                scaleXSlider.max = 1.3; // Clock max width
+                scaleXSlider.max = 1.3; 
+                layoutFontSelect.value = timeFont; // Show Time's font
             } else {
                 headerPos.classList.add('active-target');
                 layoutTitle.textContent = "EDITING: HEADER (Tap Clock to edit)";
-                scaleXSlider.max = 1.15; // Header max width (protects November space)
+                scaleXSlider.max = 1.15; 
+                layoutFontSelect.value = headerFont; // Show Header's font
             }
         }
+
+        // Apply Font based on active target
+        layoutFontSelect.addEventListener('change', (e) => {
+            if (activeTarget === 'header') {
+                headerFont = e.target.value;
+                document.getElementById('header-positioner').style.fontFamily = headerFont;
+                localStorage.setItem('headerFont', headerFont);
+            } else {
+                timeFont = e.target.value;
+                document.getElementById('clock-positioner').style.fontFamily = timeFont;
+                localStorage.setItem('timeFont', timeFont);
+            }
+        });
 
         scaleXSlider.addEventListener('input', (e) => { 
             layout[activeTarget].sx = parseFloat(e.target.value); 
@@ -685,11 +688,9 @@
             const dx = touch.clientX - startX;
             const dy = touch.clientY - startY;
             
-            // BOUNDARY MATH: Prevents dragging completely off-screen
             let newX = initialX + dx;
             let newY = initialY + dy;
             
-            // Limit X and Y movement strictly
             const maxMoveX = window.innerWidth / 3;
             const maxMoveY = window.innerHeight / 3;
             
@@ -734,31 +735,22 @@
         });
 
         document.getElementById('layout-reset').addEventListener('click', () => {
-            layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); // Reset to perfect default
+            layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
             loadTargetToSliders();
             applyTransforms();
         });
 
-        // --- SETTINGS & WAKE LOGIC ---
+        // --- SETTINGS & 3-SECOND LONG PRESS ---
         const settingsMenu = document.getElementById('settings-menu');
-        const fontSelect = document.getElementById('font-select');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         let hideTimeout;
         let wakeLock = null;
 
-        fontSelect.addEventListener('change', (e) => {
-            document.body.style.fontFamily = e.target.value;
-            localStorage.setItem('clockFont', e.target.value);
-            resetHideTimer();
-        });
-
         async function requestWakeLock() {
             if ('wakeLock' in navigator) {
-                try { wakeLock = await navigator.wakeLock.request('screen'); } 
-                catch (err) {}
+                try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
             }
         }
-
         function releaseWakeLock() {
             if (wakeLock !== null) { wakeLock.release().then(() => { wakeLock = null; }); }
         }
@@ -768,12 +760,10 @@
             settingsMenu.style.display = 'flex';
             resetHideTimer();
         }
-
         function hideSettings() {
             settingsMenu.style.display = 'none';
             clearTimeout(hideTimeout);
         }
-
         function resetHideTimer() {
             clearTimeout(hideTimeout);
             hideTimeout = setTimeout(hideSettings, 10000); 
@@ -781,25 +771,31 @@
 
         document.getElementById('close-settings').addEventListener('click', hideSettings);
 
-        let tapCount = 0;
-        let tapTimer;
+        // --- NEW 3 SECOND LONG PRESS LOGIC ---
+        let pressTimer;
         
-        function handleTap(e) {
+        function startLongPress(e) {
+            // Don't trigger if tapping on menus or currently editing
             if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || isEditMode) return; 
             
-            tapCount++;
-            clearTimeout(tapTimer);
-            
-            if (tapCount >= 5) {
+            pressTimer = setTimeout(() => {
                 showSettings();
-                tapCount = 0;
-            } else {
-                tapTimer = setTimeout(() => { tapCount = 0; }, 600); 
-            }
+            }, 3000); // 3 Seconds
         }
 
-        document.body.addEventListener('touchend', handleTap);
-        document.body.addEventListener('click', handleTap); 
+        function cancelLongPress() {
+            clearTimeout(pressTimer);
+        }
+
+        // Bind Long Press triggers
+        document.body.addEventListener('touchstart', startLongPress);
+        document.body.addEventListener('mousedown', startLongPress);
+        
+        // Cancel if finger is lifted or moved
+        document.body.addEventListener('touchend', cancelLongPress);
+        document.body.addEventListener('mouseup', cancelLongPress);
+        document.body.addEventListener('touchmove', cancelLongPress);
+        document.body.addEventListener('mousemove', cancelLongPress);
 
         document.getElementById('format-toggle').addEventListener('change', function(e) {
             is12Hour = e.target.checked;
