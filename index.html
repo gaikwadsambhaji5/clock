@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Teko Bold Scrolling Clock - Max Screen</title>
+    <title>Teko Bold Scrolling Clock - Max Screen Stretched</title>
     <style>
         /* Load the local Teko-Bold font */
         @font-face {
@@ -42,16 +42,15 @@
             width: 100%;
         }
 
-        /* Top Header Container */
+        /* Top Header Container (Unchanged as requested) */
         .date-header {
-            font-size: 55px; /* Increased font size for better distance visibility */
+            font-size: 55px; 
             display: flex;
             gap: 15px;
             align-items: baseline;
             letter-spacing: 1px;
             line-height: 1;
             margin-bottom: 0px;
-            /* Keeps numeric widths uniform to prevent shifting */
             font-variant-numeric: tabular-nums; 
         }
 
@@ -60,7 +59,6 @@
             transform: translateY(-2px);
         }
 
-        /* Locking widths prevents the shaking/shifting when numbers change */
         #date-num {
             display: inline-block;
             text-align: center;
@@ -68,16 +66,16 @@
         
         #sec-num {
             display: inline-block;
-            width: 55px; /* Fixed width stops horizontal shifting */
+            width: 55px; 
             text-align: left;
         }
 
         /* Horizontal Divider Line */
         .divider {
-            width: 95%; /* Stretches wider across the screen */
+            width: 95%; 
             height: 5px;
             background-color: #ffffff;
-            margin-bottom: 5px; 
+            margin-bottom: 25px; /* INCREASED GAP FROM TOP LINE */
         }
 
         /* Clock Container */
@@ -85,16 +83,21 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            /* Pulled the reflection much closer (-45px) and made it brighter */
+            /* Adjusted reflection for the taller numbers */
             -webkit-box-reflect: below -45px linear-gradient(to bottom, transparent 15%, rgba(255, 255, 255, 0.95) 100%);
         }
 
-        /* The Window that clips exactly one digit - Massively Increased */
+        /* The Window that clips exactly one digit */
         .digit-window {
-            height: 330px; 
-            width: 175px;  
+            height: 380px; /* TALLER */
+            width: 195px;  /* WIDER to fill screen */
             overflow: hidden;
             position: relative;
+        }
+        
+        /* Adds the gap between the two numbers in HH and MM */
+        .tens-window {
+            margin-right: 15px; 
         }
 
         /* The strip of numbers that slides */
@@ -107,10 +110,10 @@
 
         /* Individual Digit Styling */
         .digit {
-            height: 330px; 
-            line-height: 330px;
-            font-size: 400px; /* Scaled up heavily for full screen dominance */
-            width: 175px; 
+            height: 380px; /* MUST MATCH WINDOW HEIGHT */
+            line-height: 380px;
+            font-size: 480px; /* MASSIVE SCALING / STRETCHING */
+            width: 195px; 
             text-align: center;
             display: flex;
             justify-content: center;
@@ -119,11 +122,11 @@
 
         /* Blinking Colon Separator */
         .separator {
-            font-size: 280px; /* Scaled to match new digits */
-            line-height: 330px;
+            font-size: 300px; 
+            line-height: 380px;
             font-weight: bold;
-            margin: 0 5px; 
-            transform: translateY(-30px); 
+            margin: 0 10px; 
+            transform: translateY(-35px); 
             animation: blink 1s step-end infinite;
         }
 
@@ -143,7 +146,7 @@
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
             border: 2px solid rgba(255, 255, 255, 0.2);
-            padding: 40px 30px 30px 30px; /* Extra top padding for the X */
+            padding: 40px 30px 30px 30px; 
             border-radius: 20px;
             z-index: 1000;
             flex-direction: column;
@@ -240,15 +243,15 @@
 
         <!-- Scrolling Clock -->
         <div class="time-container" id="clock">
-            <!-- Hours -->
-            <div class="digit-window"><div class="digit-strip" id="h-tens"></div></div>
+            <!-- Hours (Notice the added 'tens-window' class on the first digit) -->
+            <div class="digit-window tens-window"><div class="digit-strip" id="h-tens"></div></div>
             <div class="digit-window"><div class="digit-strip" id="h-units"></div></div>
             
             <!-- Colon Separator -->
             <div class="separator">:</div>
 
-            <!-- Minutes -->
-            <div class="digit-window"><div class="digit-strip" id="m-tens"></div></div>
+            <!-- Minutes (Notice the added 'tens-window' class on the first digit) -->
+            <div class="digit-window tens-window"><div class="digit-strip" id="m-tens"></div></div>
             <div class="digit-window"><div class="digit-strip" id="m-units"></div></div>
         </div>
     </div>
@@ -269,7 +272,7 @@
 
     <script>
         // --- CLOCK ENGINE ---
-        const DIGIT_HEIGHT = 330; // Updated to match new CSS height
+        const DIGIT_HEIGHT = 380; // Updated to match the massive new height
         let is12Hour = false;
 
         const marathiDays = ["रविवार", "सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
@@ -343,7 +346,6 @@
         let hideTimeout;
         let wakeLock = null;
 
-        // Wake Lock API to prevent screen sleep
         async function requestWakeLock() {
             if ('wakeLock' in navigator) {
                 try {
@@ -365,7 +367,6 @@
             }
         }
 
-        // Handle settings visibility
         function showSettings() {
             settingsMenu.style.display = 'flex';
             resetHideTimer();
@@ -381,10 +382,8 @@
             hideTimeout = setTimeout(hideSettings, 10000); 
         }
 
-        // Close button event
         closeBtn.addEventListener('click', hideSettings);
 
-        // 5-Tap detector
         let tapCount = 0;
         let tapTimer;
         
@@ -398,19 +397,18 @@
                 showSettings();
                 tapCount = 0;
             } else {
-                tapTimer = setTimeout(() => { tapCount = 0; }, 600); // Reset tap count if pause is > 600ms
+                tapTimer = setTimeout(() => { tapCount = 0; }, 600); 
             }
         }
 
         document.body.addEventListener('touchend', handleTap);
-        document.body.addEventListener('click', handleTap); // Backup for desktop/mouse testing
+        document.body.addEventListener('click', handleTap); 
 
         formatToggle.addEventListener('change', function(e) {
             is12Hour = e.target.checked;
             resetHideTimer(); 
         });
 
-        // Fullscreen Toggle Event + Wake Lock Triggers
         fullscreenBtn.addEventListener('click', function() {
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().then(() => {
@@ -428,7 +426,6 @@
             hideSettings();
         });
 
-        // Re-request wake lock if tab is changed and brought back while in fullscreen
         document.addEventListener('visibilitychange', async () => {
             if (wakeLock !== null && document.visibilityState === 'visible') {
                 requestWakeLock();
