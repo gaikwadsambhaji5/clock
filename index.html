@@ -17,7 +17,6 @@
             font-style: normal;
         }
 
-        /* --- COLOR VARIABLES --- */
         :root {
             --clock-color: #ffffff;
         }
@@ -27,7 +26,6 @@
             margin: 0;
             padding: 0;
             -webkit-tap-highlight-color: transparent;
-            /* Prevents browser from showing popups on long press */
             -webkit-touch-callout: none; 
         }
 
@@ -43,6 +41,27 @@
             -webkit-user-select: none;
             padding: 0 45px; 
             transition: color 1s ease;
+        }
+
+        /* --- VISUAL LONG PRESS INDICATOR --- */
+        #long-press-indicator {
+            position: fixed;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: conic-gradient(#00ffaa 0%, transparent 0%);
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 9999;
+            pointer-events: none;
+            box-shadow: 0 0 15px rgba(0, 255, 170, 0.4);
+        }
+        
+        #long-press-inner {
+            position: absolute;
+            top: 5px; left: 5px; right: 5px; bottom: 5px;
+            background-color: #000000;
+            border-radius: 50%;
         }
 
         /* --- HEADER LAYOUT --- */
@@ -361,6 +380,11 @@
 </head>
 <body>
 
+    <!-- Visual 3-Second Press Ring -->
+    <div id="long-press-indicator">
+        <div id="long-press-inner"></div>
+    </div>
+
     <!-- Header Block -->
     <div id="header-positioner" data-target="header">
         <div class="date-header">
@@ -393,7 +417,7 @@
     <div class="settings-overlay" id="settings-menu">
         <button class="close-btn" id="close-settings">✕</button>
         <button class="settings-btn" id="fullscreen-btn">Toggle Full Screen</button>
-        <button class="settings-btn accent" id="edit-layout-btn">Edit Layout (Restricted Boundaries)</button>
+        <button class="settings-btn accent" id="edit-layout-btn">Edit Layout (Drag & Stretch)</button>
 
         <div class="toggle-row">
             <span>Day Color</span>
@@ -451,15 +475,15 @@
 
         <div class="layout-actions">
             <button class="btn-reset" id="layout-reset">Reset Default</button>
-            <button class="btn-save" id="layout-save">Save & Exit</button>
+            <button class="btn-save" id="layout-save">Close Editor</button>
         </div>
     </div>
 
     <script>
-        // --- DISABLE CONTEXT MENU (Prevents browser popup on long press) ---
-        window.oncontextmenu = function(event) {
-            event.preventDefault();
-            event.stopPropagation();
+        // --- DISABLE BROWSER LONG PRESS MENUS ---
+        window.oncontextmenu = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
             return false;
         };
 
@@ -473,11 +497,8 @@
         let nightColor = localStorage.getItem('nightColor') || "#00aaff";
         let autoNightMode = localStorage.getItem('autoNightMode') !== 'false';
         
-        // Apply Initial Fonts
         document.getElementById('header-positioner').style.fontFamily = headerFont;
         document.getElementById('clock-positioner').style.fontFamily = timeFont;
-        
-        // Apply Settings State to DOM
         document.getElementById('format-toggle').checked = is12Hour;
         document.getElementById('day-color').value = dayColor;
         document.getElementById('night-color').value = nightColor;
@@ -549,26 +570,29 @@
         }
 
         function updateDateHeader(now) {
-            // "Sample Mode" logic while editing
             if (isEditMode) {
                 document.getElementById('day-marathi').textContent = "WWWWW";
                 document.getElementById('month-marathi').textContent = "MMMM";
                 document.getElementById('date-num').textContent = "DD/MM/YYYY";
                 document.getElementById('sec-num').textContent = "SS";
-                return; // Skips applying real time while editing
+                return; 
             }
+            
+            try {
+                const day = marathiDays[now.getDay()];
+                const month = marathiMonths[now.getMonth()];
+                const dd = String(now.getDate()).padStart(2, '0');
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const yyyy = now.getFullYear();
+                const ss = String(now.getSeconds()).padStart(2, '0');
 
-            const day = marathiDays[now.getDay()];
-            const month = marathiMonths[now.getMonth()];
-            const dd = String(now.getDate()).padStart(2, '0');
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const yyyy = now.getFullYear();
-            const ss = String(now.getSeconds()).padStart(2, '0');
-
-            document.getElementById('day-marathi').textContent = day;
-            document.getElementById('month-marathi').textContent = month;
-            document.getElementById('date-num').textContent = `${dd}/${mm}/${yyyy}`;
-            document.getElementById('sec-num').textContent = ss;
+                document.getElementById('day-marathi').textContent = day;
+                document.getElementById('month-marathi').textContent = month;
+                document.getElementById('date-num').textContent = `${dd}/${mm}/${yyyy}`;
+                document.getElementById('sec-num').textContent = ss;
+            } catch (err) {
+                console.error("Date error", err);
+            }
         }
 
         function updateClock() {
@@ -593,7 +617,7 @@
         }
         updateClock();
 
-        // --- BOUNDED LAYOUT DRAG, STRETCH & FONT ENGINE ---
+        // --- BOUNDED LAYOUT DRAG, STRETCH & AUTO-SAVE ENGINE ---
         const timePos = document.getElementById('clock-positioner');
         const headerPos = document.getElementById('header-positioner');
         const layoutPanel = document.getElementById('layout-panel');
@@ -612,7 +636,13 @@
 
         let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
         const savedLayout = JSON.parse(localStorage.getItem('dualLayout'));
-        if (savedLayout) { layout = savedLayout; }
+        if (savedLayout && savedLayout.time && savedLayout.header) { 
+            layout = savedLayout; 
+        }
+
+        function autoSaveLayout() {
+            localStorage.setItem('dualLayout', JSON.stringify(layout));
+        }
 
         function applyTransforms() {
             timePos.style.transform = `translate(${layout.time.x}px, ${layout.time.y}px) scale(${layout.time.sx}, ${layout.time.sy})`;
@@ -631,16 +661,15 @@
                 timePos.classList.add('active-target');
                 layoutTitle.textContent = "EDITING: CLOCK (Tap Header to edit)";
                 scaleXSlider.max = 1.3; 
-                layoutFontSelect.value = timeFont; // Show Time's font
+                layoutFontSelect.value = timeFont; 
             } else {
                 headerPos.classList.add('active-target');
                 layoutTitle.textContent = "EDITING: HEADER (Tap Clock to edit)";
                 scaleXSlider.max = 1.15; 
-                layoutFontSelect.value = headerFont; // Show Header's font
+                layoutFontSelect.value = headerFont; 
             }
         }
 
-        // Apply Font based on active target
         layoutFontSelect.addEventListener('change', (e) => {
             if (activeTarget === 'header') {
                 headerFont = e.target.value;
@@ -656,13 +685,14 @@
         scaleXSlider.addEventListener('input', (e) => { 
             layout[activeTarget].sx = parseFloat(e.target.value); 
             applyTransforms(); 
+            autoSaveLayout(); // Real-time save
         });
         scaleYSlider.addEventListener('input', (e) => { 
             layout[activeTarget].sy = parseFloat(e.target.value); 
             applyTransforms(); 
+            autoSaveLayout(); // Real-time save
         });
 
-        // DRAG LOGIC WITH BOUNDARIES
         let isDragging = false;
         let startX, startY, initialX, initialY;
         let dragTarget = null; 
@@ -701,8 +731,11 @@
         }
 
         function endDrag() {
-            isDragging = false;
-            dragTarget = null;
+            if (isDragging) {
+                isDragging = false;
+                dragTarget = null;
+                autoSaveLayout(); // Save when dragging stops
+            }
         }
 
         timePos.addEventListener('touchstart', (e) => startDrag(e, 'time'));
@@ -713,7 +746,6 @@
         window.addEventListener('mousemove', moveDrag);
         window.addEventListener('touchend', endDrag);
         window.addEventListener('mouseup', endDrag);
-
 
         // --- MENUS & OVERLAYS ---
         document.getElementById('edit-layout-btn').addEventListener('click', () => {
@@ -731,16 +763,17 @@
             layoutPanel.style.display = 'none';
             timePos.classList.remove('active-target');
             headerPos.classList.remove('active-target');
-            localStorage.setItem('dualLayout', JSON.stringify(layout));
+            autoSaveLayout();
         });
 
         document.getElementById('layout-reset').addEventListener('click', () => {
             layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
             loadTargetToSliders();
             applyTransforms();
+            autoSaveLayout();
         });
 
-        // --- SETTINGS & 3-SECOND LONG PRESS ---
+        // --- SETTINGS & 3-SECOND LONG PRESS UI ---
         const settingsMenu = document.getElementById('settings-menu');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         let hideTimeout;
@@ -771,27 +804,45 @@
 
         document.getElementById('close-settings').addEventListener('click', hideSettings);
 
-        // --- NEW 3 SECOND LONG PRESS LOGIC ---
-        let pressTimer;
-        
+        // Visual Long Press Detector
+        let pressInterval;
+        let pressProgress = 0;
+        const indicator = document.getElementById('long-press-indicator');
+
         function startLongPress(e) {
-            // Don't trigger if tapping on menus or currently editing
             if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || isEditMode) return; 
             
-            pressTimer = setTimeout(() => {
-                showSettings();
-            }, 3000); // 3 Seconds
+            let touchX = e.touches ? e.touches[0].clientX : e.clientX;
+            let touchY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            indicator.style.left = touchX + 'px';
+            indicator.style.top = touchY + 'px';
+            indicator.style.display = 'block';
+            indicator.style.background = `conic-gradient(#00ffaa 0%, transparent 0%)`;
+            pressProgress = 0;
+
+            pressInterval = setInterval(() => {
+                pressProgress += 1; // Fills up to 100% over 3 seconds (30ms * 100)
+                indicator.style.background = `conic-gradient(#00ffaa ${pressProgress}%, transparent ${pressProgress}%)`;
+                
+                if (pressProgress >= 100) {
+                    indicator.style.background = `conic-gradient(#00ffaa 100%, #00ffaa 100%)`; // Solid green
+                    clearInterval(pressInterval);
+                    setTimeout(() => {
+                        indicator.style.display = 'none';
+                        showSettings();
+                    }, 200);
+                }
+            }, 30);
         }
 
         function cancelLongPress() {
-            clearTimeout(pressTimer);
+            clearInterval(pressInterval);
+            indicator.style.display = 'none';
         }
 
-        // Bind Long Press triggers
         document.body.addEventListener('touchstart', startLongPress);
         document.body.addEventListener('mousedown', startLongPress);
-        
-        // Cancel if finger is lifted or moved
         document.body.addEventListener('touchend', cancelLongPress);
         document.body.addEventListener('mouseup', cancelLongPress);
         document.body.addEventListener('touchmove', cancelLongPress);
@@ -803,11 +854,14 @@
             resetHideTimer(); 
         });
 
+        // Robust Fullscreen Logic
         fullscreenBtn.addEventListener('click', function() {
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().then(() => {
                     requestWakeLock();
-                }).catch(err => {});
+                }).catch(err => {
+                    alert("Fullscreen was blocked by the browser. Try interacting with the page first.");
+                });
             } else {
                 if (document.exitFullscreen) {
                     document.exitFullscreen().then(() => {
