@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Teko Bold Scrolling Clock - Max Screen Stretched</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Teko Bold Scrolling Clock - Perfect Fit</title>
     <style>
         /* Load the local Teko-Bold font */
         @font-face {
@@ -32,6 +32,8 @@
             overflow: hidden;
             user-select: none; 
             -webkit-user-select: none;
+            /* Adds safe padding to keep text away from the camera notch */
+            padding: 0 45px; 
         }
 
         /* Main Wrapper */
@@ -42,9 +44,9 @@
             width: 100%;
         }
 
-        /* Top Header Container (Unchanged as requested) */
+        /* Top Header Container */
         .date-header {
-            font-size: 55px; 
+            font-size: 45px; /* Sized down slightly to fit screen height */
             display: flex;
             gap: 15px;
             align-items: baseline;
@@ -55,7 +57,7 @@
         }
 
         .pipe {
-            font-size: 45px;
+            font-size: 35px;
             transform: translateY(-2px);
         }
 
@@ -66,31 +68,29 @@
         
         #sec-num {
             display: inline-block;
-            width: 55px; 
+            width: 45px; 
             text-align: left;
         }
 
         /* Horizontal Divider Line */
         .divider {
-            width: 95%; 
+            width: 100%; 
             height: 5px;
             background-color: #ffffff;
-            margin-bottom: 25px; /* INCREASED GAP FROM TOP LINE */
+            margin-bottom: 15px; /* Balanced gap */
         }
 
-        /* Clock Container */
+        /* Clock Container - Reflection Removed */
         .time-container {
             display: flex;
             align-items: center;
             justify-content: center;
-            /* Adjusted reflection for the taller numbers */
-            -webkit-box-reflect: below -45px linear-gradient(to bottom, transparent 15%, rgba(255, 255, 255, 0.95) 100%);
         }
 
         /* The Window that clips exactly one digit */
         .digit-window {
-            height: 380px; /* TALLER */
-            width: 195px;  /* WIDER to fill screen */
+            height: 270px; /* Reduced to fit within phone screen limits */
+            width: 140px;  /* Narrowed slightly to avoid notch */
             overflow: hidden;
             position: relative;
         }
@@ -110,10 +110,10 @@
 
         /* Individual Digit Styling */
         .digit {
-            height: 380px; /* MUST MATCH WINDOW HEIGHT */
-            line-height: 380px;
-            font-size: 480px; /* MASSIVE SCALING / STRETCHING */
-            width: 195px; 
+            height: 270px; /* MUST MATCH WINDOW HEIGHT */
+            line-height: 270px;
+            font-size: 350px; /* Keeps the tall stretched look but fits the screen */
+            width: 140px; 
             text-align: center;
             display: flex;
             justify-content: center;
@@ -122,11 +122,11 @@
 
         /* Blinking Colon Separator */
         .separator {
-            font-size: 300px; 
-            line-height: 380px;
+            font-size: 240px; 
+            line-height: 270px;
             font-weight: bold;
             margin: 0 10px; 
-            transform: translateY(-35px); 
+            transform: translateY(-25px); 
             animation: blink 1s step-end infinite;
         }
 
@@ -243,14 +243,14 @@
 
         <!-- Scrolling Clock -->
         <div class="time-container" id="clock">
-            <!-- Hours (Notice the added 'tens-window' class on the first digit) -->
+            <!-- Hours -->
             <div class="digit-window tens-window"><div class="digit-strip" id="h-tens"></div></div>
             <div class="digit-window"><div class="digit-strip" id="h-units"></div></div>
             
             <!-- Colon Separator -->
             <div class="separator">:</div>
 
-            <!-- Minutes (Notice the added 'tens-window' class on the first digit) -->
+            <!-- Minutes -->
             <div class="digit-window tens-window"><div class="digit-strip" id="m-tens"></div></div>
             <div class="digit-window"><div class="digit-strip" id="m-units"></div></div>
         </div>
@@ -272,7 +272,7 @@
 
     <script>
         // --- CLOCK ENGINE ---
-        const DIGIT_HEIGHT = 380; // Updated to match the massive new height
+        const DIGIT_HEIGHT = 270; // Adjusted for perfect screen fit
         let is12Hour = false;
 
         const marathiDays = ["रविवार", "सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
@@ -350,7 +350,6 @@
             if ('wakeLock' in navigator) {
                 try {
                     wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Screen Wake Lock active');
                 } catch (err) {
                     console.error(`${err.name}, ${err.message}`);
                 }
@@ -362,7 +361,6 @@
                 wakeLock.release()
                     .then(() => {
                         wakeLock = null;
-                        console.log('Screen Wake Lock released');
                     });
             }
         }
