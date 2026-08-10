@@ -3,9 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Scrolling Odometer Clock</title>
+    <title>Teko Scrolling Clock</title>
     <style>
-        /* Base Reset & Optimization for Mobile */
+        /* Load the local Teko-SemiBold font */
+        @font-face {
+            font-family: 'Teko';
+            src: url('Teko-SemiBold.ttf') format('truetype');
+            font-weight: 600;
+            font-style: normal;
+        }
+
+        /* Base Reset & Centering */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -14,9 +22,9 @@
         }
 
         body {
-            background-color: #0d0d12;
+            background-color: #000000;
             color: #ffffff;
-            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Teko', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -24,127 +32,107 @@
             overflow: hidden;
         }
 
-        /* Ambient Glow Background */
-        .ambient-glow {
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(0,255,170,0.15) 0%, rgba(0,0,0,0) 70%);
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 0;
-            animation: pulseGlow 4s infinite alternate ease-in-out;
-        }
-
-        @keyframes pulseGlow {
-            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
-            100% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-        }
-
-        /* Glassmorphism Clock Container */
-        .clock-container {
-            position: relative;
-            z-index: 1;
+        /* Main Wrapper to contain Header and Clock */
+        .clock-wrapper {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 24px;
-            padding: 20px 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
         }
 
-        /* The Scrolling Window for Digits */
+        /* Top Header Container (Day | Month | Date) */
+        .date-header {
+            font-size: 45px; /* Adjust size to match reference */
+            display: flex;
+            gap: 12px;
+            align-items: baseline;
+            letter-spacing: 1px;
+            line-height: 1;
+            margin-bottom: 5px;
+        }
+
+        .pipe {
+            font-size: 40px;
+            transform: translateY(-2px);
+        }
+
+        /* Horizontal Divider Line */
+        .divider {
+            width: 100%;
+            height: 4px;
+            background-color: #ffffff;
+            margin-bottom: 5px;
+        }
+
+        /* Clock Container with Reflection Effect */
+        .time-container {
+            display: flex;
+            gap: 10px;
+            /* Creates the exact fading reflection seen in the image */
+            -webkit-box-reflect: below -20px linear-gradient(to bottom, transparent 40%, rgba(255, 255, 255, 0.6) 100%);
+        }
+
+        /* The Window that clips exactly one digit */
         .digit-window {
-            height: 120px; /* Shows previous, current, and next digits */
+            height: 250px;
             overflow: hidden;
             position: relative;
-            display: flex;
-            margin: 0 2px;
-            /* Gradient overlay to fade out top and bottom digits */
-            mask-image: linear-gradient(to bottom, transparent 0%, black 35%, black 65%, transparent 100%);
-            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 35%, black 65%, transparent 100%);
         }
 
-        /* The moving strip of numbers */
+        /* The strip of numbers that slides up and down */
         .digit-strip {
             display: flex;
             flex-direction: column;
-            /* Hardware acceleration & Elastic bounce transition */
-            transition: transform 0.8s cubic-bezier(0.5, -0.5, 0.2, 1.5);
-            will-change: transform; 
+            /* Hardware acceleration & Elastic transition for the scroll */
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
         }
 
+        /* Individual Digit Styling */
         .digit {
-            height: 40px;
-            line-height: 40px;
-            font-size: 32px;
-            font-weight: 700;
+            height: 250px;
+            line-height: 250px;
+            font-size: 280px; /* Oversized to fill the block perfectly */
             text-align: center;
-            width: 32px;
-            color: #00ffaa;
-            text-shadow: 0 0 15px rgba(0, 255, 170, 0.6);
-        }
-
-        .colon {
-            font-size: 32px;
-            font-weight: 700;
-            color: rgba(255, 255, 255, 0.3);
-            margin: 0 5px;
-            animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.2; }
-        }
-
-        /* Design accent for Realme display */
-        .brand-text {
-            position: absolute;
-            bottom: 30px;
-            font-size: 10px;
-            letter-spacing: 4px;
-            color: rgba(255,255,255,0.3);
-            text-transform: uppercase;
+            width: 140px;
         }
     </style>
 </head>
 <body>
 
-    <div class="ambient-glow"></div>
+    <div class="clock-wrapper">
+        <!-- Date Header -->
+        <div class="date-header">
+            <span id="day-marathi">सोमवार</span> 
+            <span class="pipe">|</span> 
+            <span id="month-marathi">ऑगस्ट</span> 
+            <span class="pipe">|</span> 
+            <span id="date-num">10/08/2026</span>
+        </div>
 
-    <div class="clock-container" id="clock">
-        <!-- Hours -->
-        <div class="digit-window"><div class="digit-strip" id="h-tens"></div></div>
-        <div class="digit-window"><div class="digit-strip" id="h-units"></div></div>
-        
-        <div class="colon">:</div>
-        
-        <!-- Minutes -->
-        <div class="digit-window"><div class="digit-strip" id="m-tens"></div></div>
-        <div class="digit-window"><div class="digit-strip" id="m-units"></div></div>
-        
-        <div class="colon">:</div>
-        
-        <!-- Seconds -->
-        <div class="digit-window"><div class="digit-strip" id="s-tens"></div></div>
-        <div class="digit-window"><div class="digit-strip" id="s-units"></div></div>
+        <!-- Horizontal Line -->
+        <div class="divider"></div>
+
+        <!-- Scrolling Clock -->
+        <div class="time-container" id="clock">
+            <!-- Hours -->
+            <div class="digit-window"><div class="digit-strip" id="h-tens"></div></div>
+            <div class="digit-window"><div class="digit-strip" id="h-units"></div></div>
+            
+            <!-- Minutes -->
+            <div class="digit-window"><div class="digit-strip" id="m-tens"></div></div>
+            <div class="digit-window"><div class="digit-strip" id="m-units"></div></div>
+        </div>
     </div>
-
-    <div class="brand-text">Active Scroll Engine</div>
 
     <script>
         // Configuration
-        const DIGIT_HEIGHT = 40; // Must match CSS height of .digit
-        // Window is 120px, so 3 digits fit. To center the active digit, 
-        // we offset by exactly one digit height (40px).
-        const CENTER_OFFSET = DIGIT_HEIGHT; 
+        const DIGIT_HEIGHT = 250; // Must exactly match the CSS height of .digit
 
-        // Generate the HTML for the number strips automatically
+        // Marathi Localization Arrays
+        const marathiDays = ["रविवार", "सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
+        const marathiMonths = ["जानेवारी", "फेब्रुवारी", "मार्च", "एप्रिल", "मे", "जून", "जुलै", "ऑगस्ट", "सप्टेंबर", "ऑक्टोबर", "नोव्हेंबर", "डिसेंबर"];
+
+        // Function to build HTML for the number strips
         function buildStrip(id, maxNumber) {
             const strip = document.getElementById(id);
             let html = '';
@@ -154,43 +142,52 @@
             strip.innerHTML = html;
         }
 
-        // We render 0-9 for everything except the first hour/minute/second digits
+        // Build the strips (24-hour format: 23:59 max)
         buildStrip('h-tens', 2);
         buildStrip('h-units', 9);
         buildStrip('m-tens', 5);
         buildStrip('m-units', 9);
-        buildStrip('s-tens', 5);
-        buildStrip('s-units', 9);
 
         // Function to move the strip to the correct number
         function updateStrip(id, value) {
             const strip = document.getElementById(id);
-            // Calculate position: (Center Offset) - (Value * Digit Height)
-            const translateY = CENTER_OFFSET - (value * DIGIT_HEIGHT);
-            
-            // translate3d forces the GPU to render the movement, saving CPU cycles
+            const translateY = -(value * DIGIT_HEIGHT);
             strip.style.transform = `translate3d(0, ${translateY}px, 0)`;
         }
 
+        // Function to update the date header in Marathi
+        function updateDateHeader(now) {
+            const day = marathiDays[now.getDay()];
+            const month = marathiMonths[now.getMonth()];
+            
+            const dd = String(now.getDate()).padStart(2, '0');
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const yyyy = now.getFullYear();
+            const dateString = `${dd}/${mm}/${yyyy}`;
+
+            document.getElementById('day-marathi').textContent = day;
+            document.getElementById('month-marathi').textContent = month;
+            document.getElementById('date-num').textContent = dateString;
+        }
+
+        // Main clock loop
         function updateClock() {
             const now = new Date();
             
-            // Format time into 2-digit strings (e.g., "09", "23")
+            // Format time into 2-digit strings (HH:MM)
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
 
-            // Apply to the UI
+            // Apply scroll translations
             updateStrip('h-tens', parseInt(hours[0]));
             updateStrip('h-units', parseInt(hours[1]));
-            
             updateStrip('m-tens', parseInt(minutes[0]));
             updateStrip('m-units', parseInt(minutes[1]));
-            
-            updateStrip('s-tens', parseInt(seconds[0]));
-            updateStrip('s-units', parseInt(seconds[1]));
 
-            // requestAnimationFrame is much smoother and battery-friendly than setInterval
+            // Update Date (doing this in the loop ensures midnight rollover works)
+            updateDateHeader(now);
+
+            // Using requestAnimationFrame for battery-friendly, smooth rendering
             requestAnimationFrame(updateClock);
         }
 
