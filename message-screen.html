@@ -70,8 +70,8 @@
     function updateScreen(category, messageText) {
       const container = document.getElementById('message-container');
       
-      // Now it just checks if the letter in the sheet is exactly "H"
-      const isHighPriority = category === "H";
+      // Checks if the sheet says "H=High"
+      const isHighPriority = category === "H=High";
 
       if (isHighPriority) {
         document.body.className = "urgent-blink";
