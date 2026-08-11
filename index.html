@@ -298,7 +298,7 @@
         // --- GOOGLE SHEETS API INTEGRATION ---
         const API_URL = 'https://script.google.com/macros/s/AKfycbzRz_gnUjFlw1-6w8OzvgMjXzgdVihpkSeg2siKh5el7QRs0EnApOCWlNMn-eedfJ-s/exec';
 
-        // --- MESSAGE ALARM SYSTEM ---
+        // --- MESSAGE ALARM SYSTEM (1-Second Instant Trigger) ---
         const MESSAGE_API_URL = 'https://script.google.com/macros/s/AKfycbzs6g62a3jtRO19Wgtpz-HbrlofLZS3RQvrWsQOFCkA6cCHAMR0n7AH9ntCPwcRdJXH/exec';
 
         const safeStorage = {
@@ -312,46 +312,38 @@
         };
 
         async function checkForNewMessages() {
-            if (typeof isEditMode !== 'undefined' && isEditMode) return; // Don't redirect while you are editing the layout
+            if (typeof isEditMode !== 'undefined' && isEditMode) return; 
             try {
                 let response = await fetch(MESSAGE_API_URL);
                 let data = await response.json();
                 
                 if (data && data.length > 0) {
-                    // Get the last row (the newest message)
                     let latestMessage = data[data.length - 1];
-                    
-                    // The script typically returns arrays or objects. We look for the date string.
                     let latestTime = latestMessage['Date and Time'] || latestMessage[0]; 
                     
                     let savedTime = safeStorage.get('lastMessageTime', null);
 
                     if (savedTime !== null && latestTime !== savedTime) {
-                        // New timestamp detected! Save it and switch to the message screen
                         safeStorage.set('lastMessageTime', latestTime);
                         window.location.href = 'message-screen.html'; 
                     } else if (savedTime === null) {
-                        // First time booting up: just save the current latest time as the baseline
                         safeStorage.set('lastMessageTime', latestTime);
                     }
                 }
-            } catch (e) {
-                // Fails silently if offline
-                console.log("Checking for messages failed: ", e);
-            }
+            } catch (e) {}
         }
 
-        // Check for new iPhone messages every 5 seconds
-        setInterval(checkForNewMessages, 5000);
+        // Check every 1 second for instant switching
+        setInterval(checkForNewMessages, 1000);
 
         // Background function to push changes to Google Sheets
         function syncToCloud(payload) {
             fetch(API_URL, {
                 method: 'POST',
-                mode: 'no-cors', // Bypasses preflight restrictions for seamless posting
+                mode: 'no-cors', 
                 headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(payload)
-            }).catch(e => console.log("Cloud Sync Failed", e));
+            }).catch(e => {});
         }
 
         window.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
@@ -376,7 +368,6 @@
             }
         } catch(e) {}
 
-        // Apply Local State Immediately
         document.getElementById('header-positioner').style.fontFamily = headerFont;
         document.getElementById('clock-positioner').style.fontFamily = timeFont;
         document.getElementById('format-toggle').checked = is12Hour;
@@ -384,13 +375,11 @@
         document.getElementById('night-color').value = nightColor;
         document.getElementById('night-toggle').checked = autoNightMode;
 
-        // --- CLOUD SYNC LOGIC (Polling) ---
         async function fetchFromCloud() {
-            if (isEditMode) return; // Never interrupt a user while editing
+            if (isEditMode) return; 
             try {
                 let response = await fetch(API_URL);
                 let data = await response.json();
-                
                 let changed = false;
 
                 if (data.is12Hour !== undefined && data.is12Hour !== String(is12Hour)) {
@@ -431,23 +420,18 @@
                 }
                 if (data.dualLayout) {
                     let remoteLayout = JSON.parse(data.dualLayout);
-                    // Compare layout signatures to avoid unnecessary repaints
                     if (JSON.stringify(remoteLayout) !== JSON.stringify(layout)) {
                         layout = remoteLayout;
                         safeStorage.set('dualLayout', data.dualLayout);
                         applyTransforms();
                     }
                 }
-
                 if (changed) updateColors();
-            } catch(e) {
-                // If offline or fails, fails silently and just keeps using local data
-            }
+            } catch(e) {}
         }
-        setInterval(fetchFromCloud, 10000); // Check cloud every 10 seconds
-        setTimeout(fetchFromCloud, 1000); // Check shortly after initial boot
+        setInterval(fetchFromCloud, 10000); 
+        setTimeout(fetchFromCloud, 1000); 
 
-        // --- NETWORK STATUS LOGIC ---
         const networkDot = document.getElementById('network-dot');
         function checkNetwork() {
             try {
@@ -465,7 +449,6 @@
         setInterval(checkNetwork, 10000); 
         checkNetwork();
 
-        // --- COLOR LOGIC ---
         function updateColors() {
             try {
                 const hour = new Date().getHours();
@@ -501,7 +484,6 @@
             syncToCloud({ autoNightMode: String(autoNightMode) });
         });
 
-        // --- CLOCK ENGINE ---
         const marathiDays = ["रविवार", "सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
         const marathiMonths = ["जानेवारी", "फेब्रुवारी", "मार्च", "एप्रिल", "मे", "जून", "जुलै", "ऑगस्ट", "सप्टेंबर", "ऑक्टोबर", "नोव्हेंबर", "डिसेंबर"];
 
@@ -550,28 +532,22 @@
             try {
                 const now = new Date();
                 let rawHours = now.getHours();
-                
                 if (is12Hour) {
                     rawHours = rawHours % 12;
                     rawHours = rawHours ? rawHours : 12; 
                 }
-
                 const hours = String(rawHours).padStart(2, '0');
                 const minutes = String(now.getMinutes()).padStart(2, '0');
-
                 updateStrip('h-tens', parseInt(hours[0]));
                 updateStrip('h-units', parseInt(hours[1]));
                 updateStrip('m-tens', parseInt(minutes[0]));
                 updateStrip('m-units', parseInt(minutes[1]));
-
                 updateDateHeader(now);
             } catch(e) {}
             requestAnimationFrame(updateClock);
         }
-        
         try { updateClock(); } catch(e) {}
 
-        // --- BOUNDED LAYOUT DRAG, STRETCH & AUTO-SAVE ENGINE ---
         const timePos = document.getElementById('clock-positioner');
         const headerPos = document.getElementById('header-positioner');
         const layoutPanel = document.getElementById('layout-panel');
@@ -600,10 +576,8 @@
         function loadTargetToSliders() {
             scaleXSlider.value = layout[activeTarget].sx;
             scaleYSlider.value = layout[activeTarget].sy;
-            
             timePos.classList.remove('active-target');
             headerPos.classList.remove('active-target');
-            
             if(activeTarget === 'time') {
                 timePos.classList.add('active-target');
                 layoutTitle.textContent = "EDITING: CLOCK (Tap Header to edit)";
@@ -652,14 +626,10 @@
             dragTarget = targetStr;
             activeTarget = targetStr; 
             loadTargetToSliders();    
-
             let touchX = e.touches ? e.touches[0].clientX : e.clientX;
             let touchY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            startX = touchX;
-            startY = touchY;
-            initialX = layout[dragTarget].x;
-            initialY = layout[dragTarget].y;
+            startX = touchX; startY = touchY;
+            initialX = layout[dragTarget].x; initialY = layout[dragTarget].y;
         }
 
         function moveDrag(e) {
@@ -667,28 +637,16 @@
             e.preventDefault(); 
             let touchX = e.touches ? e.touches[0].clientX : e.clientX;
             let touchY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            const dx = touchX - startX;
-            const dy = touchY - startY;
-            
-            let newX = initialX + dx;
-            let newY = initialY + dy;
-            
-            const maxMoveX = window.innerWidth / 3;
-            const maxMoveY = window.innerHeight / 3;
-            
+            const dx = touchX - startX; const dy = touchY - startY;
+            let newX = initialX + dx; let newY = initialY + dy;
+            const maxMoveX = window.innerWidth / 3; const maxMoveY = window.innerHeight / 3;
             layout[dragTarget].x = Math.max(-maxMoveX, Math.min(maxMoveX, newX));
             layout[dragTarget].y = Math.max(-maxMoveY, Math.min(maxMoveY, newY));
-            
             applyTransforms();
         }
 
         function endDrag() {
-            if (isDragging) {
-                isDragging = false;
-                dragTarget = null;
-                autoSaveLayout(); 
-            }
+            if (isDragging) { isDragging = false; dragTarget = null; autoSaveLayout(); }
         }
 
         timePos.addEventListener('touchstart', (e) => startDrag(e, 'time'));
@@ -700,42 +658,31 @@
         window.addEventListener('touchend', endDrag);
         window.addEventListener('mouseup', endDrag);
 
-        // --- MENUS & OVERLAYS ---
         document.getElementById('edit-layout-btn').addEventListener('click', () => {
-            hideSettings();
-            isEditMode = true;
+            hideSettings(); isEditMode = true;
             document.body.classList.add('edit-mode');
             layoutPanel.style.display = 'flex';
-            activeTarget = 'time'; 
-            loadTargetToSliders();
+            activeTarget = 'time'; loadTargetToSliders();
         });
 
         document.getElementById('layout-save').addEventListener('click', () => {
-            isEditMode = false;
-            document.body.classList.remove('edit-mode');
+            isEditMode = false; document.body.classList.remove('edit-mode');
             layoutPanel.style.display = 'none';
-            timePos.classList.remove('active-target');
-            headerPos.classList.remove('active-target');
+            timePos.classList.remove('active-target'); headerPos.classList.remove('active-target');
             autoSaveLayout();
         });
 
         document.getElementById('layout-reset').addEventListener('click', () => {
             layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
-            loadTargetToSliders();
-            applyTransforms();
-            autoSaveLayout();
+            loadTargetToSliders(); applyTransforms(); autoSaveLayout();
         });
 
-        // --- SETTINGS & FULLSCREEN LOGIC ---
         const settingsMenu = document.getElementById('settings-menu');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
-        let hideTimeout;
-        let wakeLock = null;
+        let hideTimeout; let wakeLock = null;
 
         async function requestWakeLock() {
-            if ('wakeLock' in navigator) {
-                try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
-            }
+            if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
         }
         function releaseWakeLock() {
             if (wakeLock !== null) { wakeLock.release().then(() => { wakeLock = null; }); }
@@ -743,16 +690,13 @@
 
         function showSettings() {
             if(isEditMode) return; 
-            settingsMenu.style.display = 'flex';
-            resetHideTimer();
+            settingsMenu.style.display = 'flex'; resetHideTimer();
         }
         function hideSettings() {
-            settingsMenu.style.display = 'none';
-            clearTimeout(hideTimeout);
+            settingsMenu.style.display = 'none'; clearTimeout(hideTimeout);
         }
         function resetHideTimer() {
-            clearTimeout(hideTimeout);
-            hideTimeout = setTimeout(hideSettings, 10000); 
+            clearTimeout(hideTimeout); hideTimeout = setTimeout(hideSettings, 10000); 
         }
 
         document.getElementById('close-settings').addEventListener('click', hideSettings);
@@ -760,8 +704,7 @@
         document.getElementById('format-toggle').addEventListener('change', function(e) {
             is12Hour = e.target.checked;
             safeStorage.set('is12Hour', is12Hour);
-            resetHideTimer(); 
-            syncToCloud({ is12Hour: String(is12Hour) });
+            resetHideTimer(); syncToCloud({ is12Hour: String(is12Hour) });
         });
 
         fullscreenBtn.addEventListener('click', function() {
@@ -779,29 +722,19 @@
             if (wakeLock !== null && document.visibilityState === 'visible') { requestWakeLock(); }
         });
 
-        // --- BUTTERY SMOOTH CSS LONG PRESS UI ---
-        let pressTimer;
-        const ring = document.getElementById('long-press-ring');
+        let pressTimer; const ring = document.getElementById('long-press-ring');
 
         function startLongPress(e) {
             if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || (typeof isEditMode !== 'undefined' && isEditMode)) return; 
-            
             let touchX = 0; let touchY = 0;
             if (e.touches && e.touches.length > 0) { touchX = e.touches[0].clientX; touchY = e.touches[0].clientY; } 
             else if (e.clientX !== undefined) { touchX = e.clientX; touchY = e.clientY; }
-            
-            ring.style.left = touchX + 'px';
-            ring.style.top = touchY + 'px';
-            
-            void ring.offsetWidth; 
-            ring.classList.add('animating');
+            ring.style.left = touchX + 'px'; ring.style.top = touchY + 'px';
+            void ring.offsetWidth; ring.classList.add('animating');
 
             pressTimer = setTimeout(() => {
                 ring.classList.add('complete');
-                setTimeout(() => {
-                    cancelLongPress();
-                    showSettings();
-                }, 200); 
+                setTimeout(() => { cancelLongPress(); showSettings(); }, 200); 
             }, 3000);
         }
 
@@ -816,7 +749,6 @@
         document.body.addEventListener('mouseup', cancelLongPress);
         document.body.addEventListener('touchmove', cancelLongPress, {passive: true});
         document.body.addEventListener('mousemove', cancelLongPress);
-        
     </script>
 </body>
 </html>
