@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Message Dashboard</title>
   <style>
-    /* Default Full-Screen Styling */
     body {
       margin: 0;
       padding: 0;
@@ -14,7 +13,7 @@
       justify-content: center;
       align-items: center;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #121212; /* Dark theme */
+      background-color: #121212; 
       color: white;
       text-align: center;
       overflow: hidden;
@@ -22,13 +21,13 @@
 
     #message-container {
       padding: 40px;
-      font-size: 5rem; /* Massive text for full screen */
+      font-size: 5rem; 
       font-weight: bold;
       word-wrap: break-word;
       max-width: 90%;
     }
 
-    /* Red and Black Blinking Animation for "Very high" */
+    /* Red and Black Blinking Animation */
     .urgent-blink {
       animation: blinker 0.8s linear infinite;
     }
@@ -45,7 +44,6 @@
   <div id="message-container">Waiting for messages...</div>
 
   <script>
-    // Your specific Google Apps Script URL
     const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxyjcMeYoTsnYB7n59enTjMDm10ltMwcEY2nEvB0XEA8Wi-UoOtiU2V-O-928EyxgY/exec';
     
     let lastTimestamp = "";
@@ -55,7 +53,6 @@
         const response = await fetch(APP_SCRIPT_URL);
         const data = await response.json();
 
-        // Only update if it's a new message
         if (data.message !== "No messages yet" && data.timestamp !== lastTimestamp) {
            lastTimestamp = data.timestamp;
            updateScreen(data.category, data.message);
@@ -67,17 +64,21 @@
 
     function updateScreen(category, messageText) {
       const container = document.getElementById('message-container');
-      container.innerText = messageText;
 
-      // Check category to trigger blinking
-      if (category === "Very high") {
+      // Convert category to lowercase to ensure it matches perfectly
+      const isHighPriority = category.toLowerCase() === "very high";
+
+      if (isHighPriority) {
+        // High Priority: Turn on blinking and add 'H'
         document.body.className = "urgent-blink";
+        container.innerText = "H - " + messageText;
       } else {
+        // Normal Priority: Turn off blinking and add 'L'
         document.body.className = ""; 
+        container.innerText = "L - " + messageText;
       }
     }
 
-    // Ping the Google Sheet every 3 seconds to check for new messages
     setInterval(fetchLatestMessage, 3000);
   </script>
 
