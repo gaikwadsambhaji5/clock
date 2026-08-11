@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Message Dashboard</title>
+  <style>
+    /* Default Full-Screen Styling */
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212; /* Dark theme */
+      color: white;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    #message-container {
+      padding: 40px;
+      font-size: 5rem; /* Massive text for full screen */
+      font-weight: bold;
+      word-wrap: break-word;
+      max-width: 90%;
+    }
+
+    /* Red and Black Blinking Animation for "Very high" */
+    .urgent-blink {
+      animation: blinker 0.8s linear infinite;
+    }
+
+    @keyframes blinker {
+      0% { background-color: black; color: white; }
+      50% { background-color: red; color: white; }
+      100% { background-color: black; color: white; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="message-container">Waiting for messages...</div>
+
+  <script>
+    // Your specific Google Apps Script URL
+    const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxyjcMeYoTsnYB7n59enTjMDm10ltMwcEY2nEvB0XEA8Wi-UoOtiU2V-O-928EyxgY/exec';
+    
+    let lastTimestamp = "";
+
+    async function fetchLatestMessage() {
+      try {
+        const response = await fetch(APP_SCRIPT_URL);
+        const data = await response.json();
+
+        // Only update if it's a new message
+        if (data.message !== "No messages yet" && data.timestamp !== lastTimestamp) {
+           lastTimestamp = data.timestamp;
+           updateScreen(data.category, data.message);
+        }
+      } catch (error) {
+        console.error("Error fetching message:", error);
+      }
+    }
+
+    function updateScreen(category, messageText) {
+      const container = document.getElementById('message-container');
+      container.innerText = messageText;
+
+      // Check category to trigger blinking
+      if (category === "Very high") {
+        document.body.className = "urgent-blink";
+      } else {
+        document.body.className = ""; 
+      }
+    }
+
+    // Ping the Google Sheet every 3 seconds to check for new messages
+    setInterval(fetchLatestMessage, 3000);
+  </script>
+
+</body>
+</html>
