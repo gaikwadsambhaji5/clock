@@ -18,6 +18,8 @@
       color: white;              
       text-align: center;
       overflow: hidden;
+      /* Add a smooth transition when returning to normal background */
+      transition: background-color 0.3s; 
     }
 
     #message-container {
@@ -52,6 +54,7 @@
     const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxyjcMeYoTsnYB7n59enTjMDm10ltMwcEY2nEvB0XEA8Wi-UoOtiU2V-O-928EyxgY/exec';
     
     let lastTimestamp = "";
+    let hideTimer; // This variable holds our countdown timer
 
     async function fetchLatestMessage() {
       try {
@@ -70,15 +73,38 @@
     function updateScreen(category, messageText) {
       const container = document.getElementById('message-container');
       
-      // Look strictly for the letter "H" to trigger the blinking
-      if (category === "H") {
+      // Stop any existing timer so they don't accidentally hide the NEW message early
+      clearTimeout(hideTimer);
+      
+      const isHighPriority = category === "H";
+
+      if (isHighPriority) {
         document.body.className = "urgent-blink";
+        // 10 minutes = 600,000 milliseconds
+        hideTimer = setTimeout(returnToHomeScreen, 600000); 
       } else {
         document.body.className = ""; 
+        // 5 minutes = 300,000 milliseconds
+        hideTimer = setTimeout(returnToHomeScreen, 300000); 
       }
       
       container.innerText = messageText;
       adjustFontSize(container);
+    }
+
+    // Function to hide the message and reset the screen
+    function returnToHomeScreen() {
+      const container = document.getElementById('message-container');
+      
+      // Clear the text and stop blinking
+      container.innerText = "Waiting for messages...";
+      document.body.className = ""; 
+      
+      // Reset the font size to something normal for the idle screen
+      container.style.fontSize = "5rem"; 
+      
+      // Clear the timer (important if this was triggered by a screen tap)
+      clearTimeout(hideTimer);
     }
 
     function adjustFontSize(element) {
@@ -92,8 +118,15 @@
     }
 
     window.addEventListener('resize', () => {
-       adjustFontSize(document.getElementById('message-container'));
+       // Only adjust font size if a custom message is currently showing
+       if (document.getElementById('message-container').innerText !== "Waiting for messages...") {
+           adjustFontSize(document.getElementById('message-container'));
+       }
     });
+
+    // LISTENER: If you click or tap anywhere on the screen, hide the message immediately
+    document.body.addEventListener('click', returnToHomeScreen);
+    document.body.addEventListener('touchstart', returnToHomeScreen);
 
     setInterval(fetchLatestMessage, 3000);
   </script>
