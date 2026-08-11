@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Scrolling Clock - Cloud Connected IoT Edition</title>
+    <title>Scrolling Clock - Rock Solid Edition</title>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@700&family=Oswald:wght@700&family=Rajdhani:wght@700&family=Righteous&family=Rubik+Mono+One&family=Share+Tech+Mono&display=swap');
@@ -26,7 +26,7 @@
             margin: 0;
             padding: 0;
             -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none; 
+            -webkit-touch-callout: none;
         }
 
         body {
@@ -41,69 +41,43 @@
             -webkit-user-select: none;
             padding: 0 45px; 
             transition: color 1s ease;
-        }
-
-        /* --- MESSAGE SCREEN OVERLAY --- */
-        #message-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #000000;
-            z-index: 5000;
-            display: flex; justify-content: center; align-items: center;
-            opacity: 0; pointer-events: none; 
-            transition: opacity 0.8s ease;
-            padding: 40px; text-align: center;
-        }
-
-        #message-overlay.visible { 
-            opacity: 1; pointer-events: auto; 
-        }
-
-        #message-text {
-            font-size: clamp(60px, 10vw, 120px);
-            font-weight: bold;
-            line-height: 1.2;
-            color: var(--clock-color); 
-        }
-
-        /* --- BUTTERY SMOOTH LONG PRESS RING --- */
-        #long-press-ring {
-            position: fixed;
-            width: 80px; 
-            height: 80px;
-            border: 4px solid #00ffaa;
-            border-radius: 50%;
-            transform: translate(-50%, -50%) scale(0.2);
-            opacity: 0;
-            z-index: 9999;
-            pointer-events: none;
-            transition: transform 3s linear, opacity 0.2s ease, background-color 0.2s ease;
-        }
-
-        #long-press-ring.animating {
-            transform: translate(-50%, -50%) scale(1);
-            opacity: 1;
-        }
-
-        #long-press-ring.complete {
-            background-color: rgba(0, 255, 170, 0.4);
-            transform: translate(-50%, -50%) scale(1.1);
-            transition: all 0.2s ease;
+            touch-action: manipulation; /* Helps optimize double tap on mobile */
         }
 
         /* --- HEADER LAYOUT --- */
         #header-positioner {
-            width: 100%; display: flex; flex-direction: column; align-items: center;
-            margin-top: 20px; transform-origin: top center; z-index: 10; padding: 10px;
-            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            transform-origin: top center;
+            z-index: 10;
+            padding: 10px;
+            border: 2px solid transparent;
+            cursor: grab;
+            transition: font-family 0.3s ease;
         }
 
         .date-header {
-            width: 86%; display: flex; justify-content: space-between; align-items: baseline;
-            letter-spacing: 1px; line-height: 1; margin-bottom: 0px;
-            font-variant-numeric: tabular-nums; font-size: clamp(35px, 5.5vw, 55px); white-space: nowrap; 
+            width: 86%; 
+            display: flex;
+            justify-content: space-between; 
+            align-items: baseline;
+            letter-spacing: 1px;
+            line-height: 1;
+            margin-bottom: 0px;
+            font-variant-numeric: tabular-nums; 
+            font-size: clamp(35px, 5.5vw, 55px); 
+            white-space: nowrap; 
         }
 
-        .pipe { font-size: 0.8em; transform: translateY(-2px); opacity: 0.8; }
+        .pipe {
+            font-size: 0.8em; 
+            transform: translateY(-2px);
+            opacity: 0.8; 
+        }
+
         #date-num { display: inline-block; text-align: center; }
         #sec-wrapper { display: flex; align-items: center; gap: 8px; }
         #sec-num { display: inline-block; width: 1.2em; text-align: right; }
@@ -118,7 +92,10 @@
         .network-dot.red { background-color: #ff3333; box-shadow: 0 0 10px #ff3333; animation: blink-dot 1s infinite; }
         @keyframes blink-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 
-        .divider { width: 86%; height: 5px; background-color: var(--clock-color); margin-bottom: 0px; transition: background-color 1s ease; }
+        .divider {
+            width: 86%; height: 5px; background-color: var(--clock-color);
+            margin-bottom: 0px; transition: background-color 1s ease;
+        }
 
         /* --- CLOCK LAYOUT --- */
         #clock-positioner {
@@ -143,8 +120,15 @@
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform;
         }
 
-        .digit { height: 380px; line-height: 380px; font-size: 480px; width: 180px; text-align: center; display: flex; justify-content: center; align-items: center; }
-        .separator { font-size: 300px; line-height: 380px; font-weight: bold; margin: 0 10px; transform: translateY(-35px); animation: blink 1s step-end infinite; }
+        .digit {
+            height: 380px; line-height: 380px; font-size: 480px; width: 180px;
+            text-align: center; display: flex; justify-content: center; align-items: center;
+        }
+
+        .separator {
+            font-size: 300px; line-height: 380px; font-weight: bold; margin: 0 10px;
+            transform: translateY(-35px); animation: blink 1s step-end infinite;
+        }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
         /* --- MENUS --- */
@@ -156,8 +140,15 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.9); font-family: -apple-system, sans-serif; min-width: 320px;
         }
 
-        .close-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #ffffff; font-size: 24px; font-weight: bold; cursor: pointer; opacity: 0.7; }
-        .settings-btn { background: #ffffff; color: #000000; border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; }
+        .close-btn {
+            position: absolute; top: 10px; right: 15px; background: none; border: none;
+            color: #ffffff; font-size: 24px; font-weight: bold; cursor: pointer; opacity: 0.7;
+        }
+
+        .settings-btn {
+            background: #ffffff; color: #000000; border: none; padding: 10px 20px;
+            font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%;
+        }
         .settings-btn.accent { background: #00ffaa; color: #000; }
 
         .toggle-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 15px; font-size: 16px; font-weight: bold; }
@@ -187,18 +178,12 @@
         .layout-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .btn-save { background: #00ffaa; color: #000; }
         .btn-reset { background: #555; color: #fff; }
+
     </style>
 </head>
 <body>
 
-    <!-- Full-Screen Message Overlay -->
-    <div id="message-overlay">
-        <div id="message-text"></div>
-    </div>
-
-    <!-- Visual 3-Second Press Ring -->
-    <div id="long-press-ring"></div>
-
+    <!-- Header Block -->
     <div id="header-positioner" data-target="header">
         <div class="date-header">
             <span id="day-marathi">सोमवार</span> 
@@ -215,6 +200,7 @@
         <div class="divider"></div>
     </div>
 
+    <!-- Clock Block -->
     <div id="clock-positioner" data-target="time">
         <div class="time-container" id="clock">
             <div class="digit-window tens-window"><div class="digit-strip" id="h-tens"></div></div>
@@ -225,6 +211,7 @@
         </div>
     </div>
 
+    <!-- Main Settings Menu -->
     <div class="settings-overlay" id="settings-menu">
         <button class="close-btn" id="close-settings">✕</button>
         <button class="settings-btn" id="fullscreen-btn">Toggle Full Screen</button>
@@ -238,6 +225,7 @@
             <span>Night Color (10 PM - 6 AM)</span>
             <input type="color" id="night-color" class="color-picker" value="#00aaff">
         </div>
+
         <div class="toggle-row">
             <span>Auto Night Color Mode</span>
             <label class="switch">
@@ -245,6 +233,7 @@
                 <span class="slider"></span>
             </label>
         </div>
+
         <div class="toggle-row">
             <span>12-Hour Format</span>
             <label class="switch">
@@ -254,6 +243,7 @@
         </div>
     </div>
 
+    <!-- Layout Editor Panel -->
     <div class="layout-panel" id="layout-panel">
         <h3 id="layout-title">EDITING: CLOCK (Tap Header to edit text)</h3>
         
@@ -270,14 +260,17 @@
                 <option value="'Rubik Mono One', sans-serif">Rubik Mono</option>
             </select>
         </div>
+
         <div class="slider-group">
             <label>Stretch Width (Max Limit Applied)</label>
             <input type="range" id="scale-x" min="0.5" max="1.2" step="0.01" value="1">
         </div>
+        
         <div class="slider-group">
             <label>Stretch Height (Top/Bottom)</label>
             <input type="range" id="scale-y" min="0.5" max="1.5" step="0.01" value="1">
         </div>
+
         <div class="layout-actions">
             <button class="btn-reset" id="layout-reset">Reset Default</button>
             <button class="btn-save" id="layout-save">Close Editor</button>
@@ -285,33 +278,26 @@
     </div>
 
     <script>
-        // --- GOOGLE SHEETS API INTEGRATION ---
-        const API_URL = 'https://script.google.com/macros/s/AKfycbzRz_gnUjFlw1-6w8OzvgMjXzgdVihpkSeg2siKh5el7QRs0EnApOCWlNMn-eedfJ-s/exec';
-        const MESSAGE_API_URL = 'https://script.google.com/macros/s/AKfycbwxyjcMeYoTsnYB7n59enTjMDm10ltMwcEY2nEvB0XEA8Wi-UoOtiU2V-O-928EyxgY/exec';
-
-        // Background function to push changes to Google Sheets
-        function syncToCloud(payload) {
-            fetch(API_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify(payload)
-            }).catch(e => console.log("Cloud Sync Failed", e));
-        }
-
+        // --- BULLETPROOF LOCAL STORAGE WRAPPER ---
+        // This ensures NO external databases are used and saves locally to the browser
         const safeStorage = {
             get: function(key, fallback) {
-                try { let val = localStorage.getItem(key); return val !== null ? val : fallback; } 
-                catch(e) { return fallback; }
+                try {
+                    let val = localStorage.getItem(key);
+                    return val !== null ? val : fallback;
+                } catch(e) { return fallback; }
             },
             set: function(key, value) {
                 try { localStorage.setItem(key, value); } catch(e) {}
             }
         };
 
-        window.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
+        // --- DISABLE BROWSER MENUS ---
+        window.oncontextmenu = function(e) {
+            e.preventDefault(); e.stopPropagation(); return false;
+        };
 
-        // --- DATA & SETTINGS LOAD (Offline First) ---
+        // --- DATA & SETTINGS LOAD ---
         const DIGIT_HEIGHT = 380; 
         
         let is12Hour = safeStorage.get('is12Hour', 'false') === 'true';
@@ -321,149 +307,12 @@
         let nightColor = safeStorage.get('nightColor', "#00aaff");
         let autoNightMode = safeStorage.get('autoNightMode', 'true') !== 'false';
         
-        let messageTimer1, messageTimer2;
-        let lastRowCount = 0; // Tracks the total number of message rows
-
-        const DEFAULT_LAYOUT = { time: { x: 15, y: -11, sx: 1.05, sy: 0.9 }, header: { x: 0, y: 15, sx: 1.05, sy: 1 } };
-        let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
-        try {
-            const savedStr = safeStorage.get('dualLayout', null);
-            if (savedStr) { 
-                let parsed = JSON.parse(savedStr);
-                if(parsed && parsed.time && parsed.header) layout = parsed; 
-            }
-        } catch(e) {}
-
-        // Apply Local State Immediately
         document.getElementById('header-positioner').style.fontFamily = headerFont;
         document.getElementById('clock-positioner').style.fontFamily = timeFont;
         document.getElementById('format-toggle').checked = is12Hour;
         document.getElementById('day-color').value = dayColor;
         document.getElementById('night-color').value = nightColor;
         document.getElementById('night-toggle').checked = autoNightMode;
-
-        // --- MESSAGE SCREEN LOGIC ---
-        function triggerMessageScreen(text) {
-            const overlay = document.getElementById('message-overlay');
-            const msgText = document.getElementById('message-text');
-            
-            // Clear any existing timers so the screen doesn't glitch if a 2nd message arrives quickly
-            clearTimeout(messageTimer1);
-            clearTimeout(messageTimer2);
-
-            // Update text and fade in
-            msgText.textContent = text;
-            overlay.style.fontFamily = document.getElementById('clock-positioner').style.fontFamily; 
-            overlay.classList.add('visible');
-
-            // Timer 1: Wait 10 minutes (600,000 milliseconds)
-            messageTimer1 = setTimeout(() => {
-                msgText.textContent = "Waiting for messages...";
-                
-                // Timer 2: Wait 3 seconds, then hide
-                messageTimer2 = setTimeout(() => {
-                    overlay.classList.remove('visible'); 
-                }, 3000);
-
-            }, 600000); // 10 minutes
-        }
-
-        // --- DEDICATED MESSAGE POLLING (Row Count Logic) ---
-        async function fetchMessagesFromCloud() {
-            if (isEditMode) return; 
-            try {
-                let response = await fetch(MESSAGE_API_URL);
-                let data = await response.json();
-                
-                let rows = Array.isArray(data) ? data : (data.data || []);
-                
-                if (rows.length > 0) {
-                    // 1. On first boot, just learn how many rows exist without showing an old message
-                    if (lastRowCount === 0) {
-                        lastRowCount = rows.length;
-                        return;
-                    }
-
-                    // 2. If the sheet now has MORE rows than before, a new message was added!
-                    if (rows.length > lastRowCount) {
-                        let newestMessage = rows[rows.length - 1].Message || rows[rows.length - 1].message || "";
-                        
-                        if (newestMessage && newestMessage.trim() !== "") {
-                            triggerMessageScreen(newestMessage);
-                        }
-                        
-                        // Update the tracker so it waits for the next new row
-                        lastRowCount = rows.length;
-                    }
-                }
-            } catch(e) {
-                console.log("Message fetch failed", e);
-            }
-        }
-
-        // Check for new rows every 10 seconds
-        setInterval(fetchMessagesFromCloud, 10000); 
-        setTimeout(fetchMessagesFromCloud, 1000); 
-
-        // --- CLOUD SYNC LOGIC (Settings & Layout Polling) ---
-        async function fetchFromCloud() {
-            if (isEditMode) return; 
-            try {
-                let response = await fetch(API_URL);
-                let data = await response.json();
-                
-                let changed = false;
-
-                if (data.is12Hour !== undefined && data.is12Hour !== String(is12Hour)) {
-                    is12Hour = data.is12Hour === 'true';
-                    document.getElementById('format-toggle').checked = is12Hour;
-                    safeStorage.set('is12Hour', is12Hour);
-                    changed = true;
-                }
-                if (data.headerFont && data.headerFont !== headerFont) {
-                    headerFont = data.headerFont;
-                    document.getElementById('header-positioner').style.fontFamily = headerFont;
-                    safeStorage.set('headerFont', headerFont);
-                    changed = true;
-                }
-                if (data.timeFont && data.timeFont !== timeFont) {
-                    timeFont = data.timeFont;
-                    document.getElementById('clock-positioner').style.fontFamily = timeFont;
-                    safeStorage.set('timeFont', timeFont);
-                    changed = true;
-                }
-                if (data.dayColor && data.dayColor !== dayColor) {
-                    dayColor = data.dayColor;
-                    document.getElementById('day-color').value = dayColor;
-                    safeStorage.set('dayColor', dayColor);
-                    changed = true;
-                }
-                if (data.nightColor && data.nightColor !== nightColor) {
-                    nightColor = data.nightColor;
-                    document.getElementById('night-color').value = nightColor;
-                    safeStorage.set('nightColor', nightColor);
-                    changed = true;
-                }
-                if (data.autoNightMode !== undefined && data.autoNightMode !== String(autoNightMode)) {
-                    autoNightMode = data.autoNightMode === 'true';
-                    document.getElementById('night-toggle').checked = autoNightMode;
-                    safeStorage.set('autoNightMode', autoNightMode);
-                    changed = true;
-                }
-                if (data.dualLayout) {
-                    let remoteLayout = JSON.parse(data.dualLayout);
-                    if (JSON.stringify(remoteLayout) !== JSON.stringify(layout)) {
-                        layout = remoteLayout;
-                        safeStorage.set('dualLayout', data.dualLayout);
-                        applyTransforms();
-                    }
-                }
-
-                if (changed) updateColors();
-            } catch(e) {}
-        }
-        setInterval(fetchFromCloud, 10000); 
-        setTimeout(fetchFromCloud, 1000); 
 
         // --- NETWORK STATUS LOGIC ---
         const networkDot = document.getElementById('network-dot');
@@ -502,21 +351,18 @@
             safeStorage.set('dayColor', dayColor);
             updateColors();
             resetHideTimer();
-            syncToCloud({ dayColor: dayColor });
         });
         document.getElementById('night-color').addEventListener('input', (e) => {
             nightColor = e.target.value;
             safeStorage.set('nightColor', nightColor);
             updateColors();
             resetHideTimer();
-            syncToCloud({ nightColor: nightColor });
         });
         document.getElementById('night-toggle').addEventListener('change', (e) => {
             autoNightMode = e.target.checked;
             safeStorage.set('autoNightMode', autoNightMode);
             updateColors();
             resetHideTimer();
-            syncToCloud({ autoNightMode: String(autoNightMode) });
         });
 
         // --- CLOCK ENGINE ---
@@ -587,6 +433,7 @@
             requestAnimationFrame(updateClock);
         }
         
+        // Start the clock safely
         try { updateClock(); } catch(e) {}
 
         // --- BOUNDED LAYOUT DRAG, STRETCH & AUTO-SAVE ENGINE ---
@@ -601,10 +448,22 @@
         let isEditMode = false;
         let activeTarget = 'time'; 
 
+        const DEFAULT_LAYOUT = {
+            time:   { x: 15, y: -11, sx: 1.05, sy: 0.9 },
+            header: { x: 0, y: 15, sx: 1.05, sy: 1 }
+        };
+
+        let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
+        try {
+            const savedStr = safeStorage.get('dualLayout', null);
+            if (savedStr) { 
+                let parsed = JSON.parse(savedStr);
+                if(parsed && parsed.time && parsed.header) layout = parsed; 
+            }
+        } catch(e) {}
+
         function autoSaveLayout() {
-            let layoutStr = JSON.stringify(layout);
-            safeStorage.set('dualLayout', layoutStr);
-            syncToCloud({ dualLayout: layoutStr });
+            safeStorage.set('dualLayout', JSON.stringify(layout));
         }
 
         function applyTransforms() {
@@ -640,12 +499,10 @@
                 headerFont = e.target.value;
                 document.getElementById('header-positioner').style.fontFamily = headerFont;
                 safeStorage.set('headerFont', headerFont);
-                syncToCloud({ headerFont: headerFont });
             } else {
                 timeFont = e.target.value;
                 document.getElementById('clock-positioner').style.fontFamily = timeFont;
                 safeStorage.set('timeFont', timeFont);
-                syncToCloud({ timeFont: timeFont });
             }
         });
 
@@ -779,15 +636,18 @@
             is12Hour = e.target.checked;
             safeStorage.set('is12Hour', is12Hour);
             resetHideTimer(); 
-            syncToCloud({ is12Hour: String(is12Hour) });
         });
 
         fullscreenBtn.addEventListener('click', function() {
             try {
                 if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().then(() => { requestWakeLock(); }).catch(err => {});
+                    document.documentElement.requestFullscreen().then(() => {
+                        requestWakeLock();
+                    }).catch(err => { console.log(err); });
                 } else {
-                    if (document.exitFullscreen) { document.exitFullscreen().then(() => { releaseWakeLock(); }); }
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen().then(() => { releaseWakeLock(); });
+                    }
                 }
             } catch(e) {}
             hideSettings();
@@ -797,44 +657,23 @@
             if (wakeLock !== null && document.visibilityState === 'visible') { requestWakeLock(); }
         });
 
-        // --- BUTTERY SMOOTH CSS LONG PRESS UI ---
-        let pressTimer;
-        const ring = document.getElementById('long-press-ring');
-
-        function startLongPress(e) {
-            if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || isEditMode) return; 
+        // --- DOUBLE TAP TO OPEN SETTINGS ---
+        let lastTapTime = 0;
+        document.body.addEventListener('click', function(e) {
+            // Ignore if clicking inside a menu, or if we are currently editing the layout
+            if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || isEditMode) return;
             
-            let touchX = 0; let touchY = 0;
-            if (e.touches && e.touches.length > 0) { touchX = e.touches[0].clientX; touchY = e.touches[0].clientY; } 
-            else if (e.clientX !== undefined) { touchX = e.clientX; touchY = e.clientY; }
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTapTime;
             
-            ring.style.left = touchX + 'px';
-            ring.style.top = touchY + 'px';
+            // If the time between taps is less than 300ms (standard double tap speed)
+            if (tapLength < 300 && tapLength > 0) {
+                showSettings();
+            }
             
-            void ring.offsetWidth; 
-            ring.classList.add('animating');
+            lastTapTime = currentTime;
+        });
 
-            pressTimer = setTimeout(() => {
-                ring.classList.add('complete');
-                setTimeout(() => {
-                    cancelLongPress();
-                    showSettings();
-                }, 200); 
-            }, 3000);
-        }
-
-        function cancelLongPress() {
-            clearTimeout(pressTimer);
-            ring.classList.remove('animating', 'complete');
-        }
-
-        document.body.addEventListener('touchstart', startLongPress, {passive: true});
-        document.body.addEventListener('mousedown', startLongPress);
-        document.body.addEventListener('touchend', cancelLongPress);
-        document.body.addEventListener('mouseup', cancelLongPress);
-        document.body.addEventListener('touchmove', cancelLongPress, {passive: true});
-        document.body.addEventListener('mousemove', cancelLongPress);
-        
     </script>
 </body>
 </html>
