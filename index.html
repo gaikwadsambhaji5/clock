@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Scrolling Clock - Rock Solid Edition</title>
+    <title>Scrolling Clock - Cloud Connected IoT Edition</title>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@700&family=Oswald:wght@700&family=Rajdhani:wght@700&family=Righteous&family=Rubik+Mono+One&family=Share+Tech+Mono&display=swap');
@@ -26,7 +26,7 @@
             margin: 0;
             padding: 0;
             -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none; /* Prevents text selection popups on hold */
+            -webkit-touch-callout: none; 
         }
 
         body {
@@ -54,7 +54,6 @@
             opacity: 0;
             z-index: 9999;
             pointer-events: none;
-            /* Transitions allow the GPU to animate it smoothly over 3 seconds */
             transition: transform 3s linear, opacity 0.2s ease, background-color 0.2s ease;
         }
 
@@ -97,12 +96,7 @@
             white-space: nowrap; 
         }
 
-        .pipe {
-            font-size: 0.8em; 
-            transform: translateY(-2px);
-            opacity: 0.8; 
-        }
-
+        .pipe { font-size: 0.8em; transform: translateY(-2px); opacity: 0.8; }
         #date-num { display: inline-block; text-align: center; }
         #sec-wrapper { display: flex; align-items: center; gap: 8px; }
         #sec-num { display: inline-block; width: 1.2em; text-align: right; }
@@ -203,15 +197,13 @@
         .layout-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .btn-save { background: #00ffaa; color: #000; }
         .btn-reset { background: #555; color: #fff; }
-
     </style>
 </head>
 <body>
 
-    <!-- Visual 3-Second Press Ring (Hardware Accelerated CSS) -->
+    <!-- Visual 3-Second Press Ring -->
     <div id="long-press-ring"></div>
 
-    <!-- Header Block -->
     <div id="header-positioner" data-target="header">
         <div class="date-header">
             <span id="day-marathi">सोमवार</span> 
@@ -228,7 +220,6 @@
         <div class="divider"></div>
     </div>
 
-    <!-- Clock Block -->
     <div id="clock-positioner" data-target="time">
         <div class="time-container" id="clock">
             <div class="digit-window tens-window"><div class="digit-strip" id="h-tens"></div></div>
@@ -239,7 +230,6 @@
         </div>
     </div>
 
-    <!-- Main Settings Menu -->
     <div class="settings-overlay" id="settings-menu">
         <button class="close-btn" id="close-settings">✕</button>
         <button class="settings-btn" id="fullscreen-btn">Toggle Full Screen</button>
@@ -271,7 +261,6 @@
         </div>
     </div>
 
-    <!-- Layout Editor Panel -->
     <div class="layout-panel" id="layout-panel">
         <h3 id="layout-title">EDITING: CLOCK (Tap Header to edit text)</h3>
         
@@ -306,26 +295,32 @@
     </div>
 
     <script>
-        // --- BULLETPROOF STORAGE WRAPPER ---
-        // This stops the entire app from crashing if Android blocks local files from using localStorage
+        // --- GOOGLE SHEETS API INTEGRATION ---
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzRz_gnUjFlw1-6w8OzvgMjXzgdVihpkSeg2siKh5el7QRs0EnApOCWlNMn-eedfJ-s/exec';
+
+        // Background function to push changes to Google Sheets
+        function syncToCloud(payload) {
+            fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Bypasses preflight restrictions for seamless posting
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(payload)
+            }).catch(e => console.log("Cloud Sync Failed", e));
+        }
+
         const safeStorage = {
             get: function(key, fallback) {
-                try {
-                    let val = localStorage.getItem(key);
-                    return val !== null ? val : fallback;
-                } catch(e) { return fallback; }
+                try { let val = localStorage.getItem(key); return val !== null ? val : fallback; } 
+                catch(e) { return fallback; }
             },
             set: function(key, value) {
                 try { localStorage.setItem(key, value); } catch(e) {}
             }
         };
 
-        // --- DISABLE BROWSER MENUS ---
-        window.oncontextmenu = function(e) {
-            e.preventDefault(); e.stopPropagation(); return false;
-        };
+        window.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
 
-        // --- DATA & SETTINGS LOAD ---
+        // --- DATA & SETTINGS LOAD (Offline First) ---
         const DIGIT_HEIGHT = 380; 
         
         let is12Hour = safeStorage.get('is12Hour', 'false') === 'true';
@@ -335,12 +330,86 @@
         let nightColor = safeStorage.get('nightColor', "#00aaff");
         let autoNightMode = safeStorage.get('autoNightMode', 'true') !== 'false';
         
+        const DEFAULT_LAYOUT = { time: { x: 15, y: -11, sx: 1.05, sy: 0.9 }, header: { x: 0, y: 15, sx: 1.05, sy: 1 } };
+        let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
+        try {
+            const savedStr = safeStorage.get('dualLayout', null);
+            if (savedStr) { 
+                let parsed = JSON.parse(savedStr);
+                if(parsed && parsed.time && parsed.header) layout = parsed; 
+            }
+        } catch(e) {}
+
+        // Apply Local State Immediately
         document.getElementById('header-positioner').style.fontFamily = headerFont;
         document.getElementById('clock-positioner').style.fontFamily = timeFont;
         document.getElementById('format-toggle').checked = is12Hour;
         document.getElementById('day-color').value = dayColor;
         document.getElementById('night-color').value = nightColor;
         document.getElementById('night-toggle').checked = autoNightMode;
+
+        // --- CLOUD SYNC LOGIC (Polling) ---
+        async function fetchFromCloud() {
+            if (isEditMode) return; // Never interrupt a user while editing
+            try {
+                let response = await fetch(API_URL);
+                let data = await response.json();
+                
+                let changed = false;
+
+                if (data.is12Hour !== undefined && data.is12Hour !== String(is12Hour)) {
+                    is12Hour = data.is12Hour === 'true';
+                    document.getElementById('format-toggle').checked = is12Hour;
+                    safeStorage.set('is12Hour', is12Hour);
+                    changed = true;
+                }
+                if (data.headerFont && data.headerFont !== headerFont) {
+                    headerFont = data.headerFont;
+                    document.getElementById('header-positioner').style.fontFamily = headerFont;
+                    safeStorage.set('headerFont', headerFont);
+                    changed = true;
+                }
+                if (data.timeFont && data.timeFont !== timeFont) {
+                    timeFont = data.timeFont;
+                    document.getElementById('clock-positioner').style.fontFamily = timeFont;
+                    safeStorage.set('timeFont', timeFont);
+                    changed = true;
+                }
+                if (data.dayColor && data.dayColor !== dayColor) {
+                    dayColor = data.dayColor;
+                    document.getElementById('day-color').value = dayColor;
+                    safeStorage.set('dayColor', dayColor);
+                    changed = true;
+                }
+                if (data.nightColor && data.nightColor !== nightColor) {
+                    nightColor = data.nightColor;
+                    document.getElementById('night-color').value = nightColor;
+                    safeStorage.set('nightColor', nightColor);
+                    changed = true;
+                }
+                if (data.autoNightMode !== undefined && data.autoNightMode !== String(autoNightMode)) {
+                    autoNightMode = data.autoNightMode === 'true';
+                    document.getElementById('night-toggle').checked = autoNightMode;
+                    safeStorage.set('autoNightMode', autoNightMode);
+                    changed = true;
+                }
+                if (data.dualLayout) {
+                    let remoteLayout = JSON.parse(data.dualLayout);
+                    // Compare layout signatures to avoid unnecessary repaints
+                    if (JSON.stringify(remoteLayout) !== JSON.stringify(layout)) {
+                        layout = remoteLayout;
+                        safeStorage.set('dualLayout', data.dualLayout);
+                        applyTransforms();
+                    }
+                }
+
+                if (changed) updateColors();
+            } catch(e) {
+                // If offline or fails, fails silently and just keeps using local data
+            }
+        }
+        setInterval(fetchFromCloud, 10000); // Check cloud every 10 seconds
+        setTimeout(fetchFromCloud, 1000); // Check shortly after initial boot
 
         // --- NETWORK STATUS LOGIC ---
         const networkDot = document.getElementById('network-dot');
@@ -379,18 +448,21 @@
             safeStorage.set('dayColor', dayColor);
             updateColors();
             resetHideTimer();
+            syncToCloud({ dayColor: dayColor });
         });
         document.getElementById('night-color').addEventListener('input', (e) => {
             nightColor = e.target.value;
             safeStorage.set('nightColor', nightColor);
             updateColors();
             resetHideTimer();
+            syncToCloud({ nightColor: nightColor });
         });
         document.getElementById('night-toggle').addEventListener('change', (e) => {
             autoNightMode = e.target.checked;
             safeStorage.set('autoNightMode', autoNightMode);
             updateColors();
             resetHideTimer();
+            syncToCloud({ autoNightMode: String(autoNightMode) });
         });
 
         // --- CLOCK ENGINE ---
@@ -461,7 +533,6 @@
             requestAnimationFrame(updateClock);
         }
         
-        // Start the clock safely
         try { updateClock(); } catch(e) {}
 
         // --- BOUNDED LAYOUT DRAG, STRETCH & AUTO-SAVE ENGINE ---
@@ -476,22 +547,10 @@
         let isEditMode = false;
         let activeTarget = 'time'; 
 
-        const DEFAULT_LAYOUT = {
-            time:   { x: 15, y: -11, sx: 1.05, sy: 0.9 },
-            header: { x: 0, y: 15, sx: 1.05, sy: 1 }
-        };
-
-        let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
-        try {
-            const savedStr = safeStorage.get('dualLayout', null);
-            if (savedStr) { 
-                let parsed = JSON.parse(savedStr);
-                if(parsed && parsed.time && parsed.header) layout = parsed; 
-            }
-        } catch(e) {}
-
         function autoSaveLayout() {
-            safeStorage.set('dualLayout', JSON.stringify(layout));
+            let layoutStr = JSON.stringify(layout);
+            safeStorage.set('dualLayout', layoutStr);
+            syncToCloud({ dualLayout: layoutStr });
         }
 
         function applyTransforms() {
@@ -527,10 +586,12 @@
                 headerFont = e.target.value;
                 document.getElementById('header-positioner').style.fontFamily = headerFont;
                 safeStorage.set('headerFont', headerFont);
+                syncToCloud({ headerFont: headerFont });
             } else {
                 timeFont = e.target.value;
                 document.getElementById('clock-positioner').style.fontFamily = timeFont;
                 safeStorage.set('timeFont', timeFont);
+                syncToCloud({ timeFont: timeFont });
             }
         });
 
@@ -664,18 +725,15 @@
             is12Hour = e.target.checked;
             safeStorage.set('is12Hour', is12Hour);
             resetHideTimer(); 
+            syncToCloud({ is12Hour: String(is12Hour) });
         });
 
         fullscreenBtn.addEventListener('click', function() {
             try {
                 if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().then(() => {
-                        requestWakeLock();
-                    }).catch(err => { console.log(err); });
+                    document.documentElement.requestFullscreen().then(() => { requestWakeLock(); }).catch(err => {});
                 } else {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen().then(() => { releaseWakeLock(); });
-                    }
+                    if (document.exitFullscreen) { document.exitFullscreen().then(() => { releaseWakeLock(); }); }
                 }
             } catch(e) {}
             hideSettings();
@@ -690,34 +748,24 @@
         const ring = document.getElementById('long-press-ring');
 
         function startLongPress(e) {
-            // Check if clicking a menu or editing
             if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || isEditMode) return; 
             
-            // Get safe touch coordinates
             let touchX = 0; let touchY = 0;
-            if (e.touches && e.touches.length > 0) {
-                touchX = e.touches[0].clientX; touchY = e.touches[0].clientY;
-            } else if (e.clientX !== undefined) {
-                touchX = e.clientX; touchY = e.clientY;
-            }
+            if (e.touches && e.touches.length > 0) { touchX = e.touches[0].clientX; touchY = e.touches[0].clientY; } 
+            else if (e.clientX !== undefined) { touchX = e.clientX; touchY = e.clientY; }
             
-            // Position the ring instantly
             ring.style.left = touchX + 'px';
             ring.style.top = touchY + 'px';
             
-            // Force a browser reflow before adding classes so animations trigger correctly
             void ring.offsetWidth; 
-            
-            // Start the 3-second scale up
             ring.classList.add('animating');
 
             pressTimer = setTimeout(() => {
-                // Timer reached 3 seconds! Flash it solid and open menu
                 ring.classList.add('complete');
                 setTimeout(() => {
                     cancelLongPress();
                     showSettings();
-                }, 200); // Wait a tiny moment so the user sees it complete
+                }, 200); 
             }, 3000);
         }
 
@@ -728,7 +776,6 @@
 
         document.body.addEventListener('touchstart', startLongPress, {passive: true});
         document.body.addEventListener('mousedown', startLongPress);
-        
         document.body.addEventListener('touchend', cancelLongPress);
         document.body.addEventListener('mouseup', cancelLongPress);
         document.body.addEventListener('touchmove', cancelLongPress, {passive: true});
