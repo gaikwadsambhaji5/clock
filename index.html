@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Scrolling Clock - Cloud Connected IoT Edition</title>
+    <title>Scrolling Clock - Rock Solid Edition</title>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@700&family=Oswald:wght@700&family=Rajdhani:wght@700&family=Righteous&family=Rubik+Mono+One&family=Share+Tech+Mono&display=swap');
@@ -26,7 +26,7 @@
             margin: 0;
             padding: 0;
             -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none; 
+            -webkit-touch-callout: none; /* Prevents text selection popups on hold */
         }
 
         body {
@@ -54,6 +54,7 @@
             opacity: 0;
             z-index: 9999;
             pointer-events: none;
+            /* Transitions allow the GPU to animate it smoothly over 3 seconds */
             transition: transform 3s linear, opacity 0.2s ease, background-color 0.2s ease;
         }
 
@@ -96,7 +97,12 @@
             white-space: nowrap; 
         }
 
-        .pipe { font-size: 0.8em; transform: translateY(-2px); opacity: 0.8; }
+        .pipe {
+            font-size: 0.8em; 
+            transform: translateY(-2px);
+            opacity: 0.8; 
+        }
+
         #date-num { display: inline-block; text-align: center; }
         #sec-wrapper { display: flex; align-items: center; gap: 8px; }
         #sec-num { display: inline-block; width: 1.2em; text-align: right; }
@@ -197,13 +203,15 @@
         .layout-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .btn-save { background: #00ffaa; color: #000; }
         .btn-reset { background: #555; color: #fff; }
+
     </style>
 </head>
 <body>
 
-    <!-- Visual 3-Second Press Ring -->
+    <!-- Visual 3-Second Press Ring (Hardware Accelerated CSS) -->
     <div id="long-press-ring"></div>
 
+    <!-- Header Block -->
     <div id="header-positioner" data-target="header">
         <div class="date-header">
             <span id="day-marathi">सोमवार</span> 
@@ -220,6 +228,7 @@
         <div class="divider"></div>
     </div>
 
+    <!-- Clock Block -->
     <div id="clock-positioner" data-target="time">
         <div class="time-container" id="clock">
             <div class="digit-window tens-window"><div class="digit-strip" id="h-tens"></div></div>
@@ -230,6 +239,7 @@
         </div>
     </div>
 
+    <!-- Main Settings Menu -->
     <div class="settings-overlay" id="settings-menu">
         <button class="close-btn" id="close-settings">✕</button>
         <button class="settings-btn" id="fullscreen-btn">Toggle Full Screen</button>
@@ -261,6 +271,7 @@
         </div>
     </div>
 
+    <!-- Layout Editor Panel -->
     <div class="layout-panel" id="layout-panel">
         <h3 id="layout-title">EDITING: CLOCK (Tap Header to edit text)</h3>
         
@@ -295,60 +306,26 @@
     </div>
 
     <script>
-        // --- GOOGLE SHEETS API INTEGRATION ---
-        const API_URL = 'https://script.google.com/macros/s/AKfycbzRz_gnUjFlw1-6w8OzvgMjXzgdVihpkSeg2siKh5el7QRs0EnApOCWlNMn-eedfJ-s/exec';
-
-        // --- MESSAGE ALARM SYSTEM (1-Second Instant Trigger) ---
-        const MESSAGE_API_URL = 'https://script.google.com/macros/s/AKfycbzs6g62a3jtRO19Wgtpz-HbrlofLZS3RQvrWsQOFCkA6cCHAMR0n7AH9ntCPwcRdJXH/exec';
-
+        // --- BULLETPROOF STORAGE WRAPPER ---
+        // This stops the entire app from crashing if Android blocks local files from using localStorage
         const safeStorage = {
             get: function(key, fallback) {
-                try { let val = localStorage.getItem(key); return val !== null ? val : fallback; } 
-                catch(e) { return fallback; }
+                try {
+                    let val = localStorage.getItem(key);
+                    return val !== null ? val : fallback;
+                } catch(e) { return fallback; }
             },
             set: function(key, value) {
                 try { localStorage.setItem(key, value); } catch(e) {}
             }
         };
 
-        async function checkForNewMessages() {
-            if (typeof isEditMode !== 'undefined' && isEditMode) return; 
-            try {
-                let response = await fetch(MESSAGE_API_URL);
-                let data = await response.json();
-                
-                if (data && data.length > 0) {
-                    let latestMessage = data[data.length - 1];
-                    let latestTime = latestMessage['Date and Time'] || latestMessage[0]; 
-                    
-                    let savedTime = safeStorage.get('lastMessageTime', null);
+        // --- DISABLE BROWSER MENUS ---
+        window.oncontextmenu = function(e) {
+            e.preventDefault(); e.stopPropagation(); return false;
+        };
 
-                    if (savedTime !== null && latestTime !== savedTime) {
-                        safeStorage.set('lastMessageTime', latestTime);
-                        window.location.href = 'message-screen.html'; 
-                    } else if (savedTime === null) {
-                        safeStorage.set('lastMessageTime', latestTime);
-                    }
-                }
-            } catch (e) {}
-        }
-
-        // Check every 1 second for instant switching
-        setInterval(checkForNewMessages, 1000);
-
-        // Background function to push changes to Google Sheets
-        function syncToCloud(payload) {
-            fetch(API_URL, {
-                method: 'POST',
-                mode: 'no-cors', 
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify(payload)
-            }).catch(e => {});
-        }
-
-        window.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
-
-        // --- DATA & SETTINGS LOAD (Offline First) ---
+        // --- DATA & SETTINGS LOAD ---
         const DIGIT_HEIGHT = 380; 
         
         let is12Hour = safeStorage.get('is12Hour', 'false') === 'true';
@@ -358,16 +335,6 @@
         let nightColor = safeStorage.get('nightColor', "#00aaff");
         let autoNightMode = safeStorage.get('autoNightMode', 'true') !== 'false';
         
-        const DEFAULT_LAYOUT = { time: { x: 15, y: -11, sx: 1.05, sy: 0.9 }, header: { x: 0, y: 15, sx: 1.05, sy: 1 } };
-        let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
-        try {
-            const savedStr = safeStorage.get('dualLayout', null);
-            if (savedStr) { 
-                let parsed = JSON.parse(savedStr);
-                if(parsed && parsed.time && parsed.header) layout = parsed; 
-            }
-        } catch(e) {}
-
         document.getElementById('header-positioner').style.fontFamily = headerFont;
         document.getElementById('clock-positioner').style.fontFamily = timeFont;
         document.getElementById('format-toggle').checked = is12Hour;
@@ -375,63 +342,7 @@
         document.getElementById('night-color').value = nightColor;
         document.getElementById('night-toggle').checked = autoNightMode;
 
-        async function fetchFromCloud() {
-            if (isEditMode) return; 
-            try {
-                let response = await fetch(API_URL);
-                let data = await response.json();
-                let changed = false;
-
-                if (data.is12Hour !== undefined && data.is12Hour !== String(is12Hour)) {
-                    is12Hour = data.is12Hour === 'true';
-                    document.getElementById('format-toggle').checked = is12Hour;
-                    safeStorage.set('is12Hour', is12Hour);
-                    changed = true;
-                }
-                if (data.headerFont && data.headerFont !== headerFont) {
-                    headerFont = data.headerFont;
-                    document.getElementById('header-positioner').style.fontFamily = headerFont;
-                    safeStorage.set('headerFont', headerFont);
-                    changed = true;
-                }
-                if (data.timeFont && data.timeFont !== timeFont) {
-                    timeFont = data.timeFont;
-                    document.getElementById('clock-positioner').style.fontFamily = timeFont;
-                    safeStorage.set('timeFont', timeFont);
-                    changed = true;
-                }
-                if (data.dayColor && data.dayColor !== dayColor) {
-                    dayColor = data.dayColor;
-                    document.getElementById('day-color').value = dayColor;
-                    safeStorage.set('dayColor', dayColor);
-                    changed = true;
-                }
-                if (data.nightColor && data.nightColor !== nightColor) {
-                    nightColor = data.nightColor;
-                    document.getElementById('night-color').value = nightColor;
-                    safeStorage.set('nightColor', nightColor);
-                    changed = true;
-                }
-                if (data.autoNightMode !== undefined && data.autoNightMode !== String(autoNightMode)) {
-                    autoNightMode = data.autoNightMode === 'true';
-                    document.getElementById('night-toggle').checked = autoNightMode;
-                    safeStorage.set('autoNightMode', autoNightMode);
-                    changed = true;
-                }
-                if (data.dualLayout) {
-                    let remoteLayout = JSON.parse(data.dualLayout);
-                    if (JSON.stringify(remoteLayout) !== JSON.stringify(layout)) {
-                        layout = remoteLayout;
-                        safeStorage.set('dualLayout', data.dualLayout);
-                        applyTransforms();
-                    }
-                }
-                if (changed) updateColors();
-            } catch(e) {}
-        }
-        setInterval(fetchFromCloud, 10000); 
-        setTimeout(fetchFromCloud, 1000); 
-
+        // --- NETWORK STATUS LOGIC ---
         const networkDot = document.getElementById('network-dot');
         function checkNetwork() {
             try {
@@ -449,6 +360,7 @@
         setInterval(checkNetwork, 10000); 
         checkNetwork();
 
+        // --- COLOR LOGIC ---
         function updateColors() {
             try {
                 const hour = new Date().getHours();
@@ -467,23 +379,21 @@
             safeStorage.set('dayColor', dayColor);
             updateColors();
             resetHideTimer();
-            syncToCloud({ dayColor: dayColor });
         });
         document.getElementById('night-color').addEventListener('input', (e) => {
             nightColor = e.target.value;
             safeStorage.set('nightColor', nightColor);
             updateColors();
             resetHideTimer();
-            syncToCloud({ nightColor: nightColor });
         });
         document.getElementById('night-toggle').addEventListener('change', (e) => {
             autoNightMode = e.target.checked;
             safeStorage.set('autoNightMode', autoNightMode);
             updateColors();
             resetHideTimer();
-            syncToCloud({ autoNightMode: String(autoNightMode) });
         });
 
+        // --- CLOCK ENGINE ---
         const marathiDays = ["रविवार", "सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
         const marathiMonths = ["जानेवारी", "फेब्रुवारी", "मार्च", "एप्रिल", "मे", "जून", "जुलै", "ऑगस्ट", "सप्टेंबर", "ऑक्टोबर", "नोव्हेंबर", "डिसेंबर"];
 
@@ -506,7 +416,7 @@
         }
 
         function updateDateHeader(now) {
-            if (typeof isEditMode !== 'undefined' && isEditMode) {
+            if (isEditMode) {
                 document.getElementById('day-marathi').textContent = "WWWWW";
                 document.getElementById('month-marathi').textContent = "MMMM";
                 document.getElementById('date-num').textContent = "DD/MM/YYYY";
@@ -532,22 +442,29 @@
             try {
                 const now = new Date();
                 let rawHours = now.getHours();
+                
                 if (is12Hour) {
                     rawHours = rawHours % 12;
                     rawHours = rawHours ? rawHours : 12; 
                 }
+
                 const hours = String(rawHours).padStart(2, '0');
                 const minutes = String(now.getMinutes()).padStart(2, '0');
+
                 updateStrip('h-tens', parseInt(hours[0]));
                 updateStrip('h-units', parseInt(hours[1]));
                 updateStrip('m-tens', parseInt(minutes[0]));
                 updateStrip('m-units', parseInt(minutes[1]));
+
                 updateDateHeader(now);
             } catch(e) {}
             requestAnimationFrame(updateClock);
         }
+        
+        // Start the clock safely
         try { updateClock(); } catch(e) {}
 
+        // --- BOUNDED LAYOUT DRAG, STRETCH & AUTO-SAVE ENGINE ---
         const timePos = document.getElementById('clock-positioner');
         const headerPos = document.getElementById('header-positioner');
         const layoutPanel = document.getElementById('layout-panel');
@@ -559,10 +476,22 @@
         let isEditMode = false;
         let activeTarget = 'time'; 
 
+        const DEFAULT_LAYOUT = {
+            time:   { x: 15, y: -11, sx: 1.05, sy: 0.9 },
+            header: { x: 0, y: 15, sx: 1.05, sy: 1 }
+        };
+
+        let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
+        try {
+            const savedStr = safeStorage.get('dualLayout', null);
+            if (savedStr) { 
+                let parsed = JSON.parse(savedStr);
+                if(parsed && parsed.time && parsed.header) layout = parsed; 
+            }
+        } catch(e) {}
+
         function autoSaveLayout() {
-            let layoutStr = JSON.stringify(layout);
-            safeStorage.set('dualLayout', layoutStr);
-            syncToCloud({ dualLayout: layoutStr });
+            safeStorage.set('dualLayout', JSON.stringify(layout));
         }
 
         function applyTransforms() {
@@ -576,8 +505,10 @@
         function loadTargetToSliders() {
             scaleXSlider.value = layout[activeTarget].sx;
             scaleYSlider.value = layout[activeTarget].sy;
+            
             timePos.classList.remove('active-target');
             headerPos.classList.remove('active-target');
+            
             if(activeTarget === 'time') {
                 timePos.classList.add('active-target');
                 layoutTitle.textContent = "EDITING: CLOCK (Tap Header to edit)";
@@ -596,12 +527,10 @@
                 headerFont = e.target.value;
                 document.getElementById('header-positioner').style.fontFamily = headerFont;
                 safeStorage.set('headerFont', headerFont);
-                syncToCloud({ headerFont: headerFont });
             } else {
                 timeFont = e.target.value;
                 document.getElementById('clock-positioner').style.fontFamily = timeFont;
                 safeStorage.set('timeFont', timeFont);
-                syncToCloud({ timeFont: timeFont });
             }
         });
 
@@ -626,10 +555,14 @@
             dragTarget = targetStr;
             activeTarget = targetStr; 
             loadTargetToSliders();    
+
             let touchX = e.touches ? e.touches[0].clientX : e.clientX;
             let touchY = e.touches ? e.touches[0].clientY : e.clientY;
-            startX = touchX; startY = touchY;
-            initialX = layout[dragTarget].x; initialY = layout[dragTarget].y;
+            
+            startX = touchX;
+            startY = touchY;
+            initialX = layout[dragTarget].x;
+            initialY = layout[dragTarget].y;
         }
 
         function moveDrag(e) {
@@ -637,16 +570,28 @@
             e.preventDefault(); 
             let touchX = e.touches ? e.touches[0].clientX : e.clientX;
             let touchY = e.touches ? e.touches[0].clientY : e.clientY;
-            const dx = touchX - startX; const dy = touchY - startY;
-            let newX = initialX + dx; let newY = initialY + dy;
-            const maxMoveX = window.innerWidth / 3; const maxMoveY = window.innerHeight / 3;
+            
+            const dx = touchX - startX;
+            const dy = touchY - startY;
+            
+            let newX = initialX + dx;
+            let newY = initialY + dy;
+            
+            const maxMoveX = window.innerWidth / 3;
+            const maxMoveY = window.innerHeight / 3;
+            
             layout[dragTarget].x = Math.max(-maxMoveX, Math.min(maxMoveX, newX));
             layout[dragTarget].y = Math.max(-maxMoveY, Math.min(maxMoveY, newY));
+            
             applyTransforms();
         }
 
         function endDrag() {
-            if (isDragging) { isDragging = false; dragTarget = null; autoSaveLayout(); }
+            if (isDragging) {
+                isDragging = false;
+                dragTarget = null;
+                autoSaveLayout(); 
+            }
         }
 
         timePos.addEventListener('touchstart', (e) => startDrag(e, 'time'));
@@ -658,31 +603,42 @@
         window.addEventListener('touchend', endDrag);
         window.addEventListener('mouseup', endDrag);
 
+        // --- MENUS & OVERLAYS ---
         document.getElementById('edit-layout-btn').addEventListener('click', () => {
-            hideSettings(); isEditMode = true;
+            hideSettings();
+            isEditMode = true;
             document.body.classList.add('edit-mode');
             layoutPanel.style.display = 'flex';
-            activeTarget = 'time'; loadTargetToSliders();
+            activeTarget = 'time'; 
+            loadTargetToSliders();
         });
 
         document.getElementById('layout-save').addEventListener('click', () => {
-            isEditMode = false; document.body.classList.remove('edit-mode');
+            isEditMode = false;
+            document.body.classList.remove('edit-mode');
             layoutPanel.style.display = 'none';
-            timePos.classList.remove('active-target'); headerPos.classList.remove('active-target');
+            timePos.classList.remove('active-target');
+            headerPos.classList.remove('active-target');
             autoSaveLayout();
         });
 
         document.getElementById('layout-reset').addEventListener('click', () => {
             layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
-            loadTargetToSliders(); applyTransforms(); autoSaveLayout();
+            loadTargetToSliders();
+            applyTransforms();
+            autoSaveLayout();
         });
 
+        // --- SETTINGS & FULLSCREEN LOGIC ---
         const settingsMenu = document.getElementById('settings-menu');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
-        let hideTimeout; let wakeLock = null;
+        let hideTimeout;
+        let wakeLock = null;
 
         async function requestWakeLock() {
-            if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
+            if ('wakeLock' in navigator) {
+                try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+            }
         }
         function releaseWakeLock() {
             if (wakeLock !== null) { wakeLock.release().then(() => { wakeLock = null; }); }
@@ -690,13 +646,16 @@
 
         function showSettings() {
             if(isEditMode) return; 
-            settingsMenu.style.display = 'flex'; resetHideTimer();
+            settingsMenu.style.display = 'flex';
+            resetHideTimer();
         }
         function hideSettings() {
-            settingsMenu.style.display = 'none'; clearTimeout(hideTimeout);
+            settingsMenu.style.display = 'none';
+            clearTimeout(hideTimeout);
         }
         function resetHideTimer() {
-            clearTimeout(hideTimeout); hideTimeout = setTimeout(hideSettings, 10000); 
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(hideSettings, 10000); 
         }
 
         document.getElementById('close-settings').addEventListener('click', hideSettings);
@@ -704,15 +663,19 @@
         document.getElementById('format-toggle').addEventListener('change', function(e) {
             is12Hour = e.target.checked;
             safeStorage.set('is12Hour', is12Hour);
-            resetHideTimer(); syncToCloud({ is12Hour: String(is12Hour) });
+            resetHideTimer(); 
         });
 
         fullscreenBtn.addEventListener('click', function() {
             try {
                 if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().then(() => { requestWakeLock(); }).catch(err => {});
+                    document.documentElement.requestFullscreen().then(() => {
+                        requestWakeLock();
+                    }).catch(err => { console.log(err); });
                 } else {
-                    if (document.exitFullscreen) { document.exitFullscreen().then(() => { releaseWakeLock(); }); }
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen().then(() => { releaseWakeLock(); });
+                    }
                 }
             } catch(e) {}
             hideSettings();
@@ -722,19 +685,39 @@
             if (wakeLock !== null && document.visibilityState === 'visible') { requestWakeLock(); }
         });
 
-        let pressTimer; const ring = document.getElementById('long-press-ring');
+        // --- BUTTERY SMOOTH CSS LONG PRESS UI ---
+        let pressTimer;
+        const ring = document.getElementById('long-press-ring');
 
         function startLongPress(e) {
-            if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || (typeof isEditMode !== 'undefined' && isEditMode)) return; 
+            // Check if clicking a menu or editing
+            if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || isEditMode) return; 
+            
+            // Get safe touch coordinates
             let touchX = 0; let touchY = 0;
-            if (e.touches && e.touches.length > 0) { touchX = e.touches[0].clientX; touchY = e.touches[0].clientY; } 
-            else if (e.clientX !== undefined) { touchX = e.clientX; touchY = e.clientY; }
-            ring.style.left = touchX + 'px'; ring.style.top = touchY + 'px';
-            void ring.offsetWidth; ring.classList.add('animating');
+            if (e.touches && e.touches.length > 0) {
+                touchX = e.touches[0].clientX; touchY = e.touches[0].clientY;
+            } else if (e.clientX !== undefined) {
+                touchX = e.clientX; touchY = e.clientY;
+            }
+            
+            // Position the ring instantly
+            ring.style.left = touchX + 'px';
+            ring.style.top = touchY + 'px';
+            
+            // Force a browser reflow before adding classes so animations trigger correctly
+            void ring.offsetWidth; 
+            
+            // Start the 3-second scale up
+            ring.classList.add('animating');
 
             pressTimer = setTimeout(() => {
+                // Timer reached 3 seconds! Flash it solid and open menu
                 ring.classList.add('complete');
-                setTimeout(() => { cancelLongPress(); showSettings(); }, 200); 
+                setTimeout(() => {
+                    cancelLongPress();
+                    showSettings();
+                }, 200); // Wait a tiny moment so the user sees it complete
             }, 3000);
         }
 
@@ -745,10 +728,12 @@
 
         document.body.addEventListener('touchstart', startLongPress, {passive: true});
         document.body.addEventListener('mousedown', startLongPress);
+        
         document.body.addEventListener('touchend', cancelLongPress);
         document.body.addEventListener('mouseup', cancelLongPress);
         document.body.addEventListener('touchmove', cancelLongPress, {passive: true});
         document.body.addEventListener('mousemove', cancelLongPress);
+        
     </script>
 </body>
 </html>
