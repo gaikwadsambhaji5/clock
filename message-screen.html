@@ -27,7 +27,7 @@
       max-width: 90%;
     }
 
-    /* Red and Black Blinking Animation */
+    /* Red and Black Blinking Animation for High Priority */
     .urgent-blink {
       animation: blinker 0.8s linear infinite;
     }
@@ -64,16 +64,14 @@
 
     function updateScreen(category, messageText) {
       const container = document.getElementById('message-container');
-
-      // Convert category to lowercase to ensure it matches perfectly
-      const isHighPriority = category.toLowerCase() === "very high";
+      
+      // Checks if the priority text contains the word "high"
+      const isHighPriority = category && category.toLowerCase().includes("high");
 
       if (isHighPriority) {
-        // High Priority: Turn on blinking and add 'H'
         document.body.className = "urgent-blink";
         container.innerText = "H - " + messageText;
       } else {
-        // Normal Priority: Turn off blinking and add 'L'
         document.body.className = ""; 
         container.innerText = "L - " + messageText;
       }
