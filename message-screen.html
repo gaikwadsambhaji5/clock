@@ -70,10 +70,8 @@
     function updateScreen(category, messageText) {
       const container = document.getElementById('message-container');
       
-      // Checks if the sheet says exactly "H"
-      const isHighPriority = category === "H";
-
-      if (isHighPriority) {
+      // Look strictly for the letter "H" to trigger the blinking
+      if (category === "H") {
         document.body.className = "urgent-blink";
       } else {
         document.body.className = ""; 
