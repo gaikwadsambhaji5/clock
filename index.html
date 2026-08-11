@@ -321,8 +321,8 @@
         let nightColor = safeStorage.get('nightColor', "#00aaff");
         let autoNightMode = safeStorage.get('autoNightMode', 'true') !== 'false';
         
-        let lastMessage = "";
         let messageTimer1, messageTimer2;
+        let lastRowCount = 0; // Tracks the total number of message rows
 
         const DEFAULT_LAYOUT = { time: { x: 15, y: -11, sx: 1.05, sy: 0.9 }, header: { x: 0, y: 15, sx: 1.05, sy: 1 } };
         let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
@@ -368,34 +368,40 @@
             }, 600000); // 10 minutes
         }
 
-        // --- DEDICATED MESSAGE POLLING ---
+        // --- DEDICATED MESSAGE POLLING (Row Count Logic) ---
         async function fetchMessagesFromCloud() {
             if (isEditMode) return; 
             try {
                 let response = await fetch(MESSAGE_API_URL);
                 let data = await response.json();
                 
-                let currentMessage = "";
+                let rows = Array.isArray(data) ? data : (data.data || []);
                 
-                // Handle the tabular array structure from your new sheet
-                if (Array.isArray(data) && data.length > 0) {
-                    // Grab the 'Message' column from the last row in the sheet
-                    currentMessage = data[data.length - 1].Message || data[data.length - 1].message || "";
-                } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-                    currentMessage = data.data[data.data.length - 1].Message || data.data[data.data.length - 1].message || "";
-                }
+                if (rows.length > 0) {
+                    // 1. On first boot, just learn how many rows exist without showing an old message
+                    if (lastRowCount === 0) {
+                        lastRowCount = rows.length;
+                        return;
+                    }
 
-                // Trigger the screen if it's a completely new message
-                if (currentMessage && currentMessage.trim() !== "" && currentMessage !== lastMessage) {
-                    lastMessage = currentMessage;
-                    triggerMessageScreen(currentMessage);
+                    // 2. If the sheet now has MORE rows than before, a new message was added!
+                    if (rows.length > lastRowCount) {
+                        let newestMessage = rows[rows.length - 1].Message || rows[rows.length - 1].message || "";
+                        
+                        if (newestMessage && newestMessage.trim() !== "") {
+                            triggerMessageScreen(newestMessage);
+                        }
+                        
+                        // Update the tracker so it waits for the next new row
+                        lastRowCount = rows.length;
+                    }
                 }
             } catch(e) {
                 console.log("Message fetch failed", e);
             }
         }
 
-        // Check for new messages every 10 seconds
+        // Check for new rows every 10 seconds
         setInterval(fetchMessagesFromCloud, 10000); 
         setTimeout(fetchMessagesFromCloud, 1000); 
 
