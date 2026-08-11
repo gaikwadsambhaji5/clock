@@ -9,33 +9,38 @@
       margin: 0;
       padding: 0;
       height: 100vh;
+      width: 100vw;
       display: flex;
       justify-content: center;
       align-items: center;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #121212; 
-      color: white;
+      color: white;              
       text-align: center;
       overflow: hidden;
     }
 
     #message-container {
-      padding: 40px;
-      font-size: 5rem; 
+      padding: 20px;
       font-weight: bold;
       word-wrap: break-word;
-      max-width: 90%;
+      width: 95vw;
+      max-height: 95vh;
+      line-height: 1.1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
-    /* Red and Black Blinking Animation for High Priority */
+    /* Red and White Blinking Animation for High Priority */
     .urgent-blink {
-      animation: blinker 0.8s linear infinite;
+      animation: blinker 0.4s linear infinite;
     }
 
     @keyframes blinker {
-      0% { background-color: black; color: white; }
-      50% { background-color: red; color: white; }
-      100% { background-color: black; color: white; }
+      0% { background-color: red; color: white; }
+      50% { background-color: white; color: red; }
+      100% { background-color: red; color: white; }
     }
   </style>
 </head>
@@ -65,17 +70,32 @@
     function updateScreen(category, messageText) {
       const container = document.getElementById('message-container');
       
-      // Checks if the priority text contains the word "high"
-      const isHighPriority = category && category.toLowerCase().includes("high");
+      // Now it just checks if the letter in the sheet is exactly "H"
+      const isHighPriority = category === "H";
 
       if (isHighPriority) {
         document.body.className = "urgent-blink";
-        container.innerText = "H - " + messageText;
       } else {
         document.body.className = ""; 
-        container.innerText = "L - " + messageText;
+      }
+      
+      container.innerText = messageText;
+      adjustFontSize(container);
+    }
+
+    function adjustFontSize(element) {
+      let fontSize = 400; 
+      element.style.fontSize = fontSize + 'px';
+      
+      while ((element.scrollHeight > window.innerHeight * 0.95 || element.scrollWidth > window.innerWidth * 0.95) && fontSize > 12) {
+        fontSize -= 5;
+        element.style.fontSize = fontSize + 'px';
       }
     }
+
+    window.addEventListener('resize', () => {
+       adjustFontSize(document.getElementById('message-container'));
+    });
 
     setInterval(fetchLatestMessage, 3000);
   </script>
