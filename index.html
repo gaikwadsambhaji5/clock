@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Scrolling Clock - Rock Solid Edition</title>
+    <title>Scrolling Clock - Ultimate Pro Edition</title>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@700&family=Oswald:wght@700&family=Rajdhani:wght@700&family=Righteous&family=Rubik+Mono+One&family=Share+Tech+Mono&display=swap');
@@ -17,6 +17,7 @@
             font-style: normal;
         }
 
+        /* --- COLOR VARIABLES --- */
         :root {
             --clock-color: #ffffff;
         }
@@ -26,7 +27,8 @@
             margin: 0;
             padding: 0;
             -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none; /* Prevents text selection popups on hold */
+            /* Prevents browser from showing popups on long press */
+            -webkit-touch-callout: none; 
         }
 
         body {
@@ -41,32 +43,6 @@
             -webkit-user-select: none;
             padding: 0 45px; 
             transition: color 1s ease;
-        }
-
-        /* --- BUTTERY SMOOTH LONG PRESS RING --- */
-        #long-press-ring {
-            position: fixed;
-            width: 80px; 
-            height: 80px;
-            border: 4px solid #00ffaa;
-            border-radius: 50%;
-            transform: translate(-50%, -50%) scale(0.2);
-            opacity: 0;
-            z-index: 9999;
-            pointer-events: none;
-            /* Transitions allow the GPU to animate it smoothly over 3 seconds */
-            transition: transform 3s linear, opacity 0.2s ease, background-color 0.2s ease;
-        }
-
-        #long-press-ring.animating {
-            transform: translate(-50%, -50%) scale(1);
-            opacity: 1;
-        }
-
-        #long-press-ring.complete {
-            background-color: rgba(0, 255, 170, 0.4);
-            transform: translate(-50%, -50%) scale(1.1);
-            transition: all 0.2s ease;
         }
 
         /* --- HEADER LAYOUT --- */
@@ -103,113 +79,287 @@
             opacity: 0.8; 
         }
 
-        #date-num { display: inline-block; text-align: center; }
-        #sec-wrapper { display: flex; align-items: center; gap: 8px; }
-        #sec-num { display: inline-block; width: 1.2em; text-align: right; }
+        #date-num {
+            display: inline-block;
+            text-align: center;
+        }
+        
+        #sec-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px; 
+        }
+
+        #sec-num {
+            display: inline-block;
+            width: 1.2em; 
+            text-align: right; 
+        }
 
         /* --- NETWORK STATUS DOT --- */
         .network-dot {
-            width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
             transition: background-color 0.5s ease, box-shadow 0.5s ease;
         }
-        .network-dot.green { background-color: #00ffaa; box-shadow: 0 0 10px #00ffaa; }
-        .network-dot.yellow { background-color: #ffcc00; box-shadow: 0 0 10px #ffcc00; }
+        .network-dot.green { background-color: #00ffaa; box-shadow: 0 0 10px #00ffaa; animation: none; }
+        .network-dot.yellow { background-color: #ffcc00; box-shadow: 0 0 10px #ffcc00; animation: none; }
         .network-dot.red { background-color: #ff3333; box-shadow: 0 0 10px #ff3333; animation: blink-dot 1s infinite; }
-        @keyframes blink-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+        @keyframes blink-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
 
         .divider {
-            width: 86%; height: 5px; background-color: var(--clock-color);
-            margin-bottom: 0px; transition: background-color 1s ease;
+            width: 86%; 
+            height: 5px;
+            background-color: var(--clock-color);
+            margin-bottom: 0px; 
+            transition: background-color 1s ease;
         }
 
         /* --- CLOCK LAYOUT --- */
         #clock-positioner {
-            display: flex; justify-content: center; align-items: center;
-            transform-origin: top center; margin-top: 25px; padding: 10px;
-            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transform-origin: top center;
+            margin-top: 25px; 
+            padding: 10px;
+            border: 2px solid transparent;
+            cursor: grab;
+            transition: font-family 0.3s ease;
         }
 
-        .edit-mode #header-positioner, .edit-mode #clock-positioner {
-            border: 2px dashed rgba(255, 255, 255, 0.3); border-radius: 20px;
-        }
-        .edit-mode #header-positioner.active-target, .edit-mode #clock-positioner.active-target {
-            border: 2px dashed rgba(0, 255, 170, 0.8); background: rgba(0, 255, 170, 0.05);
+        .edit-mode #header-positioner,
+        .edit-mode #clock-positioner {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
         }
 
-        .time-container { display: flex; align-items: center; justify-content: center; pointer-events: none; }
-        .digit-window { height: 380px; width: 180px; overflow: hidden; position: relative; }
-        .tens-window { margin-right: 15px; }
+        .edit-mode #header-positioner.active-target,
+        .edit-mode #clock-positioner.active-target {
+            border: 2px dashed rgba(0, 255, 170, 0.8);
+            background: rgba(0, 255, 170, 0.05);
+        }
+
+        .time-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none; 
+        }
+
+        .digit-window {
+            height: 380px; 
+            width: 180px;  
+            overflow: hidden;
+            position: relative;
+        }
         
+        .tens-window { margin-right: 15px; }
+
         .digit-strip {
-            display: flex; flex-direction: column;
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
         }
 
         .digit {
-            height: 380px; line-height: 380px; font-size: 480px; width: 180px;
-            text-align: center; display: flex; justify-content: center; align-items: center;
+            height: 380px; 
+            line-height: 380px;
+            font-size: 480px; 
+            width: 180px; 
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .separator {
-            font-size: 300px; line-height: 380px; font-weight: bold; margin: 0 10px;
-            transform: translateY(-35px); animation: blink 1s step-end infinite;
+            font-size: 300px; 
+            line-height: 380px;
+            font-weight: bold;
+            margin: 0 10px; 
+            transform: translateY(-35px); 
+            animation: blink 1s step-end infinite;
         }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
 
         /* --- MENUS --- */
         .settings-overlay {
-            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            border: 2px solid rgba(255, 255, 255, 0.2); padding: 30px; border-radius: 20px;
-            z-index: 1000; flex-direction: column; align-items: center; gap: 15px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.9); font-family: -apple-system, sans-serif; min-width: 320px;
+            display: none; 
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            padding: 30px; 
+            border-radius: 20px;
+            z-index: 1000;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+            font-family: -apple-system, sans-serif;
+            min-width: 320px;
         }
 
         .close-btn {
-            position: absolute; top: 10px; right: 15px; background: none; border: none;
-            color: #ffffff; font-size: 24px; font-weight: bold; cursor: pointer; opacity: 0.7;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0.7;
         }
 
         .settings-btn {
-            background: #ffffff; color: #000000; border: none; padding: 10px 20px;
-            font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%;
+            background: #ffffff;
+            color: #000000;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
         }
+
         .settings-btn.accent { background: #00ffaa; color: #000; }
 
-        .toggle-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 15px; font-size: 16px; font-weight: bold; }
-        .custom-select, .color-picker { background: #333; color: #fff; border: 1px solid #555; padding: 6px; border-radius: 8px; font-size: 14px; font-weight: bold; outline: none; }
-        .color-picker { padding: 0; height: 30px; width: 50px; border: none; cursor: pointer; }
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            gap: 15px;
+            font-size: 16px;
+            font-weight: bold;
+        }
 
-        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .custom-select, .color-picker {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 6px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            outline: none;
+        }
+
+        .color-picker {
+            padding: 0;
+            height: 30px;
+            width: 50px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 28px; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #555; transition: .4s;
+            border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 16px; width: 16px;
+            left: 4px; bottom: 4px;
+            background-color: white; transition: .4s;
+            border-radius: 50%;
+        }
         input:checked + .slider { background-color: #00ffaa; }
         input:checked + .slider:before { transform: translateX(20px); }
 
         /* --- LAYOUT CONTROL PANEL --- */
         .layout-panel {
-            display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(10, 10, 10, 0.95); border: 2px solid #00ffaa; border-radius: 15px;
-            padding: 15px 20px; width: 90%; max-width: 500px; z-index: 2000;
-            font-family: -apple-system, sans-serif; flex-direction: column; gap: 12px;
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 10, 0.95);
+            border: 2px solid #00ffaa;
+            border-radius: 15px;
+            padding: 15px 20px;
+            width: 90%;
+            max-width: 500px;
+            z-index: 2000;
+            font-family: -apple-system, sans-serif;
+            flex-direction: column;
+            gap: 12px;
             box-shadow: 0 10px 30px rgba(0,255,170,0.2);
         }
-        .layout-panel h3 { margin: 0; text-align: center; color: #00ffaa; font-size: 14px; }
-        .slider-group { display: flex; flex-direction: column; gap: 5px; }
-        .slider-group label { font-weight: bold; font-size: 12px; color: #ccc; }
-        input[type=range] { width: 100%; accent-color: #00ffaa; }
-        .layout-actions { display: flex; gap: 10px; margin-top: 5px; }
-        .layout-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+        .layout-panel h3 {
+            margin: 0;
+            text-align: center;
+            color: #00ffaa;
+            font-size: 14px;
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .slider-group label {
+            font-weight: bold;
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        input[type=range] {
+            width: 100%;
+            accent-color: #00ffaa;
+        }
+
+        .layout-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        
+        .layout-actions button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
         .btn-save { background: #00ffaa; color: #000; }
         .btn-reset { background: #555; color: #fff; }
 
     </style>
 </head>
 <body>
-
-    <!-- Visual 3-Second Press Ring (Hardware Accelerated CSS) -->
-    <div id="long-press-ring"></div>
 
     <!-- Header Block -->
     <div id="header-positioner" data-target="header">
@@ -301,42 +451,33 @@
 
         <div class="layout-actions">
             <button class="btn-reset" id="layout-reset">Reset Default</button>
-            <button class="btn-save" id="layout-save">Close Editor</button>
+            <button class="btn-save" id="layout-save">Save & Exit</button>
         </div>
     </div>
 
     <script>
-        // --- BULLETPROOF STORAGE WRAPPER ---
-        // This stops the entire app from crashing if Android blocks local files from using localStorage
-        const safeStorage = {
-            get: function(key, fallback) {
-                try {
-                    let val = localStorage.getItem(key);
-                    return val !== null ? val : fallback;
-                } catch(e) { return fallback; }
-            },
-            set: function(key, value) {
-                try { localStorage.setItem(key, value); } catch(e) {}
-            }
-        };
-
-        // --- DISABLE BROWSER MENUS ---
-        window.oncontextmenu = function(e) {
-            e.preventDefault(); e.stopPropagation(); return false;
+        // --- DISABLE CONTEXT MENU (Prevents browser popup on long press) ---
+        window.oncontextmenu = function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
         };
 
         // --- DATA & SETTINGS LOAD ---
         const DIGIT_HEIGHT = 380; 
         
-        let is12Hour = safeStorage.get('is12Hour', 'false') === 'true';
-        let headerFont = safeStorage.get('headerFont', "'Teko Local', sans-serif");
-        let timeFont = safeStorage.get('timeFont', "'Teko Local', sans-serif");
-        let dayColor = safeStorage.get('dayColor', "#ffffff");
-        let nightColor = safeStorage.get('nightColor', "#00aaff");
-        let autoNightMode = safeStorage.get('autoNightMode', 'true') !== 'false';
+        let is12Hour = localStorage.getItem('is12Hour') === 'true';
+        let headerFont = localStorage.getItem('headerFont') || "'Teko Local', sans-serif";
+        let timeFont = localStorage.getItem('timeFont') || "'Teko Local', sans-serif";
+        let dayColor = localStorage.getItem('dayColor') || "#ffffff";
+        let nightColor = localStorage.getItem('nightColor') || "#00aaff";
+        let autoNightMode = localStorage.getItem('autoNightMode') !== 'false';
         
+        // Apply Initial Fonts
         document.getElementById('header-positioner').style.fontFamily = headerFont;
         document.getElementById('clock-positioner').style.fontFamily = timeFont;
+        
+        // Apply Settings State to DOM
         document.getElementById('format-toggle').checked = is12Hour;
         document.getElementById('day-color').value = dayColor;
         document.getElementById('night-color').value = nightColor;
@@ -345,15 +486,13 @@
         // --- NETWORK STATUS LOGIC ---
         const networkDot = document.getElementById('network-dot');
         function checkNetwork() {
-            try {
-                if (!navigator.onLine) {
-                    networkDot.className = 'network-dot red';
-                } else {
-                    fetch('https://1.1.1.1/cdn-cgi/trace', { mode: 'no-cors', cache: 'no-store' })
-                    .then(() => { networkDot.className = 'network-dot green'; })
-                    .catch(() => { networkDot.className = 'network-dot yellow'; });
-                }
-            } catch(e) {}
+            if (!navigator.onLine) {
+                networkDot.className = 'network-dot red';
+            } else {
+                fetch('https://1.1.1.1/cdn-cgi/trace', { mode: 'no-cors', cache: 'no-store' })
+                .then(() => { networkDot.className = 'network-dot green'; })
+                .catch(() => { networkDot.className = 'network-dot yellow'; });
+            }
         }
         window.addEventListener('online', checkNetwork);
         window.addEventListener('offline', checkNetwork);
@@ -362,33 +501,31 @@
 
         // --- COLOR LOGIC ---
         function updateColors() {
-            try {
-                const hour = new Date().getHours();
-                if (autoNightMode && (hour >= 22 || hour < 6)) {
-                    document.documentElement.style.setProperty('--clock-color', nightColor);
-                } else {
-                    document.documentElement.style.setProperty('--clock-color', dayColor);
-                }
-            } catch(e) {}
+            const hour = new Date().getHours();
+            if (autoNightMode && (hour >= 22 || hour < 6)) {
+                document.documentElement.style.setProperty('--clock-color', nightColor);
+            } else {
+                document.documentElement.style.setProperty('--clock-color', dayColor);
+            }
         }
         setInterval(updateColors, 60000); 
         updateColors(); 
 
         document.getElementById('day-color').addEventListener('input', (e) => {
             dayColor = e.target.value;
-            safeStorage.set('dayColor', dayColor);
+            localStorage.setItem('dayColor', dayColor);
             updateColors();
             resetHideTimer();
         });
         document.getElementById('night-color').addEventListener('input', (e) => {
             nightColor = e.target.value;
-            safeStorage.set('nightColor', nightColor);
+            localStorage.setItem('nightColor', nightColor);
             updateColors();
             resetHideTimer();
         });
         document.getElementById('night-toggle').addEventListener('change', (e) => {
             autoNightMode = e.target.checked;
-            safeStorage.set('autoNightMode', autoNightMode);
+            localStorage.setItem('autoNightMode', autoNightMode);
             updateColors();
             resetHideTimer();
         });
@@ -398,73 +535,65 @@
         const marathiMonths = ["जानेवारी", "फेब्रुवारी", "मार्च", "एप्रिल", "मे", "जून", "जुलै", "ऑगस्ट", "सप्टेंबर", "ऑक्टोबर", "नोव्हेंबर", "डिसेंबर"];
 
         function buildStrip(id, maxNumber) {
-            try {
-                const strip = document.getElementById(id);
-                let html = '';
-                for (let i = 0; i <= maxNumber; i++) { html += `<div class="digit">${i}</div>`; }
-                strip.innerHTML = html;
-            } catch(e) {}
+            const strip = document.getElementById(id);
+            let html = '';
+            for (let i = 0; i <= maxNumber; i++) { html += `<div class="digit">${i}</div>`; }
+            strip.innerHTML = html;
         }
         buildStrip('h-tens', 2); buildStrip('h-units', 9); buildStrip('m-tens', 5); buildStrip('m-units', 9);
 
         function updateStrip(id, value) {
-            try {
-                const strip = document.getElementById(id);
-                const translateY = -(value * DIGIT_HEIGHT);
-                strip.style.transform = `translate3d(0, ${translateY}px, 0)`;
-            } catch(e) {}
+            const strip = document.getElementById(id);
+            const translateY = -(value * DIGIT_HEIGHT);
+            strip.style.transform = `translate3d(0, ${translateY}px, 0)`;
         }
 
         function updateDateHeader(now) {
+            // "Sample Mode" logic while editing
             if (isEditMode) {
                 document.getElementById('day-marathi').textContent = "WWWWW";
                 document.getElementById('month-marathi').textContent = "MMMM";
                 document.getElementById('date-num').textContent = "DD/MM/YYYY";
                 document.getElementById('sec-num').textContent = "SS";
-                return; 
+                return; // Skips applying real time while editing
             }
-            try {
-                const day = marathiDays[now.getDay()];
-                const month = marathiMonths[now.getMonth()];
-                const dd = String(now.getDate()).padStart(2, '0');
-                const mm = String(now.getMonth() + 1).padStart(2, '0');
-                const yyyy = now.getFullYear();
-                const ss = String(now.getSeconds()).padStart(2, '0');
 
-                document.getElementById('day-marathi').textContent = day;
-                document.getElementById('month-marathi').textContent = month;
-                document.getElementById('date-num').textContent = `${dd}/${mm}/${yyyy}`;
-                document.getElementById('sec-num').textContent = ss;
-            } catch (err) {}
+            const day = marathiDays[now.getDay()];
+            const month = marathiMonths[now.getMonth()];
+            const dd = String(now.getDate()).padStart(2, '0');
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const yyyy = now.getFullYear();
+            const ss = String(now.getSeconds()).padStart(2, '0');
+
+            document.getElementById('day-marathi').textContent = day;
+            document.getElementById('month-marathi').textContent = month;
+            document.getElementById('date-num').textContent = `${dd}/${mm}/${yyyy}`;
+            document.getElementById('sec-num').textContent = ss;
         }
 
         function updateClock() {
-            try {
-                const now = new Date();
-                let rawHours = now.getHours();
-                
-                if (is12Hour) {
-                    rawHours = rawHours % 12;
-                    rawHours = rawHours ? rawHours : 12; 
-                }
+            const now = new Date();
+            let rawHours = now.getHours();
+            
+            if (is12Hour) {
+                rawHours = rawHours % 12;
+                rawHours = rawHours ? rawHours : 12; 
+            }
 
-                const hours = String(rawHours).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
+            const hours = String(rawHours).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
 
-                updateStrip('h-tens', parseInt(hours[0]));
-                updateStrip('h-units', parseInt(hours[1]));
-                updateStrip('m-tens', parseInt(minutes[0]));
-                updateStrip('m-units', parseInt(minutes[1]));
+            updateStrip('h-tens', parseInt(hours[0]));
+            updateStrip('h-units', parseInt(hours[1]));
+            updateStrip('m-tens', parseInt(minutes[0]));
+            updateStrip('m-units', parseInt(minutes[1]));
 
-                updateDateHeader(now);
-            } catch(e) {}
+            updateDateHeader(now);
             requestAnimationFrame(updateClock);
         }
-        
-        // Start the clock safely
-        try { updateClock(); } catch(e) {}
+        updateClock();
 
-        // --- BOUNDED LAYOUT DRAG, STRETCH & AUTO-SAVE ENGINE ---
+        // --- BOUNDED LAYOUT DRAG, STRETCH & FONT ENGINE ---
         const timePos = document.getElementById('clock-positioner');
         const headerPos = document.getElementById('header-positioner');
         const layoutPanel = document.getElementById('layout-panel');
@@ -482,23 +611,12 @@
         };
 
         let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
-        try {
-            const savedStr = safeStorage.get('dualLayout', null);
-            if (savedStr) { 
-                let parsed = JSON.parse(savedStr);
-                if(parsed && parsed.time && parsed.header) layout = parsed; 
-            }
-        } catch(e) {}
-
-        function autoSaveLayout() {
-            safeStorage.set('dualLayout', JSON.stringify(layout));
-        }
+        const savedLayout = JSON.parse(localStorage.getItem('dualLayout'));
+        if (savedLayout) { layout = savedLayout; }
 
         function applyTransforms() {
-            try {
-                timePos.style.transform = `translate(${layout.time.x}px, ${layout.time.y}px) scale(${layout.time.sx}, ${layout.time.sy})`;
-                headerPos.style.transform = `translate(${layout.header.x}px, ${layout.header.y}px) scale(${layout.header.sx}, ${layout.header.sy})`;
-            } catch(e) {}
+            timePos.style.transform = `translate(${layout.time.x}px, ${layout.time.y}px) scale(${layout.time.sx}, ${layout.time.sy})`;
+            headerPos.style.transform = `translate(${layout.header.x}px, ${layout.header.y}px) scale(${layout.header.sx}, ${layout.header.sy})`;
         }
         applyTransforms();
 
@@ -513,38 +631,38 @@
                 timePos.classList.add('active-target');
                 layoutTitle.textContent = "EDITING: CLOCK (Tap Header to edit)";
                 scaleXSlider.max = 1.3; 
-                layoutFontSelect.value = timeFont; 
+                layoutFontSelect.value = timeFont; // Show Time's font
             } else {
                 headerPos.classList.add('active-target');
                 layoutTitle.textContent = "EDITING: HEADER (Tap Clock to edit)";
                 scaleXSlider.max = 1.15; 
-                layoutFontSelect.value = headerFont; 
+                layoutFontSelect.value = headerFont; // Show Header's font
             }
         }
 
+        // Apply Font based on active target
         layoutFontSelect.addEventListener('change', (e) => {
             if (activeTarget === 'header') {
                 headerFont = e.target.value;
                 document.getElementById('header-positioner').style.fontFamily = headerFont;
-                safeStorage.set('headerFont', headerFont);
+                localStorage.setItem('headerFont', headerFont);
             } else {
                 timeFont = e.target.value;
                 document.getElementById('clock-positioner').style.fontFamily = timeFont;
-                safeStorage.set('timeFont', timeFont);
+                localStorage.setItem('timeFont', timeFont);
             }
         });
 
         scaleXSlider.addEventListener('input', (e) => { 
             layout[activeTarget].sx = parseFloat(e.target.value); 
             applyTransforms(); 
-            autoSaveLayout(); 
         });
         scaleYSlider.addEventListener('input', (e) => { 
             layout[activeTarget].sy = parseFloat(e.target.value); 
             applyTransforms(); 
-            autoSaveLayout(); 
         });
 
+        // DRAG LOGIC WITH BOUNDARIES
         let isDragging = false;
         let startX, startY, initialX, initialY;
         let dragTarget = null; 
@@ -556,11 +674,9 @@
             activeTarget = targetStr; 
             loadTargetToSliders();    
 
-            let touchX = e.touches ? e.touches[0].clientX : e.clientX;
-            let touchY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            startX = touchX;
-            startY = touchY;
+            let touch = e.touches ? e.touches[0] : e;
+            startX = touch.clientX;
+            startY = touch.clientY;
             initialX = layout[dragTarget].x;
             initialY = layout[dragTarget].y;
         }
@@ -568,11 +684,9 @@
         function moveDrag(e) {
             if (!isDragging || !isEditMode || !dragTarget) return;
             e.preventDefault(); 
-            let touchX = e.touches ? e.touches[0].clientX : e.clientX;
-            let touchY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            const dx = touchX - startX;
-            const dy = touchY - startY;
+            let touch = e.touches ? e.touches[0] : e;
+            const dx = touch.clientX - startX;
+            const dy = touch.clientY - startY;
             
             let newX = initialX + dx;
             let newY = initialY + dy;
@@ -587,11 +701,8 @@
         }
 
         function endDrag() {
-            if (isDragging) {
-                isDragging = false;
-                dragTarget = null;
-                autoSaveLayout(); 
-            }
+            isDragging = false;
+            dragTarget = null;
         }
 
         timePos.addEventListener('touchstart', (e) => startDrag(e, 'time'));
@@ -602,6 +713,7 @@
         window.addEventListener('mousemove', moveDrag);
         window.addEventListener('touchend', endDrag);
         window.addEventListener('mouseup', endDrag);
+
 
         // --- MENUS & OVERLAYS ---
         document.getElementById('edit-layout-btn').addEventListener('click', () => {
@@ -619,17 +731,16 @@
             layoutPanel.style.display = 'none';
             timePos.classList.remove('active-target');
             headerPos.classList.remove('active-target');
-            autoSaveLayout();
+            localStorage.setItem('dualLayout', JSON.stringify(layout));
         });
 
         document.getElementById('layout-reset').addEventListener('click', () => {
             layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
             loadTargetToSliders();
             applyTransforms();
-            autoSaveLayout();
         });
 
-        // --- SETTINGS & FULLSCREEN LOGIC ---
+        // --- SETTINGS & 3-SECOND LONG PRESS ---
         const settingsMenu = document.getElementById('settings-menu');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         let hideTimeout;
@@ -660,80 +771,58 @@
 
         document.getElementById('close-settings').addEventListener('click', hideSettings);
 
-        document.getElementById('format-toggle').addEventListener('change', function(e) {
-            is12Hour = e.target.checked;
-            safeStorage.set('is12Hour', is12Hour);
-            resetHideTimer(); 
-        });
-
-        fullscreenBtn.addEventListener('click', function() {
-            try {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().then(() => {
-                        requestWakeLock();
-                    }).catch(err => { console.log(err); });
-                } else {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen().then(() => { releaseWakeLock(); });
-                    }
-                }
-            } catch(e) {}
-            hideSettings();
-        });
-
-        document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible') { requestWakeLock(); }
-        });
-
-        // --- BUTTERY SMOOTH CSS LONG PRESS UI ---
+        // --- NEW 3 SECOND LONG PRESS LOGIC ---
         let pressTimer;
-        const ring = document.getElementById('long-press-ring');
-
+        
         function startLongPress(e) {
-            // Check if clicking a menu or editing
+            // Don't trigger if tapping on menus or currently editing
             if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || isEditMode) return; 
             
-            // Get safe touch coordinates
-            let touchX = 0; let touchY = 0;
-            if (e.touches && e.touches.length > 0) {
-                touchX = e.touches[0].clientX; touchY = e.touches[0].clientY;
-            } else if (e.clientX !== undefined) {
-                touchX = e.clientX; touchY = e.clientY;
-            }
-            
-            // Position the ring instantly
-            ring.style.left = touchX + 'px';
-            ring.style.top = touchY + 'px';
-            
-            // Force a browser reflow before adding classes so animations trigger correctly
-            void ring.offsetWidth; 
-            
-            // Start the 3-second scale up
-            ring.classList.add('animating');
-
             pressTimer = setTimeout(() => {
-                // Timer reached 3 seconds! Flash it solid and open menu
-                ring.classList.add('complete');
-                setTimeout(() => {
-                    cancelLongPress();
-                    showSettings();
-                }, 200); // Wait a tiny moment so the user sees it complete
-            }, 3000);
+                showSettings();
+            }, 3000); // 3 Seconds
         }
 
         function cancelLongPress() {
             clearTimeout(pressTimer);
-            ring.classList.remove('animating', 'complete');
         }
 
-        document.body.addEventListener('touchstart', startLongPress, {passive: true});
+        // Bind Long Press triggers
+        document.body.addEventListener('touchstart', startLongPress);
         document.body.addEventListener('mousedown', startLongPress);
         
+        // Cancel if finger is lifted or moved
         document.body.addEventListener('touchend', cancelLongPress);
         document.body.addEventListener('mouseup', cancelLongPress);
-        document.body.addEventListener('touchmove', cancelLongPress, {passive: true});
+        document.body.addEventListener('touchmove', cancelLongPress);
         document.body.addEventListener('mousemove', cancelLongPress);
-        
+
+        document.getElementById('format-toggle').addEventListener('change', function(e) {
+            is12Hour = e.target.checked;
+            localStorage.setItem('is12Hour', is12Hour);
+            resetHideTimer(); 
+        });
+
+        fullscreenBtn.addEventListener('click', function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    requestWakeLock();
+                }).catch(err => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().then(() => {
+                        releaseWakeLock();
+                    });
+                }
+            }
+            hideSettings();
+        });
+
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
     </script>
 </body>
 </html>
