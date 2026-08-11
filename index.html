@@ -43,6 +43,28 @@
             transition: color 1s ease;
         }
 
+        /* --- MESSAGE SCREEN OVERLAY --- */
+        #message-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #000000;
+            z-index: 5000;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; 
+            transition: opacity 0.8s ease;
+            padding: 40px; text-align: center;
+        }
+
+        #message-overlay.visible { 
+            opacity: 1; pointer-events: auto; 
+        }
+
+        #message-text {
+            font-size: clamp(60px, 10vw, 120px);
+            font-weight: bold;
+            line-height: 1.2;
+            color: var(--clock-color); 
+        }
+
         /* --- BUTTERY SMOOTH LONG PRESS RING --- */
         #long-press-ring {
             position: fixed;
@@ -70,30 +92,15 @@
 
         /* --- HEADER LAYOUT --- */
         #header-positioner {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 20px;
-            transform-origin: top center;
-            z-index: 10;
-            padding: 10px;
-            border: 2px solid transparent;
-            cursor: grab;
-            transition: font-family 0.3s ease;
+            width: 100%; display: flex; flex-direction: column; align-items: center;
+            margin-top: 20px; transform-origin: top center; z-index: 10; padding: 10px;
+            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
         }
 
         .date-header {
-            width: 86%; 
-            display: flex;
-            justify-content: space-between; 
-            align-items: baseline;
-            letter-spacing: 1px;
-            line-height: 1;
-            margin-bottom: 0px;
-            font-variant-numeric: tabular-nums; 
-            font-size: clamp(35px, 5.5vw, 55px); 
-            white-space: nowrap; 
+            width: 86%; display: flex; justify-content: space-between; align-items: baseline;
+            letter-spacing: 1px; line-height: 1; margin-bottom: 0px;
+            font-variant-numeric: tabular-nums; font-size: clamp(35px, 5.5vw, 55px); white-space: nowrap; 
         }
 
         .pipe { font-size: 0.8em; transform: translateY(-2px); opacity: 0.8; }
@@ -111,10 +118,7 @@
         .network-dot.red { background-color: #ff3333; box-shadow: 0 0 10px #ff3333; animation: blink-dot 1s infinite; }
         @keyframes blink-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 
-        .divider {
-            width: 86%; height: 5px; background-color: var(--clock-color);
-            margin-bottom: 0px; transition: background-color 1s ease;
-        }
+        .divider { width: 86%; height: 5px; background-color: var(--clock-color); margin-bottom: 0px; transition: background-color 1s ease; }
 
         /* --- CLOCK LAYOUT --- */
         #clock-positioner {
@@ -139,15 +143,8 @@
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform;
         }
 
-        .digit {
-            height: 380px; line-height: 380px; font-size: 480px; width: 180px;
-            text-align: center; display: flex; justify-content: center; align-items: center;
-        }
-
-        .separator {
-            font-size: 300px; line-height: 380px; font-weight: bold; margin: 0 10px;
-            transform: translateY(-35px); animation: blink 1s step-end infinite;
-        }
+        .digit { height: 380px; line-height: 380px; font-size: 480px; width: 180px; text-align: center; display: flex; justify-content: center; align-items: center; }
+        .separator { font-size: 300px; line-height: 380px; font-weight: bold; margin: 0 10px; transform: translateY(-35px); animation: blink 1s step-end infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
         /* --- MENUS --- */
@@ -159,15 +156,8 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.9); font-family: -apple-system, sans-serif; min-width: 320px;
         }
 
-        .close-btn {
-            position: absolute; top: 10px; right: 15px; background: none; border: none;
-            color: #ffffff; font-size: 24px; font-weight: bold; cursor: pointer; opacity: 0.7;
-        }
-
-        .settings-btn {
-            background: #ffffff; color: #000000; border: none; padding: 10px 20px;
-            font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%;
-        }
+        .close-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #ffffff; font-size: 24px; font-weight: bold; cursor: pointer; opacity: 0.7; }
+        .settings-btn { background: #ffffff; color: #000000; border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; }
         .settings-btn.accent { background: #00ffaa; color: #000; }
 
         .toggle-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 15px; font-size: 16px; font-weight: bold; }
@@ -200,6 +190,11 @@
     </style>
 </head>
 <body>
+
+    <!-- Full-Screen Message Overlay -->
+    <div id="message-overlay">
+        <div id="message-text"></div>
+    </div>
 
     <!-- Visual 3-Second Press Ring -->
     <div id="long-press-ring"></div>
@@ -243,7 +238,6 @@
             <span>Night Color (10 PM - 6 AM)</span>
             <input type="color" id="night-color" class="color-picker" value="#00aaff">
         </div>
-
         <div class="toggle-row">
             <span>Auto Night Color Mode</span>
             <label class="switch">
@@ -251,7 +245,6 @@
                 <span class="slider"></span>
             </label>
         </div>
-
         <div class="toggle-row">
             <span>12-Hour Format</span>
             <label class="switch">
@@ -277,17 +270,14 @@
                 <option value="'Rubik Mono One', sans-serif">Rubik Mono</option>
             </select>
         </div>
-
         <div class="slider-group">
             <label>Stretch Width (Max Limit Applied)</label>
             <input type="range" id="scale-x" min="0.5" max="1.2" step="0.01" value="1">
         </div>
-        
         <div class="slider-group">
             <label>Stretch Height (Top/Bottom)</label>
             <input type="range" id="scale-y" min="0.5" max="1.5" step="0.01" value="1">
         </div>
-
         <div class="layout-actions">
             <button class="btn-reset" id="layout-reset">Reset Default</button>
             <button class="btn-save" id="layout-save">Close Editor</button>
@@ -297,12 +287,13 @@
     <script>
         // --- GOOGLE SHEETS API INTEGRATION ---
         const API_URL = 'https://script.google.com/macros/s/AKfycbzRz_gnUjFlw1-6w8OzvgMjXzgdVihpkSeg2siKh5el7QRs0EnApOCWlNMn-eedfJ-s/exec';
+        const MESSAGE_API_URL = 'https://script.google.com/macros/s/AKfycbwxyjcMeYoTsnYB7n59enTjMDm10ltMwcEY2nEvB0XEA8Wi-UoOtiU2V-O-928EyxgY/exec';
 
         // Background function to push changes to Google Sheets
         function syncToCloud(payload) {
             fetch(API_URL, {
                 method: 'POST',
-                mode: 'no-cors', // Bypasses preflight restrictions for seamless posting
+                mode: 'no-cors',
                 headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(payload)
             }).catch(e => console.log("Cloud Sync Failed", e));
@@ -330,6 +321,9 @@
         let nightColor = safeStorage.get('nightColor', "#00aaff");
         let autoNightMode = safeStorage.get('autoNightMode', 'true') !== 'false';
         
+        let lastMessage = "";
+        let messageTimer1, messageTimer2;
+
         const DEFAULT_LAYOUT = { time: { x: 15, y: -11, sx: 1.05, sy: 0.9 }, header: { x: 0, y: 15, sx: 1.05, sy: 1 } };
         let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
         try {
@@ -348,9 +342,66 @@
         document.getElementById('night-color').value = nightColor;
         document.getElementById('night-toggle').checked = autoNightMode;
 
-        // --- CLOUD SYNC LOGIC (Polling) ---
+        // --- MESSAGE SCREEN LOGIC ---
+        function triggerMessageScreen(text) {
+            const overlay = document.getElementById('message-overlay');
+            const msgText = document.getElementById('message-text');
+            
+            // Clear any existing timers so the screen doesn't glitch if a 2nd message arrives quickly
+            clearTimeout(messageTimer1);
+            clearTimeout(messageTimer2);
+
+            // Update text and fade in
+            msgText.textContent = text;
+            overlay.style.fontFamily = document.getElementById('clock-positioner').style.fontFamily; 
+            overlay.classList.add('visible');
+
+            // Timer 1: Wait 10 minutes (600,000 milliseconds)
+            messageTimer1 = setTimeout(() => {
+                msgText.textContent = "Waiting for messages...";
+                
+                // Timer 2: Wait 3 seconds, then hide
+                messageTimer2 = setTimeout(() => {
+                    overlay.classList.remove('visible'); 
+                }, 3000);
+
+            }, 600000); // 10 minutes
+        }
+
+        // --- DEDICATED MESSAGE POLLING ---
+        async function fetchMessagesFromCloud() {
+            if (isEditMode) return; 
+            try {
+                let response = await fetch(MESSAGE_API_URL);
+                let data = await response.json();
+                
+                let currentMessage = "";
+                
+                // Handle the tabular array structure from your new sheet
+                if (Array.isArray(data) && data.length > 0) {
+                    // Grab the 'Message' column from the last row in the sheet
+                    currentMessage = data[data.length - 1].Message || data[data.length - 1].message || "";
+                } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+                    currentMessage = data.data[data.data.length - 1].Message || data.data[data.data.length - 1].message || "";
+                }
+
+                // Trigger the screen if it's a completely new message
+                if (currentMessage && currentMessage.trim() !== "" && currentMessage !== lastMessage) {
+                    lastMessage = currentMessage;
+                    triggerMessageScreen(currentMessage);
+                }
+            } catch(e) {
+                console.log("Message fetch failed", e);
+            }
+        }
+
+        // Check for new messages every 10 seconds
+        setInterval(fetchMessagesFromCloud, 10000); 
+        setTimeout(fetchMessagesFromCloud, 1000); 
+
+        // --- CLOUD SYNC LOGIC (Settings & Layout Polling) ---
         async function fetchFromCloud() {
-            if (isEditMode) return; // Never interrupt a user while editing
+            if (isEditMode) return; 
             try {
                 let response = await fetch(API_URL);
                 let data = await response.json();
@@ -395,7 +446,6 @@
                 }
                 if (data.dualLayout) {
                     let remoteLayout = JSON.parse(data.dualLayout);
-                    // Compare layout signatures to avoid unnecessary repaints
                     if (JSON.stringify(remoteLayout) !== JSON.stringify(layout)) {
                         layout = remoteLayout;
                         safeStorage.set('dualLayout', data.dualLayout);
@@ -404,12 +454,10 @@
                 }
 
                 if (changed) updateColors();
-            } catch(e) {
-                // If offline or fails, fails silently and just keeps using local data
-            }
+            } catch(e) {}
         }
-        setInterval(fetchFromCloud, 10000); // Check cloud every 10 seconds
-        setTimeout(fetchFromCloud, 1000); // Check shortly after initial boot
+        setInterval(fetchFromCloud, 10000); 
+        setTimeout(fetchFromCloud, 1000); 
 
         // --- NETWORK STATUS LOGIC ---
         const networkDot = document.getElementById('network-dot');
