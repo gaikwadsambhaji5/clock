@@ -43,28 +43,6 @@
             transition: color 1s ease;
         }
 
-        /* --- MESSAGE SCREEN OVERLAY --- */
-        #message-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #000000;
-            z-index: 5000;
-            display: flex; justify-content: center; align-items: center;
-            opacity: 0; pointer-events: none; 
-            transition: opacity 0.8s ease;
-            padding: 40px; text-align: center;
-        }
-
-        #message-overlay.visible { 
-            opacity: 1; pointer-events: auto; 
-        }
-
-        #message-text {
-            font-size: clamp(60px, 10vw, 120px);
-            font-weight: bold;
-            line-height: 1.2;
-            color: var(--clock-color); 
-        }
-
         /* --- BUTTERY SMOOTH LONG PRESS RING --- */
         #long-press-ring {
             position: fixed;
@@ -92,15 +70,30 @@
 
         /* --- HEADER LAYOUT --- */
         #header-positioner {
-            width: 100%; display: flex; flex-direction: column; align-items: center;
-            margin-top: 20px; transform-origin: top center; z-index: 10; padding: 10px;
-            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            transform-origin: top center;
+            z-index: 10;
+            padding: 10px;
+            border: 2px solid transparent;
+            cursor: grab;
+            transition: font-family 0.3s ease;
         }
 
         .date-header {
-            width: 86%; display: flex; justify-content: space-between; align-items: baseline;
-            letter-spacing: 1px; line-height: 1; margin-bottom: 0px;
-            font-variant-numeric: tabular-nums; font-size: clamp(35px, 5.5vw, 55px); white-space: nowrap; 
+            width: 86%; 
+            display: flex;
+            justify-content: space-between; 
+            align-items: baseline;
+            letter-spacing: 1px;
+            line-height: 1;
+            margin-bottom: 0px;
+            font-variant-numeric: tabular-nums; 
+            font-size: clamp(35px, 5.5vw, 55px); 
+            white-space: nowrap; 
         }
 
         .pipe { font-size: 0.8em; transform: translateY(-2px); opacity: 0.8; }
@@ -118,7 +111,10 @@
         .network-dot.red { background-color: #ff3333; box-shadow: 0 0 10px #ff3333; animation: blink-dot 1s infinite; }
         @keyframes blink-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 
-        .divider { width: 86%; height: 5px; background-color: var(--clock-color); margin-bottom: 0px; transition: background-color 1s ease; }
+        .divider {
+            width: 86%; height: 5px; background-color: var(--clock-color);
+            margin-bottom: 0px; transition: background-color 1s ease;
+        }
 
         /* --- CLOCK LAYOUT --- */
         #clock-positioner {
@@ -143,8 +139,15 @@
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform;
         }
 
-        .digit { height: 380px; line-height: 380px; font-size: 480px; width: 180px; text-align: center; display: flex; justify-content: center; align-items: center; }
-        .separator { font-size: 300px; line-height: 380px; font-weight: bold; margin: 0 10px; transform: translateY(-35px); animation: blink 1s step-end infinite; }
+        .digit {
+            height: 380px; line-height: 380px; font-size: 480px; width: 180px;
+            text-align: center; display: flex; justify-content: center; align-items: center;
+        }
+
+        .separator {
+            font-size: 300px; line-height: 380px; font-weight: bold; margin: 0 10px;
+            transform: translateY(-35px); animation: blink 1s step-end infinite;
+        }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
         /* --- MENUS --- */
@@ -156,8 +159,15 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.9); font-family: -apple-system, sans-serif; min-width: 320px;
         }
 
-        .close-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #ffffff; font-size: 24px; font-weight: bold; cursor: pointer; opacity: 0.7; }
-        .settings-btn { background: #ffffff; color: #000000; border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; }
+        .close-btn {
+            position: absolute; top: 10px; right: 15px; background: none; border: none;
+            color: #ffffff; font-size: 24px; font-weight: bold; cursor: pointer; opacity: 0.7;
+        }
+
+        .settings-btn {
+            background: #ffffff; color: #000000; border: none; padding: 10px 20px;
+            font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%;
+        }
         .settings-btn.accent { background: #00ffaa; color: #000; }
 
         .toggle-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 15px; font-size: 16px; font-weight: bold; }
@@ -190,11 +200,6 @@
     </style>
 </head>
 <body>
-
-    <!-- Full-Screen Message Overlay -->
-    <div id="message-overlay">
-        <div id="message-text"></div>
-    </div>
 
     <!-- Visual 3-Second Press Ring -->
     <div id="long-press-ring"></div>
@@ -238,6 +243,7 @@
             <span>Night Color (10 PM - 6 AM)</span>
             <input type="color" id="night-color" class="color-picker" value="#00aaff">
         </div>
+
         <div class="toggle-row">
             <span>Auto Night Color Mode</span>
             <label class="switch">
@@ -245,6 +251,7 @@
                 <span class="slider"></span>
             </label>
         </div>
+
         <div class="toggle-row">
             <span>12-Hour Format</span>
             <label class="switch">
@@ -270,14 +277,17 @@
                 <option value="'Rubik Mono One', sans-serif">Rubik Mono</option>
             </select>
         </div>
+
         <div class="slider-group">
             <label>Stretch Width (Max Limit Applied)</label>
             <input type="range" id="scale-x" min="0.5" max="1.2" step="0.01" value="1">
         </div>
+        
         <div class="slider-group">
             <label>Stretch Height (Top/Bottom)</label>
             <input type="range" id="scale-y" min="0.5" max="1.5" step="0.01" value="1">
         </div>
+
         <div class="layout-actions">
             <button class="btn-reset" id="layout-reset">Reset Default</button>
             <button class="btn-save" id="layout-save">Close Editor</button>
@@ -287,17 +297,9 @@
     <script>
         // --- GOOGLE SHEETS API INTEGRATION ---
         const API_URL = 'https://script.google.com/macros/s/AKfycbzRz_gnUjFlw1-6w8OzvgMjXzgdVihpkSeg2siKh5el7QRs0EnApOCWlNMn-eedfJ-s/exec';
-        const MESSAGE_API_URL = 'https://script.google.com/macros/s/AKfycbwxyjcMeYoTsnYB7n59enTjMDm10ltMwcEY2nEvB0XEA8Wi-UoOtiU2V-O-928EyxgY/exec';
 
-        // Background function to push changes to Google Sheets
-        function syncToCloud(payload) {
-            fetch(API_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify(payload)
-            }).catch(e => console.log("Cloud Sync Failed", e));
-        }
+        // --- MESSAGE ALARM SYSTEM ---
+        const MESSAGE_API_URL = 'https://script.google.com/macros/s/AKfycbwxyjcMeYoTsnYB7n59enTjMDm10ltMwcEY2nEvB0XEA8Wi-UoOtiU2V-O-928EyxgY/exec';
 
         const safeStorage = {
             get: function(key, fallback) {
@@ -308,6 +310,49 @@
                 try { localStorage.setItem(key, value); } catch(e) {}
             }
         };
+
+        async function checkForNewMessages() {
+            if (typeof isEditMode !== 'undefined' && isEditMode) return; // Don't redirect while you are editing the layout
+            try {
+                let response = await fetch(MESSAGE_API_URL);
+                let data = await response.json();
+                
+                if (data && data.length > 0) {
+                    // Get the last row (the newest message)
+                    let latestMessage = data[data.length - 1];
+                    
+                    // The script typically returns arrays or objects. We look for the date string.
+                    let latestTime = latestMessage['Date and Time'] || latestMessage[0]; 
+                    
+                    let savedTime = safeStorage.get('lastMessageTime', null);
+
+                    if (savedTime !== null && latestTime !== savedTime) {
+                        // New timestamp detected! Save it and switch to the message screen
+                        safeStorage.set('lastMessageTime', latestTime);
+                        window.location.href = 'message-screen.html'; 
+                    } else if (savedTime === null) {
+                        // First time booting up: just save the current latest time as the baseline
+                        safeStorage.set('lastMessageTime', latestTime);
+                    }
+                }
+            } catch (e) {
+                // Fails silently if offline
+                console.log("Checking for messages failed: ", e);
+            }
+        }
+
+        // Check for new iPhone messages every 5 seconds
+        setInterval(checkForNewMessages, 5000);
+
+        // Background function to push changes to Google Sheets
+        function syncToCloud(payload) {
+            fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Bypasses preflight restrictions for seamless posting
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(payload)
+            }).catch(e => console.log("Cloud Sync Failed", e));
+        }
 
         window.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
 
@@ -321,9 +366,6 @@
         let nightColor = safeStorage.get('nightColor', "#00aaff");
         let autoNightMode = safeStorage.get('autoNightMode', 'true') !== 'false';
         
-        let messageTimer1, messageTimer2;
-        let lastRowCount = 0; // Tracks the total number of message rows
-
         const DEFAULT_LAYOUT = { time: { x: 15, y: -11, sx: 1.05, sy: 0.9 }, header: { x: 0, y: 15, sx: 1.05, sy: 1 } };
         let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
         try {
@@ -342,72 +384,9 @@
         document.getElementById('night-color').value = nightColor;
         document.getElementById('night-toggle').checked = autoNightMode;
 
-        // --- MESSAGE SCREEN LOGIC ---
-        function triggerMessageScreen(text) {
-            const overlay = document.getElementById('message-overlay');
-            const msgText = document.getElementById('message-text');
-            
-            // Clear any existing timers so the screen doesn't glitch if a 2nd message arrives quickly
-            clearTimeout(messageTimer1);
-            clearTimeout(messageTimer2);
-
-            // Update text and fade in
-            msgText.textContent = text;
-            overlay.style.fontFamily = document.getElementById('clock-positioner').style.fontFamily; 
-            overlay.classList.add('visible');
-
-            // Timer 1: Wait 10 minutes (600,000 milliseconds)
-            messageTimer1 = setTimeout(() => {
-                msgText.textContent = "Waiting for messages...";
-                
-                // Timer 2: Wait 3 seconds, then hide
-                messageTimer2 = setTimeout(() => {
-                    overlay.classList.remove('visible'); 
-                }, 3000);
-
-            }, 600000); // 10 minutes
-        }
-
-        // --- DEDICATED MESSAGE POLLING (Row Count Logic) ---
-        async function fetchMessagesFromCloud() {
-            if (isEditMode) return; 
-            try {
-                let response = await fetch(MESSAGE_API_URL);
-                let data = await response.json();
-                
-                let rows = Array.isArray(data) ? data : (data.data || []);
-                
-                if (rows.length > 0) {
-                    // 1. On first boot, just learn how many rows exist without showing an old message
-                    if (lastRowCount === 0) {
-                        lastRowCount = rows.length;
-                        return;
-                    }
-
-                    // 2. If the sheet now has MORE rows than before, a new message was added!
-                    if (rows.length > lastRowCount) {
-                        let newestMessage = rows[rows.length - 1].Message || rows[rows.length - 1].message || "";
-                        
-                        if (newestMessage && newestMessage.trim() !== "") {
-                            triggerMessageScreen(newestMessage);
-                        }
-                        
-                        // Update the tracker so it waits for the next new row
-                        lastRowCount = rows.length;
-                    }
-                }
-            } catch(e) {
-                console.log("Message fetch failed", e);
-            }
-        }
-
-        // Check for new rows every 10 seconds
-        setInterval(fetchMessagesFromCloud, 10000); 
-        setTimeout(fetchMessagesFromCloud, 1000); 
-
-        // --- CLOUD SYNC LOGIC (Settings & Layout Polling) ---
+        // --- CLOUD SYNC LOGIC (Polling) ---
         async function fetchFromCloud() {
-            if (isEditMode) return; 
+            if (isEditMode) return; // Never interrupt a user while editing
             try {
                 let response = await fetch(API_URL);
                 let data = await response.json();
@@ -452,6 +431,7 @@
                 }
                 if (data.dualLayout) {
                     let remoteLayout = JSON.parse(data.dualLayout);
+                    // Compare layout signatures to avoid unnecessary repaints
                     if (JSON.stringify(remoteLayout) !== JSON.stringify(layout)) {
                         layout = remoteLayout;
                         safeStorage.set('dualLayout', data.dualLayout);
@@ -460,10 +440,12 @@
                 }
 
                 if (changed) updateColors();
-            } catch(e) {}
+            } catch(e) {
+                // If offline or fails, fails silently and just keeps using local data
+            }
         }
-        setInterval(fetchFromCloud, 10000); 
-        setTimeout(fetchFromCloud, 1000); 
+        setInterval(fetchFromCloud, 10000); // Check cloud every 10 seconds
+        setTimeout(fetchFromCloud, 1000); // Check shortly after initial boot
 
         // --- NETWORK STATUS LOGIC ---
         const networkDot = document.getElementById('network-dot');
@@ -542,7 +524,7 @@
         }
 
         function updateDateHeader(now) {
-            if (isEditMode) {
+            if (typeof isEditMode !== 'undefined' && isEditMode) {
                 document.getElementById('day-marathi').textContent = "WWWWW";
                 document.getElementById('month-marathi').textContent = "MMMM";
                 document.getElementById('date-num').textContent = "DD/MM/YYYY";
@@ -802,7 +784,7 @@
         const ring = document.getElementById('long-press-ring');
 
         function startLongPress(e) {
-            if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || isEditMode) return; 
+            if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || (typeof isEditMode !== 'undefined' && isEditMode)) return; 
             
             let touchX = 0; let touchY = 0;
             if (e.touches && e.touches.length > 0) { touchX = e.touches[0].clientX; touchY = e.touches[0].clientY; } 
