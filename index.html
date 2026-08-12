@@ -154,23 +154,40 @@
         /* --- NEW: FULL SCREEN ALERT UI --- */
         #fullscreen-alert {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #000; z-index: 5000; flex-direction: column; justify-content: center;
+            z-index: 5000; flex-direction: column; justify-content: center;
             align-items: center; padding: 40px; text-align: center; font-family: -apple-system, sans-serif;
             cursor: pointer; 
         }
         #alert-text {
-            font-weight: bold; color: #ffffff;
+            font-weight: bold;
             line-height: 1.2; word-wrap: break-word; max-width: 90%;
             /* Font size is now dynamically controlled by JS */
         }
         .alert-hint {
-            position: absolute; bottom: 30px; font-size: 16px; color: rgba(255,255,255,0.5); font-weight: bold;
+            position: absolute; bottom: 30px; font-size: 16px; color: rgba(150,150,150,0.8); font-weight: bold;
         }
-        /* The Blinking Effect for High Priority */
-        .blink-red { animation: alert-blink 0.8s infinite alternate; }
-        @keyframes alert-blink {
-            0% { background-color: #000000; }
-            100% { background-color: #aa0000; }
+        
+        /* Normal Alert Styling */
+        .normal-alert { background-color: #000000; }
+        .normal-alert #alert-text { color: #ffffff; }
+
+        /* High Priority 3-Color Blinking Effect (Red-Black-White) */
+        .blink-red { animation: alert-blink-rbw 1.5s infinite; }
+        .blink-red #alert-text { animation: text-color-sync 1.5s infinite; }
+        
+        @keyframes alert-blink-rbw {
+            0%, 32% { background-color: #FF0000; }   /* Pure Red */
+            33%, 65% { background-color: #000000; }  /* Black */
+            66%, 99% { background-color: #FFFFFF; }  /* White */
+            100% { background-color: #FF0000; }
+        }
+        
+        /* Keeps text readable depending on the background flash */
+        @keyframes text-color-sync {
+            0%, 32% { color: #FFFFFF; }  /* White text on Red bg */
+            33%, 65% { color: #FFFFFF; } /* White text on Black bg */
+            66%, 99% { color: #FF0000; } /* Pure Red text on White bg */
+            100% { color: #FFFFFF; }
         }
 
         /* --- LAYOUT CONTROL PANEL --- */
@@ -565,14 +582,17 @@
             
             // --- DYNAMIC FONT SIZING ---
             const charCount = msg.length;
-            if (charCount < 35) {
-                // For short text like "Check all Connections"
+            if (charCount < 15) {
+                // SUPER SIZE: For single words like "TEST"
+                alertText.style.fontSize = "clamp(100px, 25vw, 250px)";
+            } else if (charCount < 35) {
+                // Short text like "Check all Connections"
                 alertText.style.fontSize = "clamp(60px, 15vw, 160px)";
             } else if (charCount < 110) {
-                // For medium text like "Ensure the machine is installed..."
+                // Medium text like "Ensure the machine is installed..."
                 alertText.style.fontSize = "clamp(40px, 9vw, 100px)";
             } else {
-                // For very long text like "Use designated lifting points..."
+                // Long text like "Use designated lifting points..."
                 alertText.style.fontSize = "clamp(22px, 5vw, 65px)";
             }
             
@@ -584,8 +604,7 @@
                 // Show for 10 minutes (600,000 ms)
                 alertTimeout = setTimeout(dismissFullscreenAlert, 600000);
             } else {
-                alertOverlay.className = '';
-                alertOverlay.style.backgroundColor = '#000000';
+                alertOverlay.className = 'normal-alert';
                 alertOverlay.style.display = 'flex';
                 // Show for 5 minutes (300,000 ms)
                 alertTimeout = setTimeout(dismissFullscreenAlert, 300000);
@@ -598,7 +617,8 @@
             alertOverlay.className = '';
         }
 
-        setInterval(checkLatestMessage, 30000);
+        // Changed interval from 30 seconds to 5 seconds!
+        setInterval(checkLatestMessage, 5000);
         setTimeout(checkLatestMessage, 3000);
 
     </script>
