@@ -155,12 +155,17 @@
         #fullscreen-alert {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 5000; flex-direction: column; justify-content: center;
-            align-items: center; padding: 40px; text-align: center; font-family: -apple-system, sans-serif;
+            align-items: center; padding: 20px; text-align: center; font-family: -apple-system, sans-serif;
             cursor: pointer; 
         }
         #alert-text {
             font-weight: bold;
-            line-height: 1.2; word-wrap: break-word; max-width: 90%;
+            line-height: 1.5; /* INCREASED: Gives Marathi matras plenty of room */
+            word-wrap: break-word; 
+            max-width: 95%;
+            max-height: 85vh; /* STRICT BOX: Prevents hitting the top/bottom of screen */
+            overflow-y: auto; /* SCROLL: Allows scrolling if text is still massively big */
+            padding: 20px; /* BUFFER: Creates a safe zone inside the box */
             /* Font size is now dynamically controlled by JS */
         }
         .alert-hint {
@@ -580,20 +585,20 @@
             clearTimeout(alertTimeout);
             alertText.textContent = msg;
             
-            // --- DYNAMIC FONT SIZING ---
+            // --- DYNAMIC FONT SIZING (Updated to vmin for Landscape safety) ---
             const charCount = msg.length;
             if (charCount < 15) {
-                // SUPER SIZE: For single words like "TEST"
-                alertText.style.fontSize = "clamp(100px, 25vw, 250px)";
-            } else if (charCount < 35) {
-                // Short text like "Check all Connections"
-                alertText.style.fontSize = "clamp(60px, 15vw, 160px)";
+                // SUPER SIZE
+                alertText.style.fontSize = "clamp(60px, 20vmin, 220px)";
+            } else if (charCount < 40) {
+                // Short text (adjusted limits for Marathi)
+                alertText.style.fontSize = "clamp(40px, 12vmin, 130px)";
             } else if (charCount < 110) {
-                // Medium text like "Ensure the machine is installed..."
-                alertText.style.fontSize = "clamp(40px, 9vw, 100px)";
+                // Medium text
+                alertText.style.fontSize = "clamp(25px, 8vmin, 90px)";
             } else {
-                // Long text like "Use designated lifting points..."
-                alertText.style.fontSize = "clamp(22px, 5vw, 65px)";
+                // Long text
+                alertText.style.fontSize = "clamp(18px, 5vmin, 60px)";
             }
             
             const isHighPriority = (priority || "").toLowerCase() === 'high';
@@ -617,7 +622,6 @@
             alertOverlay.className = '';
         }
 
-        // Changed interval from 30 seconds to 5 seconds!
         setInterval(checkLatestMessage, 5000);
         setTimeout(checkLatestMessage, 3000);
 
