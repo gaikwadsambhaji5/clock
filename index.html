@@ -156,11 +156,12 @@
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: #000; z-index: 5000; flex-direction: column; justify-content: center;
             align-items: center; padding: 40px; text-align: center; font-family: -apple-system, sans-serif;
-            cursor: pointer; /* Suggests it can be tapped */
+            cursor: pointer; 
         }
         #alert-text {
-            font-size: clamp(50px, 10vw, 120px); font-weight: bold; color: #ffffff;
+            font-weight: bold; color: #ffffff;
             line-height: 1.2; word-wrap: break-word; max-width: 90%;
+            /* Font size is now dynamically controlled by JS */
         }
         .alert-hint {
             position: absolute; bottom: 30px; font-size: 16px; color: rgba(255,255,255,0.5); font-weight: bold;
@@ -504,7 +505,6 @@
         let lastSeenMessageId = null;
         let alertTimeout = null;
 
-        // Opens the manual view board
         document.getElementById('open-messages-btn').addEventListener('click', () => {
             hideSettings();
             messageBoard.style.display = 'flex';
@@ -512,7 +512,6 @@
         });
         document.getElementById('close-messages').addEventListener('click', () => { messageBoard.style.display = 'none'; });
 
-        // Gets all messages for the menu board
         function fetchMessagesForBoard() {
             messageList.innerHTML = `<div class="loading-text">Fetching latest messages...</div>`;
             fetch(GOOGLE_APP_URL)
@@ -536,27 +535,22 @@
                 .catch(error => { messageList.innerHTML = `<div class="loading-text" style="color:red;">Failed to load messages.</div>`; });
         }
 
-        // The background checker that runs every 30 seconds
         function checkLatestMessage() {
             fetch(GOOGLE_APP_URL)
                 .then(response => response.json())
                 .then(data => {
                     if (data.length === 0) return;
                     
-                    // The newest message is the first one in the list (Row 2 in sheets)
                     const newestMsg = data[0];
-                    if(!newestMsg.message && !newestMsg.date) return; // Ignore blank rows
+                    if(!newestMsg.message && !newestMsg.date) return; 
 
-                    // Create a unique ID combining the date and message to know if it's new
                     const currentMessageId = newestMsg.date + newestMsg.message;
 
-                    // If this is the FIRST time checking since the clock loaded, just remember it silently.
                     if (lastSeenMessageId === null) {
                         lastSeenMessageId = currentMessageId;
                         return;
                     }
 
-                    // If the latest message is DIFFERENT from the last one we saw, trigger the alert!
                     if (currentMessageId !== lastSeenMessageId) {
                         lastSeenMessageId = currentMessageId;
                         triggerFullscreenAlert(newestMsg.message, newestMsg.priority);
@@ -566,13 +560,22 @@
         }
 
         function triggerFullscreenAlert(msg, priority) {
-            // Clear any existing alert timeout
             clearTimeout(alertTimeout);
-            
-            // Set the text
             alertText.textContent = msg;
             
-            // Format priority
+            // --- DYNAMIC FONT SIZING ---
+            const charCount = msg.length;
+            if (charCount < 35) {
+                // For short text like "Check all Connections"
+                alertText.style.fontSize = "clamp(60px, 15vw, 160px)";
+            } else if (charCount < 110) {
+                // For medium text like "Ensure the machine is installed..."
+                alertText.style.fontSize = "clamp(40px, 9vw, 100px)";
+            } else {
+                // For very long text like "Use designated lifting points..."
+                alertText.style.fontSize = "clamp(22px, 5vw, 65px)";
+            }
+            
             const isHighPriority = (priority || "").toLowerCase() === 'high';
             
             if (isHighPriority) {
@@ -595,9 +598,7 @@
             alertOverlay.className = '';
         }
 
-        // Check for new messages silently every 30 seconds
         setInterval(checkLatestMessage, 30000);
-        // Do an initial check 3 seconds after loading to calibrate the "last seen" message
         setTimeout(checkLatestMessage, 3000);
 
     </script>
