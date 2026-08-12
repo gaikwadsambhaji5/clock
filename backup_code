@@ -1,1 +1,680 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Scrolling Clock - Rock Solid Edition</title>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@700&family=Oswald:wght@700&family=Rajdhani:wght@700&family=Righteous&family=Rubik+Mono+One&family=Share+Tech+Mono&display=swap');
+    </style>
+
+    <style>
+        @font-face {
+            font-family: 'Teko Local';
+            src: url('Teko-Bold.ttf') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        :root {
+            --clock-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            background-color: #000000;
+            color: var(--clock-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none; 
+            -webkit-user-select: none;
+            padding: 0 45px; 
+            transition: color 1s ease;
+            touch-action: manipulation; /* Helps optimize double tap on mobile */
+        }
+
+        /* --- HEADER LAYOUT --- */
+        #header-positioner {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            transform-origin: top center;
+            z-index: 10;
+            padding: 10px;
+            border: 2px solid transparent;
+            cursor: grab;
+            transition: font-family 0.3s ease;
+        }
+
+        .date-header {
+            width: 86%; 
+            display: flex;
+            justify-content: space-between; 
+            align-items: baseline;
+            letter-spacing: 1px;
+            line-height: 1;
+            margin-bottom: 0px;
+            font-variant-numeric: tabular-nums; 
+            font-size: clamp(35px, 5.5vw, 55px); 
+            white-space: nowrap; 
+        }
+
+        .pipe {
+            font-size: 0.8em; 
+            transform: translateY(-2px);
+            opacity: 0.8; 
+        }
+
+        #date-num { display: inline-block; text-align: center; }
+        #sec-wrapper { display: flex; align-items: center; gap: 8px; }
+        #sec-num { display: inline-block; width: 1.2em; text-align: right; }
+
+        /* --- NETWORK STATUS DOT --- */
+        .network-dot {
+            width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+            transition: background-color 0.5s ease, box-shadow 0.5s ease;
+        }
+        .network-dot.green { background-color: #00ffaa; box-shadow: 0 0 10px #00ffaa; }
+        .network-dot.yellow { background-color: #ffcc00; box-shadow: 0 0 10px #ffcc00; }
+        .network-dot.red { background-color: #ff3333; box-shadow: 0 0 10px #ff3333; animation: blink-dot 1s infinite; }
+        @keyframes blink-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+        .divider {
+            width: 86%; height: 5px; background-color: var(--clock-color);
+            margin-bottom: 0px; transition: background-color 1s ease;
+        }
+
+        /* --- CLOCK LAYOUT --- */
+        #clock-positioner {
+            display: flex; justify-content: center; align-items: center;
+            transform-origin: top center; margin-top: 25px; padding: 10px;
+            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
+        }
+
+        .edit-mode #header-positioner, .edit-mode #clock-positioner {
+            border: 2px dashed rgba(255, 255, 255, 0.3); border-radius: 20px;
+        }
+        .edit-mode #header-positioner.active-target, .edit-mode #clock-positioner.active-target {
+            border: 2px dashed rgba(0, 255, 170, 0.8); background: rgba(0, 255, 170, 0.05);
+        }
+
+        .time-container { display: flex; align-items: center; justify-content: center; pointer-events: none; }
+        .digit-window { height: 380px; width: 180px; overflow: hidden; position: relative; }
+        .tens-window { margin-right: 15px; }
+        
+        .digit-strip {
+            display: flex; flex-direction: column;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform;
+        }
+
+        .digit {
+            height: 380px; line-height: 380px; font-size: 480px; width: 180px;
+            text-align: center; display: flex; justify-content: center; align-items: center;
+        }
+
+        .separator {
+            font-size: 300px; line-height: 380px; font-weight: bold; margin: 0 10px;
+            transform: translateY(-35px); animation: blink 1s step-end infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* --- MENUS --- */
+        .settings-overlay {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.2); padding: 30px; border-radius: 20px;
+            z-index: 1000; flex-direction: column; align-items: center; gap: 15px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9); font-family: -apple-system, sans-serif; min-width: 320px;
+        }
+
+        .close-btn {
+            position: absolute; top: 10px; right: 15px; background: none; border: none;
+            color: #ffffff; font-size: 24px; font-weight: bold; cursor: pointer; opacity: 0.7;
+        }
+
+        .settings-btn {
+            background: #ffffff; color: #000000; border: none; padding: 10px 20px;
+            font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%;
+        }
+        .settings-btn.accent { background: #00ffaa; color: #000; }
+
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 15px; font-size: 16px; font-weight: bold; }
+        .custom-select, .color-picker { background: #333; color: #fff; border: 1px solid #555; padding: 6px; border-radius: 8px; font-size: 14px; font-weight: bold; outline: none; }
+        .color-picker { padding: 0; height: 30px; width: 50px; border: none; cursor: pointer; }
+
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 28px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #00ffaa; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* --- LAYOUT CONTROL PANEL --- */
+        .layout-panel {
+            display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(10, 10, 10, 0.95); border: 2px solid #00ffaa; border-radius: 15px;
+            padding: 15px 20px; width: 90%; max-width: 500px; z-index: 2000;
+            font-family: -apple-system, sans-serif; flex-direction: column; gap: 12px;
+            box-shadow: 0 10px 30px rgba(0,255,170,0.2);
+        }
+        .layout-panel h3 { margin: 0; text-align: center; color: #00ffaa; font-size: 14px; }
+        .slider-group { display: flex; flex-direction: column; gap: 5px; }
+        .slider-group label { font-weight: bold; font-size: 12px; color: #ccc; }
+        input[type=range] { width: 100%; accent-color: #00ffaa; }
+        .layout-actions { display: flex; gap: 10px; margin-top: 5px; }
+        .layout-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-save { background: #00ffaa; color: #000; }
+        .btn-reset { background: #555; color: #fff; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Header Block -->
+    <div id="header-positioner" data-target="header">
+        <div class="date-header">
+            <span id="day-marathi">सोमवार</span> 
+            <span class="pipe">|</span> 
+            <span id="month-marathi">ऑगस्ट</span> 
+            <span class="pipe">|</span> 
+            <span id="date-num">10/08/2026</span>
+            <span class="pipe">|</span> 
+            <div id="sec-wrapper">
+                <span id="sec-num">00</span>
+                <span id="network-dot" class="network-dot green"></span>
+            </div>
+        </div>
+        <div class="divider"></div>
+    </div>
+
+    <!-- Clock Block -->
+    <div id="clock-positioner" data-target="time">
+        <div class="time-container" id="clock">
+            <div class="digit-window tens-window"><div class="digit-strip" id="h-tens"></div></div>
+            <div class="digit-window"><div class="digit-strip" id="h-units"></div></div>
+            <div class="separator">:</div>
+            <div class="digit-window tens-window"><div class="digit-strip" id="m-tens"></div></div>
+            <div class="digit-window"><div class="digit-strip" id="m-units"></div></div>
+        </div>
+    </div>
+
+    <!-- Main Settings Menu -->
+    <div class="settings-overlay" id="settings-menu">
+        <button class="close-btn" id="close-settings">✕</button>
+        <button class="settings-btn" id="fullscreen-btn">Toggle Full Screen</button>
+        <button class="settings-btn accent" id="edit-layout-btn">Edit Layout (Restricted Boundaries)</button>
+
+        <div class="toggle-row">
+            <span>Day Color</span>
+            <input type="color" id="day-color" class="color-picker" value="#ffffff">
+        </div>
+        <div class="toggle-row">
+            <span>Night Color (10 PM - 6 AM)</span>
+            <input type="color" id="night-color" class="color-picker" value="#00aaff">
+        </div>
+
+        <div class="toggle-row">
+            <span>Auto Night Color Mode</span>
+            <label class="switch">
+                <input type="checkbox" id="night-toggle" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="toggle-row">
+            <span>12-Hour Format</span>
+            <label class="switch">
+                <input type="checkbox" id="format-toggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Layout Editor Panel -->
+    <div class="layout-panel" id="layout-panel">
+        <h3 id="layout-title">EDITING: CLOCK (Tap Header to edit text)</h3>
+        
+        <div class="slider-group">
+            <label>Selected Element Font</label>
+            <select id="layout-font-select" class="custom-select" style="width: 100%;">
+                <option value="'Teko Local', sans-serif">Teko (Local)</option>
+                <option value="'Orbitron', sans-serif">Orbitron</option>
+                <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
+                <option value="'Oswald', sans-serif">Oswald</option>
+                <option value="'Rajdhani', sans-serif">Rajdhani</option>
+                <option value="'Righteous', cursive">Righteous</option>
+                <option value="'Share Tech Mono', monospace">Share Tech Mono</option>
+                <option value="'Rubik Mono One', sans-serif">Rubik Mono</option>
+            </select>
+        </div>
+
+        <div class="slider-group">
+            <label>Stretch Width (Max Limit Applied)</label>
+            <input type="range" id="scale-x" min="0.5" max="1.2" step="0.01" value="1">
+        </div>
+        
+        <div class="slider-group">
+            <label>Stretch Height (Top/Bottom)</label>
+            <input type="range" id="scale-y" min="0.5" max="1.5" step="0.01" value="1">
+        </div>
+
+        <div class="layout-actions">
+            <button class="btn-reset" id="layout-reset">Reset Default</button>
+            <button class="btn-save" id="layout-save">Close Editor</button>
+        </div>
+    </div>
+
+    <script>
+        // --- BULLETPROOF LOCAL STORAGE WRAPPER ---
+        // This ensures NO external databases are used and saves locally to the browser
+        const safeStorage = {
+            get: function(key, fallback) {
+                try {
+                    let val = localStorage.getItem(key);
+                    return val !== null ? val : fallback;
+                } catch(e) { return fallback; }
+            },
+            set: function(key, value) {
+                try { localStorage.setItem(key, value); } catch(e) {}
+            }
+        };
+
+        // --- DISABLE BROWSER MENUS ---
+        window.oncontextmenu = function(e) {
+            e.preventDefault(); e.stopPropagation(); return false;
+        };
+
+        // --- DATA & SETTINGS LOAD ---
+        const DIGIT_HEIGHT = 380; 
+        
+        let is12Hour = safeStorage.get('is12Hour', 'false') === 'true';
+        let headerFont = safeStorage.get('headerFont', "'Teko Local', sans-serif");
+        let timeFont = safeStorage.get('timeFont', "'Teko Local', sans-serif");
+        let dayColor = safeStorage.get('dayColor', "#ffffff");
+        let nightColor = safeStorage.get('nightColor', "#00aaff");
+        let autoNightMode = safeStorage.get('autoNightMode', 'true') !== 'false';
+        
+        document.getElementById('header-positioner').style.fontFamily = headerFont;
+        document.getElementById('clock-positioner').style.fontFamily = timeFont;
+        document.getElementById('format-toggle').checked = is12Hour;
+        document.getElementById('day-color').value = dayColor;
+        document.getElementById('night-color').value = nightColor;
+        document.getElementById('night-toggle').checked = autoNightMode;
+
+        // --- NETWORK STATUS LOGIC ---
+        const networkDot = document.getElementById('network-dot');
+        function checkNetwork() {
+            try {
+                if (!navigator.onLine) {
+                    networkDot.className = 'network-dot red';
+                } else {
+                    fetch('https://1.1.1.1/cdn-cgi/trace', { mode: 'no-cors', cache: 'no-store' })
+                    .then(() => { networkDot.className = 'network-dot green'; })
+                    .catch(() => { networkDot.className = 'network-dot yellow'; });
+                }
+            } catch(e) {}
+        }
+        window.addEventListener('online', checkNetwork);
+        window.addEventListener('offline', checkNetwork);
+        setInterval(checkNetwork, 10000); 
+        checkNetwork();
+
+        // --- COLOR LOGIC ---
+        function updateColors() {
+            try {
+                const hour = new Date().getHours();
+                if (autoNightMode && (hour >= 22 || hour < 6)) {
+                    document.documentElement.style.setProperty('--clock-color', nightColor);
+                } else {
+                    document.documentElement.style.setProperty('--clock-color', dayColor);
+                }
+            } catch(e) {}
+        }
+        setInterval(updateColors, 60000); 
+        updateColors(); 
+
+        document.getElementById('day-color').addEventListener('input', (e) => {
+            dayColor = e.target.value;
+            safeStorage.set('dayColor', dayColor);
+            updateColors();
+            resetHideTimer();
+        });
+        document.getElementById('night-color').addEventListener('input', (e) => {
+            nightColor = e.target.value;
+            safeStorage.set('nightColor', nightColor);
+            updateColors();
+            resetHideTimer();
+        });
+        document.getElementById('night-toggle').addEventListener('change', (e) => {
+            autoNightMode = e.target.checked;
+            safeStorage.set('autoNightMode', autoNightMode);
+            updateColors();
+            resetHideTimer();
+        });
+
+        // --- CLOCK ENGINE ---
+        const marathiDays = ["रविवार", "सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
+        const marathiMonths = ["जानेवारी", "फेब्रुवारी", "मार्च", "एप्रिल", "मे", "जून", "जुलै", "ऑगस्ट", "सप्टेंबर", "ऑक्टोबर", "नोव्हेंबर", "डिसेंबर"];
+
+        function buildStrip(id, maxNumber) {
+            try {
+                const strip = document.getElementById(id);
+                let html = '';
+                for (let i = 0; i <= maxNumber; i++) { html += `<div class="digit">${i}</div>`; }
+                strip.innerHTML = html;
+            } catch(e) {}
+        }
+        buildStrip('h-tens', 2); buildStrip('h-units', 9); buildStrip('m-tens', 5); buildStrip('m-units', 9);
+
+        function updateStrip(id, value) {
+            try {
+                const strip = document.getElementById(id);
+                const translateY = -(value * DIGIT_HEIGHT);
+                strip.style.transform = `translate3d(0, ${translateY}px, 0)`;
+            } catch(e) {}
+        }
+
+        function updateDateHeader(now) {
+            if (isEditMode) {
+                document.getElementById('day-marathi').textContent = "WWWWW";
+                document.getElementById('month-marathi').textContent = "MMMM";
+                document.getElementById('date-num').textContent = "DD/MM/YYYY";
+                document.getElementById('sec-num').textContent = "SS";
+                return; 
+            }
+            try {
+                const day = marathiDays[now.getDay()];
+                const month = marathiMonths[now.getMonth()];
+                const dd = String(now.getDate()).padStart(2, '0');
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const yyyy = now.getFullYear();
+                const ss = String(now.getSeconds()).padStart(2, '0');
+
+                document.getElementById('day-marathi').textContent = day;
+                document.getElementById('month-marathi').textContent = month;
+                document.getElementById('date-num').textContent = `${dd}/${mm}/${yyyy}`;
+                document.getElementById('sec-num').textContent = ss;
+            } catch (err) {}
+        }
+
+        function updateClock() {
+            try {
+                const now = new Date();
+                let rawHours = now.getHours();
+                
+                if (is12Hour) {
+                    rawHours = rawHours % 12;
+                    rawHours = rawHours ? rawHours : 12; 
+                }
+
+                const hours = String(rawHours).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+
+                updateStrip('h-tens', parseInt(hours[0]));
+                updateStrip('h-units', parseInt(hours[1]));
+                updateStrip('m-tens', parseInt(minutes[0]));
+                updateStrip('m-units', parseInt(minutes[1]));
+
+                updateDateHeader(now);
+            } catch(e) {}
+            requestAnimationFrame(updateClock);
+        }
+        
+        // Start the clock safely
+        try { updateClock(); } catch(e) {}
+
+        // --- BOUNDED LAYOUT DRAG, STRETCH & AUTO-SAVE ENGINE ---
+        const timePos = document.getElementById('clock-positioner');
+        const headerPos = document.getElementById('header-positioner');
+        const layoutPanel = document.getElementById('layout-panel');
+        const layoutTitle = document.getElementById('layout-title');
+        const scaleXSlider = document.getElementById('scale-x');
+        const scaleYSlider = document.getElementById('scale-y');
+        const layoutFontSelect = document.getElementById('layout-font-select');
+        
+        let isEditMode = false;
+        let activeTarget = 'time'; 
+
+        const DEFAULT_LAYOUT = {
+            time:   { x: 15, y: -11, sx: 1.05, sy: 0.9 },
+            header: { x: 0, y: 15, sx: 1.05, sy: 1 }
+        };
+
+        let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
+        try {
+            const savedStr = safeStorage.get('dualLayout', null);
+            if (savedStr) { 
+                let parsed = JSON.parse(savedStr);
+                if(parsed && parsed.time && parsed.header) layout = parsed; 
+            }
+        } catch(e) {}
+
+        function autoSaveLayout() {
+            safeStorage.set('dualLayout', JSON.stringify(layout));
+        }
+
+        function applyTransforms() {
+            try {
+                timePos.style.transform = `translate(${layout.time.x}px, ${layout.time.y}px) scale(${layout.time.sx}, ${layout.time.sy})`;
+                headerPos.style.transform = `translate(${layout.header.x}px, ${layout.header.y}px) scale(${layout.header.sx}, ${layout.header.sy})`;
+            } catch(e) {}
+        }
+        applyTransforms();
+
+        function loadTargetToSliders() {
+            scaleXSlider.value = layout[activeTarget].sx;
+            scaleYSlider.value = layout[activeTarget].sy;
+            
+            timePos.classList.remove('active-target');
+            headerPos.classList.remove('active-target');
+            
+            if(activeTarget === 'time') {
+                timePos.classList.add('active-target');
+                layoutTitle.textContent = "EDITING: CLOCK (Tap Header to edit)";
+                scaleXSlider.max = 1.3; 
+                layoutFontSelect.value = timeFont; 
+            } else {
+                headerPos.classList.add('active-target');
+                layoutTitle.textContent = "EDITING: HEADER (Tap Clock to edit)";
+                scaleXSlider.max = 1.15; 
+                layoutFontSelect.value = headerFont; 
+            }
+        }
+
+        layoutFontSelect.addEventListener('change', (e) => {
+            if (activeTarget === 'header') {
+                headerFont = e.target.value;
+                document.getElementById('header-positioner').style.fontFamily = headerFont;
+                safeStorage.set('headerFont', headerFont);
+            } else {
+                timeFont = e.target.value;
+                document.getElementById('clock-positioner').style.fontFamily = timeFont;
+                safeStorage.set('timeFont', timeFont);
+            }
+        });
+
+        scaleXSlider.addEventListener('input', (e) => { 
+            layout[activeTarget].sx = parseFloat(e.target.value); 
+            applyTransforms(); 
+            autoSaveLayout(); 
+        });
+        scaleYSlider.addEventListener('input', (e) => { 
+            layout[activeTarget].sy = parseFloat(e.target.value); 
+            applyTransforms(); 
+            autoSaveLayout(); 
+        });
+
+        let isDragging = false;
+        let startX, startY, initialX, initialY;
+        let dragTarget = null; 
+
+        function startDrag(e, targetStr) {
+            if (!isEditMode) return;
+            isDragging = true;
+            dragTarget = targetStr;
+            activeTarget = targetStr; 
+            loadTargetToSliders();    
+
+            let touchX = e.touches ? e.touches[0].clientX : e.clientX;
+            let touchY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            startX = touchX;
+            startY = touchY;
+            initialX = layout[dragTarget].x;
+            initialY = layout[dragTarget].y;
+        }
+
+        function moveDrag(e) {
+            if (!isDragging || !isEditMode || !dragTarget) return;
+            e.preventDefault(); 
+            let touchX = e.touches ? e.touches[0].clientX : e.clientX;
+            let touchY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const dx = touchX - startX;
+            const dy = touchY - startY;
+            
+            let newX = initialX + dx;
+            let newY = initialY + dy;
+            
+            const maxMoveX = window.innerWidth / 3;
+            const maxMoveY = window.innerHeight / 3;
+            
+            layout[dragTarget].x = Math.max(-maxMoveX, Math.min(maxMoveX, newX));
+            layout[dragTarget].y = Math.max(-maxMoveY, Math.min(maxMoveY, newY));
+            
+            applyTransforms();
+        }
+
+        function endDrag() {
+            if (isDragging) {
+                isDragging = false;
+                dragTarget = null;
+                autoSaveLayout(); 
+            }
+        }
+
+        timePos.addEventListener('touchstart', (e) => startDrag(e, 'time'));
+        timePos.addEventListener('mousedown', (e) => startDrag(e, 'time'));
+        headerPos.addEventListener('touchstart', (e) => startDrag(e, 'header'));
+        headerPos.addEventListener('mousedown', (e) => startDrag(e, 'header'));
+        window.addEventListener('touchmove', moveDrag, {passive: false});
+        window.addEventListener('mousemove', moveDrag);
+        window.addEventListener('touchend', endDrag);
+        window.addEventListener('mouseup', endDrag);
+
+        // --- MENUS & OVERLAYS ---
+        document.getElementById('edit-layout-btn').addEventListener('click', () => {
+            hideSettings();
+            isEditMode = true;
+            document.body.classList.add('edit-mode');
+            layoutPanel.style.display = 'flex';
+            activeTarget = 'time'; 
+            loadTargetToSliders();
+        });
+
+        document.getElementById('layout-save').addEventListener('click', () => {
+            isEditMode = false;
+            document.body.classList.remove('edit-mode');
+            layoutPanel.style.display = 'none';
+            timePos.classList.remove('active-target');
+            headerPos.classList.remove('active-target');
+            autoSaveLayout();
+        });
+
+        document.getElementById('layout-reset').addEventListener('click', () => {
+            layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
+            loadTargetToSliders();
+            applyTransforms();
+            autoSaveLayout();
+        });
+
+        // --- SETTINGS & FULLSCREEN LOGIC ---
+        const settingsMenu = document.getElementById('settings-menu');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        let hideTimeout;
+        let wakeLock = null;
+
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+            }
+        }
+        function releaseWakeLock() {
+            if (wakeLock !== null) { wakeLock.release().then(() => { wakeLock = null; }); }
+        }
+
+        function showSettings() {
+            if(isEditMode) return; 
+            settingsMenu.style.display = 'flex';
+            resetHideTimer();
+        }
+        function hideSettings() {
+            settingsMenu.style.display = 'none';
+            clearTimeout(hideTimeout);
+        }
+        function resetHideTimer() {
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(hideSettings, 10000); 
+        }
+
+        document.getElementById('close-settings').addEventListener('click', hideSettings);
+
+        document.getElementById('format-toggle').addEventListener('change', function(e) {
+            is12Hour = e.target.checked;
+            safeStorage.set('is12Hour', is12Hour);
+            resetHideTimer(); 
+        });
+
+        fullscreenBtn.addEventListener('click', function() {
+            try {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().then(() => {
+                        requestWakeLock();
+                    }).catch(err => { console.log(err); });
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen().then(() => { releaseWakeLock(); });
+                    }
+                }
+            } catch(e) {}
+            hideSettings();
+        });
+
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') { requestWakeLock(); }
+        });
+
+        // --- DOUBLE TAP TO OPEN SETTINGS ---
+        let lastTapTime = 0;
+        document.body.addEventListener('click', function(e) {
+            // Ignore if clicking inside a menu, or if we are currently editing the layout
+            if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || isEditMode) return;
+            
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTapTime;
+            
+            // If the time between taps is less than 300ms (standard double tap speed)
+            if (tapLength < 300 && tapLength > 0) {
+                showSettings();
+            }
+            
+            lastTapTime = currentTime;
+        });
+
+    </script>
+</body>
+</html>
