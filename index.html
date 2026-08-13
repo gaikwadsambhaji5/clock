@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Scrolling Clock - Rock Solid Edition</title>
+    <title>Scrolling Clock - Image Edition</title>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@700&family=Oswald:wght@700&family=Rajdhani:wght@700&family=Righteous&family=Rubik+Mono+One&family=Share+Tech+Mono&display=swap');
@@ -148,6 +148,8 @@
         .msg-card.High { border-left-color: #ff3333; }
         .msg-card.Low { border-left-color: #00ffaa; }
         .msg-text { font-size: 18px; font-weight: bold; }
+        /* NEW: Image preview styling for the message board list */
+        .msg-img-preview { max-width: 100%; max-height: 150px; border-radius: 8px; margin-top: 10px; object-fit: contain; background: #000; }
         .msg-meta { font-size: 13px; color: #888; display: flex; justify-content: space-between; }
         .loading-text { text-align: center; color: #aaa; font-style: italic; margin-top: 20px; }
 
@@ -156,19 +158,24 @@
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 5000; flex-direction: column; justify-content: center;
             align-items: center; 
-            /* Huge padding on the bottom guarantees text never touches the dismiss hint */
             padding: 20px 15px 75px 15px; 
             text-align: center; font-family: -apple-system, sans-serif;
             cursor: pointer; box-sizing: border-box;
         }
+        /* New Image Holder for Full Screen Alerts */
+        #alert-image {
+            display: none; max-width: 95vw; max-height: 50vh; 
+            object-fit: contain; border-radius: 15px; margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
         #alert-text {
             font-weight: bold;
-            line-height: 1.35; /* Tighter line height prevents vertical overflow while allowing massive fonts */
+            line-height: 1.35; 
             word-wrap: break-word; overflow-wrap: break-word;
             max-width: 100%;
             max-height: 100%; 
-            overflow-y: auto; /* Fallback scroll only for impossibly long texts */
-            text-wrap: balance; /* Perfectly balances multi-line text */
+            overflow-y: auto; 
+            text-wrap: balance; 
         }
         .alert-hint {
             position: absolute; bottom: 30px; font-size: 16px; color: rgba(150,150,150,0.8); font-weight: bold;
@@ -286,6 +293,7 @@
 
     <!-- NEW: FULL SCREEN ALERT -->
     <div id="fullscreen-alert">
+        <img id="alert-image" src="" alt="Incoming Image">
         <div id="alert-text"></div>
         <div class="alert-hint">Double Tap to dismiss</div>
     </div>
@@ -520,11 +528,12 @@
         });
 
 
-        // --- LIVE MESSAGING LOGIC (BACKGROUND POLLING) ---
+        // --- LIVE MESSAGING & IMAGE LOGIC (BACKGROUND POLLING) ---
         const messageBoard = document.getElementById('message-board');
         const messageList = document.getElementById('message-list');
         const alertOverlay = document.getElementById('fullscreen-alert');
         const alertText = document.getElementById('alert-text');
+        const alertImage = document.getElementById('alert-image');
         
         let lastSeenMessageId = null;
         let alertTimeout = null;
@@ -545,14 +554,20 @@
                     if (data.length === 0) { messageList.innerHTML = `<div class="loading-text">No messages right now.</div>`; return; }
 
                     data.forEach(msg => {
-                        if(!msg.message && !msg.date) return;
+                        if(!msg.message && !msg.date && !msg.image) return;
+                        
                         let safePriority = (msg.priority || "Normal").trim();
-                        let safeMsg = msg.message || "[Empty Message]";
+                        let safeMsg = msg.message || "";
                         let safeDate = msg.date || "";
+                        let safeImg = msg.image ? `<img class="msg-img-preview" src="data:image/jpeg;base64,${msg.image}">` : "";
 
                         let card = document.createElement('div');
                         card.className = `msg-card ${safePriority}`;
-                        card.innerHTML = `<div class="msg-text">${safeMsg}</div><div class="msg-meta"><span>Priority: ${safePriority}</span><span>${safeDate}</span></div>`;
+                        card.innerHTML = `
+                            ${safeImg}
+                            <div class="msg-text">${safeMsg}</div>
+                            <div class="msg-meta"><span>Priority: ${safePriority}</span><span>${safeDate}</span></div>
+                        `;
                         messageList.appendChild(card);
                     });
                 })
@@ -566,9 +581,11 @@
                     if (data.length === 0) return;
                     
                     const newestMsg = data[0];
-                    if(!newestMsg.message && !newestMsg.date) return; 
+                    if(!newestMsg.message && !newestMsg.date && !newestMsg.image) return; 
 
-                    const currentMessageId = newestMsg.date + newestMsg.message;
+                    // Ensure unique ID includes image string snippet in case it's just a photo
+                    const imgSnippet = newestMsg.image ? newestMsg.image.substring(0, 20) : "";
+                    const currentMessageId = newestMsg.date + newestMsg.message + imgSnippet;
 
                     if (lastSeenMessageId === null) {
                         lastSeenMessageId = currentMessageId;
@@ -577,61 +594,58 @@
 
                     if (currentMessageId !== lastSeenMessageId) {
                         lastSeenMessageId = currentMessageId;
-                        triggerFullscreenAlert(newestMsg.message, newestMsg.priority);
+                        triggerFullscreenAlert(newestMsg.message, newestMsg.priority, newestMsg.image);
                     }
                 })
                 .catch(e => console.log("Background check error", e));
         }
 
-        function triggerFullscreenAlert(msg, priority) {
+        function triggerFullscreenAlert(msg, priority, imageStr) {
             clearTimeout(alertTimeout);
             
+            // Handle Image Injection
+            if (imageStr && imageStr.trim() !== "") {
+                // Remove formatting characters if Apple shortcuts added them
+                let cleanBase64 = imageStr.replace(/\r?\n|\r/g, ''); 
+                alertImage.src = `data:image/jpeg;base64,${cleanBase64}`;
+                alertImage.style.display = 'block';
+            } else {
+                alertImage.src = "";
+                alertImage.style.display = 'none';
+            }
+
             const charCount = msg.length;
             
-            // Check if the user specifically created manual line breaks in the Google Sheet (Alt+Enter)
             let hasManualBreak = msg.includes('\n');
             let displayMsg = msg.replace(/\n/g, '<br>');
 
-            // --- SMART LINE BREAK CALCULATION ---
-            // Finds the exact mathematical center of a medium sentence and forces a line break.
             if (!hasManualBreak && charCount >= 12 && charCount < 65) {
                 let middle = Math.floor(charCount / 2);
                 let before = msg.lastIndexOf(' ', middle);
                 let after = msg.indexOf(' ', middle + 1);
                 
                 let splitIndex = -1;
-                if (before === -1 && after === -1) {
-                    splitIndex = -1; // No spaces found (impossible for normal sentences, but safe)
-                } else if (before === -1) {
-                    splitIndex = after;
-                } else if (after === -1) {
-                    splitIndex = before;
-                } else {
-                    // Pick the space closest to the true middle
-                    splitIndex = (middle - before < after - middle) ? before : after;
-                }
+                if (before === -1 && after === -1) { splitIndex = -1; } 
+                else if (before === -1) { splitIndex = after; } 
+                else if (after === -1) { splitIndex = before; } 
+                else { splitIndex = (middle - before < after - middle) ? before : after; }
                 
-                if (splitIndex !== -1) {
-                    // Inject a line break <br> where the middle space was
-                    displayMsg = msg.substring(0, splitIndex) + "<br>" + msg.substring(splitIndex + 1);
-                }
+                if (splitIndex !== -1) { displayMsg = msg.substring(0, splitIndex) + "<br>" + msg.substring(splitIndex + 1); }
             }
 
             alertText.innerHTML = displayMsg;
             
-            // --- DYNAMIC FONT SIZING (Mathematically maximized for huge visual space without cutting off) ---
-            if (charCount < 20) {
-                // SUPER SIZE: 1 to 2 lines max
-                alertText.style.fontSize = "clamp(50px, 26vmin, 300px)";
-            } else if (charCount < 65) {
-                // MEDIUM SIZE: Guaranteed 2-3 perfectly balanced lines
-                alertText.style.fontSize = "clamp(35px, 18vmin, 200px)";
-            } else if (charCount < 120) {
-                // LARGE PARAGRAPH
-                alertText.style.fontSize = "clamp(25px, 11vmin, 120px)";
+            // If there is an image, we shrink the text sizes slightly so everything fits
+            if (imageStr) {
+                if (charCount === 0) { alertText.style.fontSize = "0px"; }
+                else if (charCount < 20) { alertText.style.fontSize = "clamp(30px, 15vmin, 150px)"; } 
+                else if (charCount < 65) { alertText.style.fontSize = "clamp(25px, 10vmin, 100px)"; } 
+                else { alertText.style.fontSize = "clamp(18px, 5vmin, 60px)"; }
             } else {
-                // ESSAY SIZE
-                alertText.style.fontSize = "clamp(18px, 7vmin, 80px)";
+                if (charCount < 20) { alertText.style.fontSize = "clamp(50px, 26vmin, 300px)"; } 
+                else if (charCount < 65) { alertText.style.fontSize = "clamp(35px, 18vmin, 200px)"; } 
+                else if (charCount < 120) { alertText.style.fontSize = "clamp(25px, 11vmin, 120px)"; } 
+                else { alertText.style.fontSize = "clamp(18px, 7vmin, 80px)"; }
             }
             
             const isHighPriority = (priority || "").toLowerCase() === 'high';
@@ -639,12 +653,10 @@
             if (isHighPriority) {
                 alertOverlay.className = 'blink-red';
                 alertOverlay.style.display = 'flex';
-                // Show for 10 minutes (600,000 ms)
                 alertTimeout = setTimeout(dismissFullscreenAlert, 600000);
             } else {
                 alertOverlay.className = 'normal-alert';
                 alertOverlay.style.display = 'flex';
-                // Show for 5 minutes (300,000 ms)
                 alertTimeout = setTimeout(dismissFullscreenAlert, 300000);
             }
         }
@@ -653,6 +665,8 @@
             clearTimeout(alertTimeout);
             alertOverlay.style.display = 'none';
             alertOverlay.className = '';
+            // Unload image to save memory
+            alertImage.src = "";
         }
 
         setInterval(checkLatestMessage, 5000);
