@@ -74,10 +74,11 @@
             border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
         }
 
-        .edit-mode #header-positioner, .edit-mode #clock-positioner {
+        /* --- EDIT MODE BORDERS --- */
+        .edit-mode #header-positioner, .edit-mode #clock-positioner, .edit-mode #ping-positioner {
             border: 2px dashed rgba(255, 255, 255, 0.3); border-radius: 20px;
         }
-        .edit-mode #header-positioner.active-target, .edit-mode #clock-positioner.active-target {
+        .edit-mode #header-positioner.active-target, .edit-mode #clock-positioner.active-target, .edit-mode #ping-positioner.active-target {
             border: 2px dashed rgba(0, 255, 170, 0.8); background: rgba(0, 255, 170, 0.05);
         }
 
@@ -95,31 +96,40 @@
             text-align: center; display: flex; justify-content: center; align-items: center;
         }
 
-        /* --- NEW: CENTER COLUMN (SEPARATOR + PING BOX) --- */
+        /* --- CENTER COLUMN (STRICT WIDTH SO CLOCK NEVER SHAKES) --- */
         .center-col {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             height: 380px; margin: 0 15px; transform: translateY(-15px);
+            width: 60px; /* Locked width guarantees digits won't move */
         }
 
         .separator {
-            font-size: 250px; line-height: 1; font-weight: bold; margin-bottom: 25px;
+            font-size: 250px; line-height: 1; font-weight: bold;
             animation: blink 1s step-end infinite;
         }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
+        /* --- NEW EDITABLE PING POSITIONER --- */
+        #ping-positioner {
+            display: flex; justify-content: center; align-items: center;
+            transform-origin: center; z-index: 10; padding: 10px;
+            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
+        }
+
         /* The Box for the Honest Ping */
         .ping-box {
             border: 2px solid #ffffff;
-            border-radius: 8px;
-            padding: 5px 15px;
-            font-size: 26px;
+            border-radius: 12px;
+            padding: 10px 25px; /* Larger patch */
+            font-size: 32px;
             font-family: -apple-system, sans-serif;
             font-weight: bold;
             color: #ffffff;
-            min-width: 90px;
+            min-width: 140px; 
             text-align: center;
-            background: rgba(0, 0, 0, 0.5);
-            transition: border-color 0.5s ease, color 0.5s ease;
+            background-color: rgba(0, 0, 0, 0.5); /* Default */
+            transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
 
         /* --- MENUS --- */
@@ -312,16 +322,20 @@
             <div class="digit-window tens-window"><div class="digit-strip" id="h-tens"></div></div>
             <div class="digit-window"><div class="digit-strip" id="h-units"></div></div>
             
-            <!-- NEW CENTER COLUMN: Separator + Honest Ping Box -->
+            <!-- CENTER COLUMN (ONLY Separator Now) -->
             <div class="center-col">
                 <div class="separator">:</div>
-                <div class="ping-box" id="ping-box">
-                    <span id="stat-ping">--</span><span style="font-size: 0.6em; opacity: 0.8; margin-left: 2px;">ms</span>
-                </div>
             </div>
 
             <div class="digit-window tens-window"><div class="digit-strip" id="m-tens"></div></div>
             <div class="digit-window"><div class="digit-strip" id="m-units"></div></div>
+        </div>
+    </div>
+
+    <!-- NEW EDITABLE PING BLOCK -->
+    <div id="ping-positioner" data-target="ping">
+        <div class="ping-box" id="ping-box">
+            <span id="stat-ping">--</span><span style="font-size: 0.6em; opacity: 0.9; margin-left: 2px;">ms</span>
         </div>
     </div>
 
@@ -416,6 +430,7 @@
         
         document.getElementById('header-positioner').style.fontFamily = headerFont;
         document.getElementById('clock-positioner').style.fontFamily = timeFont;
+        document.getElementById('ping-positioner').style.fontFamily = headerFont; // Ping matches Header
         document.getElementById('format-toggle').checked = is12Hour;
         document.getElementById('day-color').value = dayColor;
         document.getElementById('night-color').value = nightColor;
@@ -431,8 +446,9 @@
                 if (!navigator.onLine) { 
                     networkDot.className = 'network-dot red'; 
                     pingText.textContent = 'ERR';
+                    pingBox.style.backgroundColor = '#ff3333';
                     pingBox.style.borderColor = '#ff3333';
-                    pingBox.style.color = '#ff3333';
+                    pingBox.style.color = '#ffffff';
                     return; 
                 } 
 
@@ -448,32 +464,36 @@
 
                     pingText.textContent = pingTime;
 
-                    // Color Coding Box based on real health
+                    // Solid Color Patch Logic
                     if (pingTime < 150) {
-                        pingBox.style.borderColor = '#00ffaa'; // Green (Good)
-                        pingBox.style.color = '#00ffaa';
+                        pingBox.style.backgroundColor = '#00ffaa'; // Solid Green
+                        pingBox.style.borderColor = '#00ffaa';
+                        pingBox.style.color = '#000000'; // Black text for contrast
                         networkDot.className = 'network-dot green'; 
                     } else if (pingTime < 350) {
-                        pingBox.style.borderColor = '#ffcc00'; // Yellow (Bit High)
-                        pingBox.style.color = '#ffcc00';
+                        pingBox.style.backgroundColor = '#ffcc00'; // Solid Yellow
+                        pingBox.style.borderColor = '#ffcc00';
+                        pingBox.style.color = '#000000'; // Black text for contrast
                         networkDot.className = 'network-dot yellow'; 
                     } else {
-                        pingBox.style.borderColor = '#ff3333'; // Red (Very High)
-                        pingBox.style.color = '#ff3333';
+                        pingBox.style.backgroundColor = '#ff3333'; // Solid Red
+                        pingBox.style.borderColor = '#ff3333';
+                        pingBox.style.color = '#ffffff'; // White text for contrast
                         networkDot.className = 'network-dot red'; 
                     }
                 })
                 .catch(() => { 
                     networkDot.className = 'network-dot red'; 
                     pingText.textContent = 'ERR';
+                    pingBox.style.backgroundColor = '#ff3333';
                     pingBox.style.borderColor = '#ff3333';
-                    pingBox.style.color = '#ff3333';
+                    pingBox.style.color = '#ffffff';
                 });
             } catch(e) {}
         }
         window.addEventListener('online', checkNetwork); 
         window.addEventListener('offline', checkNetwork);
-        setInterval(checkNetwork, 5000); // Polled honestly every 5 seconds
+        setInterval(checkNetwork, 5000); 
         checkNetwork();
 
         function updateColors() {
@@ -536,36 +556,75 @@
         }
         try { updateClock(); } catch(e) {}
 
-        const timePos = document.getElementById('clock-positioner'); const headerPos = document.getElementById('header-positioner');
-        const layoutPanel = document.getElementById('layout-panel'); const layoutTitle = document.getElementById('layout-title');
-        const scaleXSlider = document.getElementById('scale-x'); const scaleYSlider = document.getElementById('scale-y');
+        const timePos = document.getElementById('clock-positioner'); 
+        const headerPos = document.getElementById('header-positioner');
+        const pingPos = document.getElementById('ping-positioner'); // NEW Target
+        const layoutPanel = document.getElementById('layout-panel'); 
+        const layoutTitle = document.getElementById('layout-title');
+        const scaleXSlider = document.getElementById('scale-x'); 
+        const scaleYSlider = document.getElementById('scale-y');
         const layoutFontSelect = document.getElementById('layout-font-select');
         
         let isEditMode = false; let activeTarget = 'time'; 
-        const DEFAULT_LAYOUT = { time: { x: 15, y: -11, sx: 1.05, sy: 0.9 }, header: { x: 0, y: 15, sx: 1.05, sy: 1 } };
+        const DEFAULT_LAYOUT = { 
+            time: { x: 15, y: -11, sx: 1.05, sy: 0.9 }, 
+            header: { x: 0, y: 15, sx: 1.05, sy: 1 },
+            ping: { x: 0, y: 15, sx: 1, sy: 1 } // Added Ping layout Defaults
+        };
         let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
-        try { const savedStr = safeStorage.get('dualLayout', null); if (savedStr) { let parsed = JSON.parse(savedStr); if(parsed && parsed.time && parsed.header) layout = parsed; } } catch(e) {}
+        
+        try { 
+            const savedStr = safeStorage.get('dualLayout', null); 
+            if (savedStr) { 
+                let parsed = JSON.parse(savedStr); 
+                if(parsed && parsed.time && parsed.header) {
+                    layout.time = parsed.time;
+                    layout.header = parsed.header;
+                    if(parsed.ping) layout.ping = parsed.ping; // Gracefully load ping position if saved
+                } 
+            } 
+        } catch(e) {}
 
         function autoSaveLayout() { safeStorage.set('dualLayout', JSON.stringify(layout)); }
+        
         function applyTransforms() {
             try {
                 timePos.style.transform = `translate(${layout.time.x}px, ${layout.time.y}px) scale(${layout.time.sx}, ${layout.time.sy})`;
                 headerPos.style.transform = `translate(${layout.header.x}px, ${layout.header.y}px) scale(${layout.header.sx}, ${layout.header.sy})`;
+                pingPos.style.transform = `translate(${layout.ping.x}px, ${layout.ping.y}px) scale(${layout.ping.sx}, ${layout.ping.sy})`;
             } catch(e) {}
         }
         applyTransforms();
 
         function loadTargetToSliders() {
-            scaleXSlider.value = layout[activeTarget].sx; scaleYSlider.value = layout[activeTarget].sy;
-            timePos.classList.remove('active-target'); headerPos.classList.remove('active-target');
-            if(activeTarget === 'time') { timePos.classList.add('active-target'); layoutTitle.textContent = "EDITING: CLOCK (Tap Header to edit)"; scaleXSlider.max = 1.3; layoutFontSelect.value = timeFont; } 
-            else { headerPos.classList.add('active-target'); layoutTitle.textContent = "EDITING: HEADER (Tap Clock to edit)"; scaleXSlider.max = 1.15; layoutFontSelect.value = headerFont; }
+            scaleXSlider.value = layout[activeTarget].sx; 
+            scaleYSlider.value = layout[activeTarget].sy;
+            timePos.classList.remove('active-target'); 
+            headerPos.classList.remove('active-target');
+            pingPos.classList.remove('active-target');
+
+            if(activeTarget === 'time') { 
+                timePos.classList.add('active-target'); layoutTitle.textContent = "EDITING: CLOCK"; scaleXSlider.max = 1.3; layoutFontSelect.value = timeFont; 
+            } else if (activeTarget === 'header') { 
+                headerPos.classList.add('active-target'); layoutTitle.textContent = "EDITING: HEADER"; scaleXSlider.max = 1.15; layoutFontSelect.value = headerFont; 
+            } else if (activeTarget === 'ping') { 
+                pingPos.classList.add('active-target'); layoutTitle.textContent = "EDITING: PING BOX"; scaleXSlider.max = 2.0; layoutFontSelect.value = headerFont; 
+            }
         }
 
         layoutFontSelect.addEventListener('change', (e) => {
-            if (activeTarget === 'header') { headerFont = e.target.value; headerPos.style.fontFamily = headerFont; safeStorage.set('headerFont', headerFont); } 
-            else { timeFont = e.target.value; timePos.style.fontFamily = timeFont; safeStorage.set('timeFont', timeFont); }
+            if (activeTarget === 'header' || activeTarget === 'ping') { 
+                headerFont = e.target.value; 
+                headerPos.style.fontFamily = headerFont; 
+                pingPos.style.fontFamily = headerFont; // Keeps ping matching header font
+                safeStorage.set('headerFont', headerFont); 
+            } else { 
+                timeFont = e.target.value; 
+                timePos.style.fontFamily = timeFont; 
+                safeStorage.set('timeFont', timeFont); 
+            }
         });
+
         scaleXSlider.addEventListener('input', (e) => { layout[activeTarget].sx = parseFloat(e.target.value); applyTransforms(); autoSaveLayout(); });
         scaleYSlider.addEventListener('input', (e) => { layout[activeTarget].sy = parseFloat(e.target.value); applyTransforms(); autoSaveLayout(); });
 
@@ -587,6 +646,8 @@
 
         timePos.addEventListener('touchstart', (e) => startDrag(e, 'time')); timePos.addEventListener('mousedown', (e) => startDrag(e, 'time'));
         headerPos.addEventListener('touchstart', (e) => startDrag(e, 'header')); headerPos.addEventListener('mousedown', (e) => startDrag(e, 'header'));
+        pingPos.addEventListener('touchstart', (e) => startDrag(e, 'ping')); pingPos.addEventListener('mousedown', (e) => startDrag(e, 'ping'));
+        
         window.addEventListener('touchmove', moveDrag, {passive: false}); window.addEventListener('mousemove', moveDrag);
         window.addEventListener('touchend', endDrag); window.addEventListener('mouseup', endDrag);
 
@@ -596,7 +657,7 @@
         });
         document.getElementById('layout-save').addEventListener('click', () => {
             isEditMode = false; document.body.classList.remove('edit-mode'); layoutPanel.style.display = 'none';
-            timePos.classList.remove('active-target'); headerPos.classList.remove('active-target'); autoSaveLayout();
+            timePos.classList.remove('active-target'); headerPos.classList.remove('active-target'); pingPos.classList.remove('active-target'); autoSaveLayout();
         });
         document.getElementById('layout-reset').addEventListener('click', () => { layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); loadTargetToSliders(); applyTransforms(); autoSaveLayout(); });
 
