@@ -109,10 +109,21 @@
         }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
+        /* --- FLOATING PING ANCHOR (Mathematically centered) --- */
+        .ping-wrapper {
+            position: absolute; top: 50%; left: 50%;
+            width: 0; height: 0; /* Takes zero physical space */
+            display: flex; justify-content: center; align-items: flex-start;
+            z-index: 50; /* Floats over everything */
+            pointer-events: none; /* Stops the invisible box from blocking clicks */
+        }
+
         /* --- NEW EDITABLE PING POSITIONER --- */
         #ping-positioner {
+            pointer-events: auto; /* Re-enables dragging for the ping box */
+            margin-top: 140px; /* Pushes it exactly below the center colon */
             display: flex; justify-content: center; align-items: center;
-            transform-origin: center; z-index: 10; padding: 10px;
+            transform-origin: center; padding: 10px;
             border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
         }
 
@@ -120,7 +131,7 @@
         .ping-box {
             border: 2px solid #ffffff;
             border-radius: 12px;
-            padding: 10px 25px; /* Larger patch */
+            padding: 10px 25px; 
             font-size: 32px;
             font-family: -apple-system, sans-serif;
             font-weight: bold;
@@ -332,10 +343,12 @@
         </div>
     </div>
 
-    <!-- NEW EDITABLE PING BLOCK -->
-    <div id="ping-positioner" data-target="ping">
-        <div class="ping-box" id="ping-box">
-            <span id="stat-ping">--</span><span style="font-size: 0.6em; opacity: 0.9; margin-left: 2px;">ms</span>
+    <!-- NEW EDITABLE PING BLOCK (Wrapped for perfect screen-centering anchor) -->
+    <div class="ping-wrapper">
+        <div id="ping-positioner" data-target="ping">
+            <div class="ping-box" id="ping-box">
+                <span id="stat-ping">--</span><span style="font-size: 0.6em; opacity: 0.9; margin-left: 2px;">ms</span>
+            </div>
         </div>
     </div>
 
@@ -430,7 +443,7 @@
         
         document.getElementById('header-positioner').style.fontFamily = headerFont;
         document.getElementById('clock-positioner').style.fontFamily = timeFont;
-        document.getElementById('ping-positioner').style.fontFamily = headerFont; // Ping matches Header
+        document.getElementById('ping-positioner').style.fontFamily = headerFont; 
         document.getElementById('format-toggle').checked = is12Hour;
         document.getElementById('day-color').value = dayColor;
         document.getElementById('night-color').value = nightColor;
@@ -569,7 +582,7 @@
         const DEFAULT_LAYOUT = { 
             time: { x: 15, y: -11, sx: 1.05, sy: 0.9 }, 
             header: { x: 0, y: 15, sx: 1.05, sy: 1 },
-            ping: { x: 0, y: 15, sx: 1, sy: 1 } // Added Ping layout Defaults
+            ping: { x: 0, y: 0, sx: 1, sy: 1 } // X:0, Y:0 automatically falls directly below the colon!
         };
         let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
         
