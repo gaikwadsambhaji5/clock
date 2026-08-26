@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Scrolling Clock - Image Edition</title>
+    <title>Scrolling Clock - Animated Edition</title>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@700&family=Oswald:wght@700&family=Rajdhani:wght@700&family=Righteous&family=Rubik+Mono+One&family=Share+Tech+Mono&display=swap');
@@ -27,11 +27,23 @@
         }
 
         body {
-            background-color: #000000; color: var(--clock-color);
+            /* Background color is now handled by the Canvas animation */
+            color: var(--clock-color);
             display: flex; flex-direction: column; align-items: center;
             height: 100vh; overflow: hidden; user-select: none; 
             -webkit-user-select: none; padding: 0 45px; 
             transition: color 1s ease; touch-action: manipulation;
+        }
+
+        /* --- NEW: ANIMATED BACKGROUND CANVAS --- */
+        canvas#c {
+            position: fixed; /* Fixed prevents scrolling bugs */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Forces it behind all clock elements */
+            pointer-events: none; /* Prevents it from blocking layout editing */
         }
 
         /* --- HEADER LAYOUT --- */
@@ -112,16 +124,16 @@
         /* --- FLOATING PING ANCHOR (Mathematically centered) --- */
         .ping-wrapper {
             position: absolute; top: 50%; left: 50%;
-            width: 0; height: 0; /* Takes zero physical space */
+            width: 0; height: 0; 
             display: flex; justify-content: center; align-items: flex-start;
-            z-index: 50; /* Floats over everything */
-            pointer-events: none; /* Stops the invisible box from blocking clicks */
+            z-index: 50; 
+            pointer-events: none; 
         }
 
-        /* --- NEW EDITABLE PING POSITIONER --- */
+        /* --- EDITABLE PING POSITIONER --- */
         #ping-positioner {
-            pointer-events: auto; /* Re-enables dragging for the ping box */
-            margin-top: 140px; /* Pushes it exactly below the center colon */
+            pointer-events: auto; 
+            margin-top: 140px; 
             display: flex; justify-content: center; align-items: center;
             transform-origin: center; padding: 10px;
             border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
@@ -138,7 +150,7 @@
             color: #ffffff;
             min-width: 140px; 
             text-align: center;
-            background-color: rgba(0, 0, 0, 0.5); /* Default */
+            background-color: rgba(0, 0, 0, 0.5); 
             transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
@@ -310,6 +322,9 @@
 </head>
 <body>
 
+    <!-- NEW: Animated Canvas Background -->
+    <canvas id="c"></canvas>
+
     <!-- Header Block -->
     <div id="header-positioner" data-target="header">
         <div class="date-header">
@@ -422,9 +437,136 @@
     </div>
 
     <script>
+        // --------------------------------------------------------
+        // --- NEW: BACKGROUND ANIMATION SYSTEM ---
+        // --------------------------------------------------------
+        (function() {
+            var c = document.getElementById('c'),
+                w = c.width = window.innerWidth,
+                h = c.height = window.innerHeight,
+                ctx = c.getContext( '2d' ),
+                
+                opts = {
+                    len: 20,
+                    count: 50,
+                    baseTime: 10,
+                    addedTime: 10,
+                    dieChance: .05,
+                    spawnChance: 1,
+                    sparkChance: .1,
+                    sparkDist: 10,
+                    sparkSize: 2,
+                    
+                    color: 'hsl(hue,100%,light%)',
+                    baseLight: 50,
+                    addedLight: 10, 
+                    shadowToTimePropMult: 6,
+                    baseLightInputMultiplier: .01,
+                    addedLightInputMultiplier: .02,
+                    
+                    cx: w / 2,
+                    cy: h / 2,
+                    repaintAlpha: .04,
+                    hueChange: .1
+                },
+                
+                tick = 0,
+                lines = [],
+                dieX = w / 2 / opts.len,
+                dieY = h / 2 / opts.len,
+                
+                baseRad = Math.PI * 2 / 6;
+                
+            ctx.fillStyle = 'black';
+            ctx.fillRect( 0, 0, w, h );
+
+            function loop() {
+                window.requestAnimationFrame( loop );
+                
+                ++tick;
+                
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'rgba(0,0,0,alp)'.replace( 'alp', opts.repaintAlpha );
+                ctx.fillRect( 0, 0, w, h );
+                ctx.globalCompositeOperation = 'lighter';
+                
+                if( lines.length < opts.count && Math.random() < opts.spawnChance )
+                    lines.push( new Line );
+                
+                lines.map( function( line ){ line.step(); } );
+            }
+
+            function Line(){
+                this.reset();
+            }
+
+            Line.prototype.reset = function(){
+                this.x = 0;
+                this.y = 0;
+                this.addedX = 0;
+                this.addedY = 0;
+                this.rad = 0;
+                this.lightInputMultiplier = opts.baseLightInputMultiplier + opts.addedLightInputMultiplier * Math.random();
+                this.color = opts.color.replace( 'hue', tick * opts.hueChange );
+                this.cumulativeTime = 0;
+                this.beginPhase();
+            }
+
+            Line.prototype.beginPhase = function(){
+                this.x += this.addedX;
+                this.y += this.addedY;
+                this.time = 0;
+                this.targetTime = ( opts.baseTime + opts.addedTime * Math.random() ) |0;
+                this.rad += baseRad * ( Math.random() < .5 ? 1 : -1 );
+                this.addedX = Math.cos( this.rad );
+                this.addedY = Math.sin( this.rad );
+                
+                if( Math.random() < opts.dieChance || this.x > dieX || this.x < -dieX || this.y > dieY || this.y < -dieY )
+                    this.reset();
+            }
+
+            Line.prototype.step = function(){
+                ++this.time;
+                ++this.cumulativeTime;
+                
+                if( this.time >= this.targetTime )
+                    this.beginPhase();
+                
+                var prop = this.time / this.targetTime,
+                    wave = Math.sin( prop * Math.PI / 2  ),
+                    x = this.addedX * wave,
+                    y = this.addedY * wave;
+                
+                ctx.shadowBlur = prop * opts.shadowToTimePropMult;
+                ctx.fillStyle = ctx.shadowColor = this.color.replace( 'light', opts.baseLight + opts.addedLight * Math.sin( this.cumulativeTime * this.lightInputMultiplier ) );
+                ctx.fillRect( opts.cx + ( this.x + x ) * opts.len, opts.cy + ( this.y + y ) * opts.len, 2, 2 );
+                
+                if( Math.random() < opts.sparkChance )
+                    ctx.fillRect( opts.cx + ( this.x + x ) * opts.len + Math.random() * opts.sparkDist * ( Math.random() < .5 ? 1 : -1 ) - opts.sparkSize / 2, opts.cy + ( this.y + y ) * opts.len + Math.random() * opts.sparkDist * ( Math.random() < .5 ? 1 : -1 ) - opts.sparkSize / 2, opts.sparkSize, opts.sparkSize )
+            }
+
+            loop();
+
+            window.addEventListener( 'resize', function(){
+                w = c.width = window.innerWidth;
+                h = c.height = window.innerHeight;
+                ctx.fillStyle = 'black';
+                ctx.fillRect( 0, 0, w, h );
+                opts.cx = w / 2;
+                opts.cy = h / 2;
+                dieX = w / 2 / opts.len;
+                dieY = h / 2 / opts.len;
+            });
+        })();
+
+
+        // --------------------------------------------------------
+        // --- CLOCK & SYSTEM SCRIPTS ---
+        // --------------------------------------------------------
+
         // --- YOUR CONNECTED GOOGLE APP SCRIPT ---
         const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbwnGUMYmNW0gidnQFyHVFIzyRWRTZPwiquQZ9aYkIlT9x6VQ7cIrlfQiV5COSO05mv5/exec";
-        // ----------------------------------------
 
         const safeStorage = {
             get: function(key, fallback) { try { let val = localStorage.getItem(key); return val !== null ? val : fallback; } catch(e) { return fallback; } },
@@ -468,30 +610,27 @@
                 const startTime = performance.now();
                 fetch('https://1.1.1.1/cdn-cgi/trace', { mode: 'no-cors', cache: 'no-store' })
                 .then(() => { 
-                    // Calculate Real Ping (RTT)
                     let pingTime = Math.round(performance.now() - startTime);
                     
-                    // Cap mathematically between 0 and 1000
                     if (pingTime > 1000) pingTime = 1000;
                     if (pingTime < 0) pingTime = 0;
 
                     pingText.textContent = pingTime;
 
-                    // Solid Color Patch Logic
                     if (pingTime < 150) {
-                        pingBox.style.backgroundColor = '#00ffaa'; // Solid Green
+                        pingBox.style.backgroundColor = '#00ffaa'; 
                         pingBox.style.borderColor = '#00ffaa';
-                        pingBox.style.color = '#000000'; // Black text for contrast
+                        pingBox.style.color = '#000000'; 
                         networkDot.className = 'network-dot green'; 
                     } else if (pingTime < 350) {
-                        pingBox.style.backgroundColor = '#ffcc00'; // Solid Yellow
+                        pingBox.style.backgroundColor = '#ffcc00'; 
                         pingBox.style.borderColor = '#ffcc00';
-                        pingBox.style.color = '#000000'; // Black text for contrast
+                        pingBox.style.color = '#000000'; 
                         networkDot.className = 'network-dot yellow'; 
                     } else {
-                        pingBox.style.backgroundColor = '#ff3333'; // Solid Red
+                        pingBox.style.backgroundColor = '#ff3333'; 
                         pingBox.style.borderColor = '#ff3333';
-                        pingBox.style.color = '#ffffff'; // White text for contrast
+                        pingBox.style.color = '#ffffff'; 
                         networkDot.className = 'network-dot red'; 
                     }
                 })
@@ -571,7 +710,7 @@
 
         const timePos = document.getElementById('clock-positioner'); 
         const headerPos = document.getElementById('header-positioner');
-        const pingPos = document.getElementById('ping-positioner'); // NEW Target
+        const pingPos = document.getElementById('ping-positioner'); 
         const layoutPanel = document.getElementById('layout-panel'); 
         const layoutTitle = document.getElementById('layout-title');
         const scaleXSlider = document.getElementById('scale-x'); 
@@ -582,7 +721,7 @@
         const DEFAULT_LAYOUT = { 
             time: { x: 15, y: -11, sx: 1.05, sy: 0.9 }, 
             header: { x: 0, y: 15, sx: 1.05, sy: 1 },
-            ping: { x: 0, y: 0, sx: 1, sy: 1 } // X:0, Y:0 automatically falls directly below the colon!
+            ping: { x: 0, y: 0, sx: 1, sy: 1 } 
         };
         let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
         
@@ -593,7 +732,7 @@
                 if(parsed && parsed.time && parsed.header) {
                     layout.time = parsed.time;
                     layout.header = parsed.header;
-                    if(parsed.ping) layout.ping = parsed.ping; // Gracefully load ping position if saved
+                    if(parsed.ping) layout.ping = parsed.ping; 
                 } 
             } 
         } catch(e) {}
@@ -629,7 +768,7 @@
             if (activeTarget === 'header' || activeTarget === 'ping') { 
                 headerFont = e.target.value; 
                 headerPos.style.fontFamily = headerFont; 
-                pingPos.style.fontFamily = headerFont; // Keeps ping matching header font
+                pingPos.style.fontFamily = headerFont; 
                 safeStorage.set('headerFont', headerFont); 
             } else { 
                 timeFont = e.target.value; 
