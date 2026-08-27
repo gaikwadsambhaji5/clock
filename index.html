@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Scrolling Clock - Animated Edition</title>
+    <title>Scrolling Clock - Animated Radar Edition</title>
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@700&family=Oswald:wght@700&family=Rajdhani:wght@700&family=Righteous&family=Rubik+Mono+One&family=Share+Tech+Mono&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@700&family=Oswald:wght@700&family=Rajdhani:wght@500;700&family=Righteous&family=Rubik+Mono+One&family=Share+Tech+Mono&display=swap');
     </style>
 
     <style>
@@ -19,6 +19,8 @@
 
         :root {
             --clock-color: #ffffff;
+            --flight-accent: #b3b3b3;
+            --flight-green: #00ffaa;
         }
 
         * {
@@ -28,231 +30,168 @@
 
         body {
             color: var(--clock-color);
-            display: flex; flex-direction: column; align-items: center;
+            display: flex; justify-content: center; align-items: center;
             height: 100vh; overflow: hidden; user-select: none; 
-            -webkit-user-select: none; padding: 0 45px; 
+            -webkit-user-select: none; 
             transition: color 1s ease; touch-action: manipulation;
+            font-family: 'Bebas Neue', sans-serif;
         }
 
         /* --- ANIMATED BACKGROUND CANVAS --- */
         canvas#c {
             position: fixed; 
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1; 
-            pointer-events: none; 
-            background-color: #000000;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; pointer-events: none; background-color: #000000;
         }
 
-        /* --- HEADER LAYOUT --- */
+        /* --- MASTER LAYOUT WRAPPER --- */
+        #master-wrapper {
+            display: flex; width: 100%; height: 100%; 
+            padding: 20px 40px; gap: 20px;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* --- LEFT SIDE (CLOCK & DATE) --- */
+        #left-container {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            width: 100%; height: 100%; position: relative;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Flight Top Banner */
+        #flight-top-banner {
+            position: absolute; top: 20px; left: 0; width: 100%;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid var(--clock-color); padding-bottom: 10px;
+            opacity: 0; transform: translateY(-20px); transition: all 0.5s ease;
+            font-family: 'Share Tech Mono', monospace; pointer-events: none;
+        }
+        .banner-route { display: flex; flex-direction: column; font-size: 24px; color: var(--flight-accent); }
+        .banner-callsign { font-size: 42px; font-weight: bold; border-left: 2px solid var(--clock-color); padding-left: 20px; color: var(--clock-color);}
+
+        /* --- CLOCK LAYOUT --- */
+        #clock-positioner {
+            display: flex; justify-content: center; align-items: center;
+            transform-origin: center center; padding: 10px;
+            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease, transform 0.8s ease;
+        }
+        .time-container { display: flex; align-items: center; justify-content: center; pointer-events: none; }
+        .digit-window { height: 380px; width: 180px; overflow: hidden; position: relative; }
+        .tens-window { margin-right: 15px; }
+        .digit-strip { display: flex; flex-direction: column; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform; }
+        .digit { height: 380px; line-height: 380px; font-size: 480px; width: 180px; text-align: center; display: flex; justify-content: center; align-items: center; }
+        .center-col { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 380px; margin: 0 15px; transform: translateY(-15px); width: 60px; }
+        .separator { font-size: 250px; line-height: 1; font-weight: bold; animation: blink 1s step-end infinite; }
+
+        /* --- HEADER (DATE) LAYOUT --- */
         #header-positioner {
             width: 100%; display: flex; flex-direction: column; align-items: center;
-            margin-top: 20px; transform-origin: top center; z-index: 10; padding: 10px;
-            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
+            margin-top: 10px; transform-origin: top center; z-index: 10; padding: 10px;
+            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease, transform 0.8s ease;
         }
-
         .date-header {
             width: 86%; display: flex; justify-content: space-between; align-items: baseline;
             letter-spacing: 1px; line-height: 1; margin-bottom: 0px;
             font-variant-numeric: tabular-nums; font-size: clamp(35px, 5.5vw, 55px); white-space: nowrap; 
         }
-
         .pipe { font-size: 0.8em; transform: translateY(-2px); opacity: 0.8; }
         #date-num { display: inline-block; text-align: center; }
         #sec-wrapper { display: flex; align-items: center; gap: 8px; }
         #sec-num { display: inline-block; width: 1.2em; text-align: right; }
-
+        
         /* --- NETWORK STATUS DOT --- */
-        .network-dot {
-            width: 12px; height: 12px; border-radius: 50%; display: inline-block;
-            transition: background-color 0.5s ease, box-shadow 0.5s ease;
-        }
+        .network-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; transition: background-color 0.5s ease, box-shadow 0.5s ease; }
         .network-dot.green { background-color: #00ffaa; box-shadow: 0 0 10px #00ffaa; }
         .network-dot.yellow { background-color: #ffcc00; box-shadow: 0 0 10px #ffcc00; }
         .network-dot.red { background-color: #ff3333; box-shadow: 0 0 10px #ff3333; animation: blink-dot 1s infinite; }
         @keyframes blink-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
-
-        .divider {
-            width: 86%; height: 5px; background-color: var(--clock-color);
-            margin-bottom: 0px; transition: background-color 1s ease;
-        }
-
-        /* --- CLOCK LAYOUT --- */
-        #clock-positioner {
-            display: flex; justify-content: center; align-items: center;
-            transform-origin: top center; margin-top: 25px; padding: 10px;
-            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
-        }
-
-        /* --- EDIT MODE BORDERS --- */
-        .edit-mode #header-positioner, .edit-mode #clock-positioner, .edit-mode #ping-positioner {
-            border: 2px dashed rgba(255, 255, 255, 0.3); border-radius: 20px;
-        }
-        .edit-mode #header-positioner.active-target, .edit-mode #clock-positioner.active-target, .edit-mode #ping-positioner.active-target {
-            border: 2px dashed rgba(0, 255, 170, 0.8); background: rgba(0, 255, 170, 0.05);
-        }
-
-        .time-container { display: flex; align-items: center; justify-content: center; pointer-events: none; }
-        .digit-window { height: 380px; width: 180px; overflow: hidden; position: relative; }
-        .tens-window { margin-right: 15px; }
-        
-        .digit-strip {
-            display: flex; flex-direction: column;
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform;
-        }
-
-        .digit {
-            height: 380px; line-height: 380px; font-size: 480px; width: 180px;
-            text-align: center; display: flex; justify-content: center; align-items: center;
-        }
-
-        .center-col {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 380px; margin: 0 15px; transform: translateY(-15px);
-            width: 60px; 
-        }
-
-        .separator {
-            font-size: 250px; line-height: 1; font-weight: bold;
-            animation: blink 1s step-end infinite;
-        }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        .divider { width: 86%; height: 5px; background-color: var(--clock-color); margin-bottom: 0px; transition: background-color 1s ease; }
 
         /* --- FLOATING PING ANCHOR --- */
-        .ping-wrapper {
-            position: absolute; top: 50%; left: 50%;
-            width: 0; height: 0; 
-            display: flex; justify-content: center; align-items: flex-start;
-            z-index: 50; 
-            pointer-events: none; 
-        }
+        .ping-wrapper { position: absolute; top: 50%; left: 50%; width: 0; height: 0; display: flex; justify-content: center; align-items: flex-start; z-index: 50; pointer-events: none; }
+        #ping-positioner { pointer-events: auto; margin-top: 140px; display: flex; justify-content: center; align-items: center; transform-origin: center; padding: 10px; border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease; }
+        .ping-box { border: 2px solid #ffffff; border-radius: 12px; padding: 10px 25px; font-size: 32px; font-family: -apple-system, sans-serif; font-weight: bold; color: #ffffff; min-width: 140px; text-align: center; background-color: rgba(0, 0, 0, 0.5); transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
 
-        #ping-positioner {
-            pointer-events: auto; 
-            margin-top: 140px; 
-            display: flex; justify-content: center; align-items: center;
-            transform-origin: center; padding: 10px;
-            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
+        /* --- RIGHT SIDE (FLIGHT PANEL) --- */
+        #right-flight-panel {
+            width: 0%; height: 100%; opacity: 0; display: none;
+            flex-direction: column; border: 2px solid var(--clock-color);
+            font-family: 'Share Tech Mono', monospace; padding: 15px;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
         }
+        
+        .panel-header { text-align: center; font-size: 18px; border-bottom: 1px solid var(--flight-accent); padding-bottom: 5px; margin-bottom: 10px; letter-spacing: 1px;}
+        .tabs { display: flex; gap: 5px; margin-bottom: 15px; }
+        .tab { flex: 1; text-align: center; padding: 8px; font-size: 22px; font-weight: bold; border: 1px solid var(--flight-accent); background: #222; color: #888; }
+        .tab.active { background: #fff; color: #000; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 16px; margin-bottom: 20px; }
+        .stat-item { display: flex; justify-content: space-between; }
+        .stat-label { color: var(--flight-accent); }
+        .stat-val { font-weight: bold; text-align: right; }
+        .route-box { border: 1px solid var(--flight-accent); padding: 10px; margin-bottom: 20px; font-size: 14px; color: var(--flight-accent); display: flex; flex-direction: column; gap: 10px;}
+        .route-point { display: flex; flex-direction: column; }
+        .route-code { font-size: 24px; font-weight: bold; color: #fff; }
+        .route-arrow { text-align: center; color: #fff; font-size: 20px; }
+        .bottom-section { display: flex; justify-content: space-between; align-items: flex-end; margin-top: auto; }
+        .aircraft-info { font-size: 14px; color: var(--flight-accent); line-height: 1.4; }
+        .aircraft-info span { color: #fff; font-weight: bold; }
 
-        .ping-box {
-            border: 2px solid #ffffff;
-            border-radius: 12px;
-            padding: 10px 25px; 
-            font-size: 32px;
-            font-family: -apple-system, sans-serif;
-            font-weight: bold;
-            color: #ffffff;
-            min-width: 140px; 
-            text-align: center;
-            background-color: rgba(0, 0, 0, 0.5); 
-            transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
+        /* Custom Radar Graphic */
+        .radar-box { width: 120px; height: 120px; border: 2px solid var(--flight-green); border-radius: 50%; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden;}
+        .radar-crosshair { position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 1px dashed rgba(0,255,170,0.3); }
+        .radar-crosshair::before { content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(0,255,170,0.5); }
+        .radar-crosshair::after { content: ''; position: absolute; left: 50%; top: 0; height: 100%; width: 1px; background: rgba(0,255,170,0.5); }
+        .radar-sweep { position: absolute; top: 50%; left: 50%; width: 50%; height: 50%; background: conic-gradient(from 0deg, rgba(0,255,170,0) 0%, rgba(0,255,170,0.4) 100%); transform-origin: top left; animation: sweep 4s linear infinite; border-right: 2px solid var(--flight-green);}
+        @keyframes sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .radar-plane { position: absolute; font-size: 24px; color: #fff; z-index: 5; transition: transform 1s ease; text-shadow: 0 0 5px #000; }
+        .radar-labels { position: absolute; font-size: 10px; color: var(--flight-green); width: 100%; height: 100%; }
+        .rl-n { position: absolute; top: 2px; left: 50%; transform: translateX(-50%); }
+        .rl-s { position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); }
+        .rl-e { position: absolute; top: 50%; right: 2px; transform: translateY(-50%); }
+        .rl-w { position: absolute; top: 50%; left: 2px; transform: translateY(-50%); }
+
+        /* --- ACTIVE FLIGHT STATE TRANSITIONS --- */
+        body.flight-detected #left-container { width: 65%; align-items: flex-start; padding-top: 80px; }
+        body.flight-detected #clock-positioner { transform: scale(0.85); transform-origin: left center; margin-left: 20px;}
+        body.flight-detected #header-positioner { transform: scale(0.85); transform-origin: left center; margin-left: 20px; align-items: flex-start;}
+        body.flight-detected #flight-top-banner { opacity: 1; transform: translateY(0); pointer-events: auto;}
+        body.flight-detected #right-flight-panel { display: flex; width: 35%; opacity: 1; }
+        body.flight-detected #ping-positioner { display: none; } /* Hide ping to save space */
+
+        /* --- EDIT MODE BORDERS --- */
+        .edit-mode #header-positioner, .edit-mode #clock-positioner, .edit-mode #ping-positioner { border: 2px dashed rgba(255, 255, 255, 0.3); border-radius: 20px; }
+        .edit-mode #header-positioner.active-target, .edit-mode #clock-positioner.active-target, .edit-mode #ping-positioner.active-target { border: 2px dashed rgba(0, 255, 170, 0.8); background: rgba(0, 255, 170, 0.05); }
 
         /* --- MENUS --- */
-        .settings-overlay {
-            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            border: 2px solid rgba(255, 255, 255, 0.2); padding: 30px; border-radius: 20px;
-            z-index: 1000; flex-direction: column; align-items: center; gap: 15px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.9); font-family: -apple-system, sans-serif; min-width: 340px;
-        }
-
-        .close-btn {
-            position: absolute; top: 10px; right: 15px; background: none; border: none;
-            color: #ffffff; font-size: 24px; font-weight: bold; cursor: pointer; opacity: 0.7;
-        }
-
-        .settings-btn {
-            background: #ffffff; color: #000000; border: none; padding: 10px 20px;
-            font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%;
-        }
-        .settings-btn.accent { background: #00ffaa; color: #000; }
-        .settings-btn.message-btn { background: #ffcc00; color: #000; margin-bottom: 10px; }
-
+        .settings-overlay { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 2px solid rgba(255, 255, 255, 0.2); padding: 30px; border-radius: 20px; z-index: 1000; flex-direction: column; align-items: center; gap: 15px; box-shadow: 0 20px 50px rgba(0,0,0,0.9); font-family: -apple-system, sans-serif; min-width: 340px; }
+        .close-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #ffffff; font-size: 24px; font-weight: bold; cursor: pointer; opacity: 0.7; }
+        .settings-btn { background: #ffffff; color: #000000; border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; }
+        .settings-btn.accent { background: #00ffaa; color: #000; } .settings-btn.message-btn { background: #ffcc00; color: #000; margin-bottom: 10px; }
         .toggle-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 15px; font-size: 16px; font-weight: bold; }
         .custom-select, .color-picker { background: #333; color: #fff; border: 1px solid #555; padding: 6px; border-radius: 8px; font-size: 14px; font-weight: bold; outline: none; }
         .color-picker { padding: 0; height: 30px; width: 50px; border: none; cursor: pointer; }
-
-        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 28px; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #00ffaa; }
-        input:checked + .slider:before { transform: translateX(20px); }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; } .switch input { opacity: 0; width: 0; height: 0; } .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 28px; } .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; } input:checked + .slider { background-color: #00ffaa; } input:checked + .slider:before { transform: translateX(20px); }
 
         /* --- MESSAGE BOARD & ALERT OVERLAYS --- */
-        .message-board {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 10, 10, 0.98); z-index: 4000; flex-direction: column;
-            padding: 40px 20px; font-family: -apple-system, sans-serif; overflow-y: auto; color: white;
-        }
-        .message-board-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .message-board-title { font-size: 24px; font-weight: bold; color: #00ffaa; }
-        .close-msg-btn { background: none; border: none; color: white; font-size: 28px; cursor: pointer; }
-        #message-list { display: flex; flex-direction: column; gap: 15px; }
-        .msg-card { background: #1a1a1a; padding: 15px; border-radius: 12px; border-left: 6px solid #555; display: flex; flex-direction: column; gap: 8px; }
-        .msg-card.High { border-left-color: #ff3333; }
-        .msg-card.Low { border-left-color: #00ffaa; }
-        .msg-text { font-size: 18px; font-weight: bold; }
-        .msg-img-preview { max-width: 100%; max-height: 150px; border-radius: 8px; margin-top: 10px; object-fit: contain; background: #000; }
-        .msg-meta { font-size: 13px; color: #888; display: flex; justify-content: space-between; }
-        .loading-text { text-align: center; color: #aaa; font-style: italic; margin-top: 20px; }
+        .message-board { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 10, 0.98); z-index: 4000; flex-direction: column; padding: 40px 20px; font-family: -apple-system, sans-serif; overflow-y: auto; color: white; }
+        .message-board-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; } .message-board-title { font-size: 24px; font-weight: bold; color: #00ffaa; } .close-msg-btn { background: none; border: none; color: white; font-size: 28px; cursor: pointer; }
+        #message-list { display: flex; flex-direction: column; gap: 15px; } .msg-card { background: #1a1a1a; padding: 15px; border-radius: 12px; border-left: 6px solid #555; display: flex; flex-direction: column; gap: 8px; } .msg-card.High { border-left-color: #ff3333; } .msg-card.Low { border-left-color: #00ffaa; } .msg-text { font-size: 18px; font-weight: bold; } .msg-img-preview { max-width: 100%; max-height: 150px; border-radius: 8px; margin-top: 10px; object-fit: contain; background: #000; } .msg-meta { font-size: 13px; color: #888; display: flex; justify-content: space-between; } .loading-text { text-align: center; color: #aaa; font-style: italic; margin-top: 20px; }
 
-        #fullscreen-alert {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 5000; flex-direction: column; justify-content: center;
-            align-items: center; padding: 20px 15px 75px 15px; 
-            text-align: center; font-family: -apple-system, sans-serif;
-            cursor: pointer; box-sizing: border-box;
-        }
-
-        #alert-image {
-            display: none; max-width: 95vw; max-height: 50vh; 
-            object-fit: contain; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        }
-
+        #fullscreen-alert { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; flex-direction: column; justify-content: center; align-items: center; padding: 20px 15px 75px 15px; text-align: center; font-family: -apple-system, sans-serif; cursor: pointer; box-sizing: border-box; }
+        #alert-image { display: none; max-width: 95vw; max-height: 50vh; object-fit: contain; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
         #alert-text { font-weight: bold; line-height: 1.35; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; max-height: 100%; overflow-y: auto; text-wrap: balance; }
         .alert-hint { position: absolute; bottom: 30px; font-size: 16px; color: rgba(150,150,150,0.8); font-weight: bold; transition: all 0.3s ease; }
-
-        #fullscreen-alert.has-image { padding: 0; }
-        #fullscreen-alert.has-image #alert-image { max-width: 100vw; max-height: 100vh; width: 100%; height: 100%; border-radius: 0; margin-bottom: 0; box-shadow: none; object-fit: contain; }
-        #fullscreen-alert.has-image #alert-text {
-            position: absolute; bottom: 8%; max-width: 90vw; max-height: 30vh;
-            background: rgba(0, 0, 0, 0.55); color: #ffffff !important; padding: 10px 25px;
-            border-radius: 30px; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
-            text-shadow: 0px 1px 3px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1);
-        }
-        #fullscreen-alert.has-image .alert-hint { bottom: 10px; z-index: 5005; text-shadow: 0px 1px 4px rgba(0,0,0,0.8); }
-
-        .normal-alert { background-color: #000000; }
-        .normal-alert #alert-text { color: #ffffff; }
-        .blink-red { animation: alert-blink-rbw 1.5s infinite; }
-        .blink-red #alert-text { animation: text-color-sync 1.5s infinite; }
-        .blink-red.has-image #alert-text { animation: none !important; color: #ffffff !important; }
-        
-        @keyframes alert-blink-rbw { 0%, 32% { background-color: #FF0000; } 33%, 65% { background-color: #000000; } 66%, 99% { background-color: #FFFFFF; } 100% { background-color: #FF0000; } }
-        @keyframes text-color-sync { 0%, 32% { color: #FFFFFF; } 33%, 65% { color: #FFFFFF; } 66%, 99% { color: #FF0000; } 100% { color: #FFFFFF; } }
+        #fullscreen-alert.has-image { padding: 0; } #fullscreen-alert.has-image #alert-image { max-width: 100vw; max-height: 100vh; width: 100%; height: 100%; border-radius: 0; margin-bottom: 0; box-shadow: none; object-fit: contain; } #fullscreen-alert.has-image #alert-text { position: absolute; bottom: 8%; max-width: 90vw; max-height: 30vh; background: rgba(0, 0, 0, 0.55); color: #ffffff !important; padding: 10px 25px; border-radius: 30px; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); text-shadow: 0px 1px 3px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); } #fullscreen-alert.has-image .alert-hint { bottom: 10px; z-index: 5005; text-shadow: 0px 1px 4px rgba(0,0,0,0.8); }
+        .normal-alert { background-color: #000000; } .normal-alert #alert-text { color: #ffffff; } .blink-red { animation: alert-blink-rbw 1.5s infinite; } .blink-red #alert-text { animation: text-color-sync 1.5s infinite; } .blink-red.has-image #alert-text { animation: none !important; color: #ffffff !important; }
+        @keyframes alert-blink-rbw { 0%, 32% { background-color: #FF0000; } 33%, 65% { background-color: #000000; } 66%, 99% { background-color: #FFFFFF; } 100% { background-color: #FF0000; } } @keyframes text-color-sync { 0%, 32% { color: #FFFFFF; } 33%, 65% { color: #FFFFFF; } 66%, 99% { color: #FF0000; } 100% { color: #FFFFFF; } }
 
         /* --- LAYOUT CONTROL PANEL --- */
-        .layout-panel {
-            display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(10, 10, 10, 0.95); border: 2px solid #00ffaa; border-radius: 15px;
-            padding: 15px 20px; width: 90%; max-width: 500px; z-index: 2000;
-            font-family: -apple-system, sans-serif; flex-direction: column; gap: 12px; box-shadow: 0 10px 30px rgba(0,255,170,0.2);
-        }
+        .layout-panel { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(10, 10, 10, 0.95); border: 2px solid #00ffaa; border-radius: 15px; padding: 15px 20px; width: 90%; max-width: 500px; z-index: 2000; font-family: -apple-system, sans-serif; flex-direction: column; gap: 12px; box-shadow: 0 10px 30px rgba(0,255,170,0.2); }
         .layout-panel h3 { margin: 0; text-align: center; color: #00ffaa; font-size: 14px; }
-        .slider-group { display: flex; flex-direction: column; gap: 5px; }
-        .slider-group label { font-weight: bold; font-size: 12px; color: #ccc; }
+        .slider-group { display: flex; flex-direction: column; gap: 5px; } .slider-group label { font-weight: bold; font-size: 12px; color: #ccc; }
         input[type=range] { width: 100%; accent-color: #00ffaa; }
-        .layout-actions { display: flex; gap: 10px; margin-top: 5px; }
-        .layout-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-save { background: #00ffaa; color: #000; }
-        .btn-reset { background: #555; color: #fff; }
-
+        .layout-actions { display: flex; gap: 10px; margin-top: 5px; } .layout-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; } .btn-save { background: #00ffaa; color: #000; } .btn-reset { background: #555; color: #fff; }
     </style>
 </head>
 <body>
@@ -260,43 +199,113 @@
     <!-- Animated Canvas Background -->
     <canvas id="c"></canvas>
 
-    <!-- Header Block -->
-    <div id="header-positioner" data-target="header">
-        <div class="date-header">
-            <span id="day-marathi">सोमवार</span> 
-            <span class="pipe">|</span> 
-            <span id="month-marathi">ऑगस्ट</span> 
-            <span class="pipe">|</span> 
-            <span id="date-num">10/08/2026</span>
-            <span class="pipe">|</span> 
-            <div id="sec-wrapper">
-                <span id="sec-num">00</span>
-                <span id="network-dot" class="network-dot green"></span>
-            </div>
-        </div>
-        <div class="divider"></div>
-    </div>
-
-    <!-- Clock Block -->
-    <div id="clock-positioner" data-target="time">
-        <div class="time-container" id="clock">
-            <div class="digit-window tens-window"><div class="digit-strip" id="h-tens"></div></div>
-            <div class="digit-window"><div class="digit-strip" id="h-units"></div></div>
+    <!-- MASTER WRAPPER FOR TRANSITIONS -->
+    <div id="master-wrapper">
+        
+        <!-- LEFT SIDE (CLOCK & DATE) -->
+        <div id="left-container">
             
-            <div class="center-col"><div class="separator">:</div></div>
+            <!-- Flight Header -->
+            <div id="flight-top-banner">
+                <div class="banner-route">
+                    <span id="fl-org">CHHATRAPATI SAMBHAJINAGAR</span>
+                    <span id="fl-dst" style="opacity:0.6;">100KM RADAR ZONE</span>
+                </div>
+                <div class="banner-callsign" id="fl-callsign">SCANNING...</div>
+            </div>
 
-            <div class="digit-window tens-window"><div class="digit-strip" id="m-tens"></div></div>
-            <div class="digit-window"><div class="digit-strip" id="m-units"></div></div>
-        </div>
-    </div>
+            <!-- Clock Block -->
+            <div id="clock-positioner" data-target="time">
+                <div class="time-container" id="clock">
+                    <div class="digit-window tens-window"><div class="digit-strip" id="h-tens"></div></div>
+                    <div class="digit-window"><div class="digit-strip" id="h-units"></div></div>
+                    <div class="center-col"><div class="separator">:</div></div>
+                    <div class="digit-window tens-window"><div class="digit-strip" id="m-tens"></div></div>
+                    <div class="digit-window"><div class="digit-strip" id="m-units"></div></div>
+                </div>
+            </div>
 
-    <!-- PING BLOCK -->
-    <div class="ping-wrapper">
-        <div id="ping-positioner" data-target="ping">
-            <div class="ping-box" id="ping-box">
-                <span id="stat-ping">--</span><span style="font-size: 0.6em; opacity: 0.9; margin-left: 2px;">ms</span>
+            <!-- Header/Date Block (Moved Below Clock) -->
+            <div id="header-positioner" data-target="header">
+                <div class="date-header">
+                    <span id="day-marathi">सोमवार</span> 
+                    <span class="pipe">|</span> 
+                    <span id="month-marathi">ऑगस्ट</span> 
+                    <span class="pipe">|</span> 
+                    <span id="date-num">10/08/2026</span>
+                    <span class="pipe">|</span> 
+                    <div id="sec-wrapper">
+                        <span id="sec-num">00</span>
+                        <span id="network-dot" class="network-dot green"></span>
+                    </div>
+                </div>
+                <div class="divider"></div>
+            </div>
+
+            <!-- PING BLOCK -->
+            <div class="ping-wrapper">
+                <div id="ping-positioner" data-target="ping">
+                    <div class="ping-box" id="ping-box">
+                        <span id="stat-ping">--</span><span style="font-size: 0.6em; opacity: 0.9; margin-left: 2px;">ms</span>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <!-- RIGHT SIDE (FLIGHT PANEL) -->
+        <div id="right-flight-panel">
+            <div class="panel-header">DETECTED <span id="fl-count" style="color:var(--clock-color);font-weight:bold;">1</span> AIRCRAFTS</div>
+            
+            <div class="tabs">
+                <div class="tab active" id="fl-tab-1">--</div>
+                <div class="tab" id="fl-tab-2" style="opacity:0.3;">--</div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item"><span class="stat-label">RANGE</span><span class="stat-val" id="fl-range">-- NM</span></div>
+                <div class="stat-item"><span class="stat-label">ALTITUDE</span><span class="stat-val" id="fl-alt">-- FT</span></div>
+                <div class="stat-item"><span class="stat-label">BEARING</span><span class="stat-val" id="fl-bearing">--°</span></div>
+                <div class="stat-item"><span class="stat-label">SPEED</span><span class="stat-val" id="fl-speed">-- KT</span></div>
+                <div class="stat-item"><span class="stat-label">DIRECTION</span><span class="stat-val" id="fl-dir">--</span></div>
+                <div class="stat-item"><span class="stat-label">VERTICAL</span><span class="stat-val" id="fl-vrt">-- FT/MIN</span></div>
+                <div class="stat-item"><span class="stat-label">HEADING</span><span class="stat-val" id="fl-hdg">--°</span></div>
+                <div class="stat-item"><span class="stat-label">STATUS</span><span class="stat-val" id="fl-stat">--</span></div>
+            </div>
+
+            <div class="route-box">
+                <div class="route-point">
+                    <span class="route-code">LOCAL</span>
+                    <span>CHHATRAPATI SAMBHAJINAGAR</span>
+                    <span>100KM RADAR ZONE</span>
+                </div>
+                <div class="route-arrow">▼</div>
+                <div class="route-point" style="opacity:0.5;">
+                    <span class="route-code">LIVE</span>
+                    <span>TRACKING ACTIVE</span>
+                </div>
+            </div>
+
+            <div class="bottom-section">
+                <div class="aircraft-info">
+                    <span id="fl-type">AIRCRAFT UNKNOWN</span><br>
+                    ICAO: <span id="fl-icao">--</span><br>
+                    REG: <span id="fl-reg">--</span><br>
+                    CALLSIGN: <span id="fl-callsign2">--</span>
+                </div>
+                
+                <div class="radar-box">
+                    <div class="radar-crosshair"></div>
+                    <div class="radar-labels rl-n">N</div>
+                    <div class="radar-labels rl-s">S</div>
+                    <div class="radar-labels rl-e">E</div>
+                    <div class="radar-labels rl-w">W</div>
+                    <div class="radar-sweep"></div>
+                    <div class="radar-plane" id="radar-icon">✈</div>
+                </div>
+            </div>
+
+        </div>
+
     </div>
 
     <!-- Main Settings Menu -->
@@ -319,9 +328,11 @@
         </div>
 
         <button class="settings-btn" id="fullscreen-btn" style="margin-top: 5px;">Toggle Full Screen</button>
-        <button class="settings-btn accent" id="edit-layout-btn">Edit Layout</button>
+        <button class="settings-btn accent" id="edit-layout-btn" style="margin-top: 5px;">Edit Layout</button>
+        <!-- NEW TEST BUTTON ADDED -->
+        <button class="settings-btn" id="demo-flight-btn" style="margin-top: 5px; background-color:#ffcc00; color:#000;">Test Flight UI</button>
 
-        <div class="toggle-row">
+        <div class="toggle-row" style="margin-top: 15px;">
             <span>Day Color</span>
             <input type="color" id="day-color" class="color-picker" value="#ffffff">
         </div>
@@ -428,149 +439,26 @@
             else if (type === 'starfield') startStarfield();
             else if (type === 'waves') startWaves();
             else if (type === 'bokeh') startBokeh();
-            // If "none", it just stays black
         }
 
-        // 1. Light Trails (Original Request)
         function startTrails() {
-            let opts = {
-                len: 20, count: 50, baseTime: 10, addedTime: 10, dieChance: .05, spawnChance: 1, sparkChance: .1,
-                sparkDist: 10, sparkSize: 2, color: 'hsl(hue,100%,light%)', baseLight: 50, addedLight: 10, shadowToTimePropMult: 6,
-                baseLightInputMultiplier: .01, addedLightInputMultiplier: .02, cx: w / 2, cy: h / 2, repaintAlpha: .04, hueChange: .1
-            };
+            let opts = { len: 20, count: 50, baseTime: 10, addedTime: 10, dieChance: .05, spawnChance: 1, sparkChance: .1, sparkDist: 10, sparkSize: 2, color: 'hsl(hue,100%,light%)', baseLight: 50, addedLight: 10, shadowToTimePropMult: 6, baseLightInputMultiplier: .01, addedLightInputMultiplier: .02, cx: w / 2, cy: h / 2, repaintAlpha: .04, hueChange: .1 };
             let tick = 0, lines = [], dieX = w / 2 / opts.len, dieY = h / 2 / opts.len, baseRad = Math.PI * 2 / 6;
-
             function Line(){ this.reset(); }
-            Line.prototype.reset = function(){
-                this.x = 0; this.y = 0; this.addedX = 0; this.addedY = 0; this.rad = 0;
-                this.lightInputMultiplier = opts.baseLightInputMultiplier + opts.addedLightInputMultiplier * Math.random();
-                this.color = opts.color.replace( 'hue', tick * opts.hueChange );
-                this.cumulativeTime = 0; this.beginPhase();
-            }
-            Line.prototype.beginPhase = function(){
-                this.x += this.addedX; this.y += this.addedY; this.time = 0;
-                this.targetTime = ( opts.baseTime + opts.addedTime * Math.random() ) |0;
-                this.rad += baseRad * ( Math.random() < .5 ? 1 : -1 );
-                this.addedX = Math.cos( this.rad ); this.addedY = Math.sin( this.rad );
-                if( Math.random() < opts.dieChance || this.x > dieX || this.x < -dieX || this.y > dieY || this.y < -dieY ) this.reset();
-            }
-            Line.prototype.step = function(){
-                ++this.time; ++this.cumulativeTime;
-                if( this.time >= this.targetTime ) this.beginPhase();
-                var prop = this.time / this.targetTime, wave = Math.sin( prop * Math.PI / 2 ), x = this.addedX * wave, y = this.addedY * wave;
-                ctx.shadowBlur = prop * opts.shadowToTimePropMult;
-                ctx.fillStyle = ctx.shadowColor = this.color.replace( 'light', opts.baseLight + opts.addedLight * Math.sin( this.cumulativeTime * this.lightInputMultiplier ) );
-                ctx.fillRect( opts.cx + ( this.x + x ) * opts.len, opts.cy + ( this.y + y ) * opts.len, 2, 2 );
-                if( Math.random() < opts.sparkChance ) ctx.fillRect( opts.cx + ( this.x + x ) * opts.len + Math.random() * opts.sparkDist * ( Math.random() < .5 ? 1 : -1 ) - opts.sparkSize / 2, opts.cy + ( this.y + y ) * opts.len + Math.random() * opts.sparkDist * ( Math.random() < .5 ? 1 : -1 ) - opts.sparkSize / 2, opts.sparkSize, opts.sparkSize )
-            }
-            function loop() {
-                bgAnimId = window.requestAnimationFrame( loop );
-                ++tick;
-                ctx.globalCompositeOperation = 'source-over'; ctx.shadowBlur = 0;
-                ctx.fillStyle = 'rgba(0,0,0,alp)'.replace( 'alp', opts.repaintAlpha ); ctx.fillRect( 0, 0, w, h );
-                ctx.globalCompositeOperation = 'lighter';
-                if( lines.length < opts.count && Math.random() < opts.spawnChance ) lines.push( new Line );
-                lines.map( function( line ){ line.step(); } );
-            }
+            Line.prototype.reset = function(){ this.x = 0; this.y = 0; this.addedX = 0; this.addedY = 0; this.rad = 0; this.lightInputMultiplier = opts.baseLightInputMultiplier + opts.addedLightInputMultiplier * Math.random(); this.color = opts.color.replace( 'hue', tick * opts.hueChange ); this.cumulativeTime = 0; this.beginPhase(); }
+            Line.prototype.beginPhase = function(){ this.x += this.addedX; this.y += this.addedY; this.time = 0; this.targetTime = ( opts.baseTime + opts.addedTime * Math.random() ) |0; this.rad += baseRad * ( Math.random() < .5 ? 1 : -1 ); this.addedX = Math.cos( this.rad ); this.addedY = Math.sin( this.rad ); if( Math.random() < opts.dieChance || this.x > dieX || this.x < -dieX || this.y > dieY || this.y < -dieY ) this.reset(); }
+            Line.prototype.step = function(){ ++this.time; ++this.cumulativeTime; if( this.time >= this.targetTime ) this.beginPhase(); var prop = this.time / this.targetTime, wave = Math.sin( prop * Math.PI / 2 ), x = this.addedX * wave, y = this.addedY * wave; ctx.shadowBlur = prop * opts.shadowToTimePropMult; ctx.fillStyle = ctx.shadowColor = this.color.replace( 'light', opts.baseLight + opts.addedLight * Math.sin( this.cumulativeTime * this.lightInputMultiplier ) ); ctx.fillRect( opts.cx + ( this.x + x ) * opts.len, opts.cy + ( this.y + y ) * opts.len, 2, 2 ); if( Math.random() < opts.sparkChance ) ctx.fillRect( opts.cx + ( this.x + x ) * opts.len + Math.random() * opts.sparkDist * ( Math.random() < .5 ? 1 : -1 ) - opts.sparkSize / 2, opts.cy + ( this.y + y ) * opts.len + Math.random() * opts.sparkDist * ( Math.random() < .5 ? 1 : -1 ) - opts.sparkSize / 2, opts.sparkSize, opts.sparkSize ) }
+            function loop() { bgAnimId = window.requestAnimationFrame( loop ); ++tick; ctx.globalCompositeOperation = 'source-over'; ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(0,0,0,alp)'.replace( 'alp', opts.repaintAlpha ); ctx.fillRect( 0, 0, w, h ); ctx.globalCompositeOperation = 'lighter'; if( lines.length < opts.count && Math.random() < opts.spawnChance ) lines.push( new Line ); lines.map( function( line ){ line.step(); } ); }
             loop();
         }
 
-        // 2. Matrix Rain
-        function startMatrix() {
-            let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*'.split('');
-            let fontSize = 16; let columns = w / fontSize; let drops = [];
-            for(let x = 0; x < columns; x++) drops[x] = Math.random() * -100; 
-            function loop() {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; ctx.fillRect(0, 0, w, h);
-                ctx.fillStyle = '#00ffaa'; ctx.font = fontSize + 'px monospace';
-                for(let i = 0; i < drops.length; i++) {
-                    let text = chars[Math.floor(Math.random() * chars.length)];
-                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-                    if(drops[i] * fontSize > h && Math.random() > 0.975) drops[i] = 0;
-                    drops[i]++;
-                }
-                bgAnimId = requestAnimationFrame(loop);
-            }
-            loop();
-        }
+        function startMatrix() { let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*'.split(''); let fontSize = 16; let columns = w / fontSize; let drops = []; for(let x = 0; x < columns; x++) drops[x] = Math.random() * -100; function loop() { ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; ctx.fillRect(0, 0, w, h); ctx.fillStyle = '#00ffaa'; ctx.font = fontSize + 'px monospace'; for(let i = 0; i < drops.length; i++) { let text = chars[Math.floor(Math.random() * chars.length)]; ctx.fillText(text, i * fontSize, drops[i] * fontSize); if(drops[i] * fontSize > h && Math.random() > 0.975) drops[i] = 0; drops[i]++; } bgAnimId = requestAnimationFrame(loop); } loop(); }
+        function startParticles() { let particles = []; let count = Math.floor(w / 20); for(let i=0; i<count; i++) particles.push({x: Math.random()*w, y: Math.random()*h, vx: Math.random()*1-0.5, vy: Math.random()*1-0.5}); function loop() { ctx.fillStyle = 'black'; ctx.fillRect(0,0,w,h); ctx.fillStyle = '#00ffaa'; ctx.strokeStyle = 'rgba(0, 255, 170, 0.15)'; for(let i=0; i<particles.length; i++) { let p = particles[i]; p.x += p.vx; p.y += p.vy; if(p.x<0 || p.x>w) p.vx*=-1; if(p.y<0 || p.y>h) p.vy*=-1; ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill(); for(let j=i+1; j<particles.length; j++) { let p2 = particles[j]; let dist = Math.hypot(p.x-p2.x, p.y-p2.y); if(dist < 120) { ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); } } } bgAnimId = requestAnimationFrame(loop); } loop(); }
+        function startStarfield() { let stars = []; for(let i=0; i<200; i++) stars.push({x: Math.random()*w-w/2, y: Math.random()*h-h/2, z: Math.random()*w}); function loop() { ctx.fillStyle = 'black'; ctx.fillRect(0,0,w,h); ctx.fillStyle = 'white'; let cx = w/2, cy = h/2; for(let i=0; i<stars.length; i++) { let s = stars[i]; s.z -= 5; if(s.z <= 0) { s.x = Math.random()*w-w/2; s.y = Math.random()*h-h/2; s.z = w; } let sx = cx + (s.x / s.z) * w, sy = cy + (s.y / s.z) * w; let size = (1 - s.z / w) * 3; ctx.beginPath(); ctx.arc(sx, sy, size, 0, Math.PI*2); ctx.fill(); } bgAnimId = requestAnimationFrame(loop); } loop(); }
+        function startWaves() { let tick = 0; function loop() { ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(0,0,w,h); tick += 0.05; ctx.beginPath(); ctx.moveTo(0, h/2); for(let i=0; i<w; i+=10) { let y = h/2 + Math.sin(i*0.01 + tick) * 50 + Math.sin(i*0.02 + tick*0.8) * 30; ctx.lineTo(i, y); } ctx.strokeStyle = 'rgba(0, 255, 170, 0.5)'; ctx.lineWidth = 2; ctx.stroke(); bgAnimId = requestAnimationFrame(loop); } loop(); }
+        function startBokeh() { let orbs = []; for(let i=0; i<30; i++) orbs.push({x: Math.random()*w, y: Math.random()*h, r: Math.random()*50+20, vx: Math.random()-0.5, vy: Math.random()-0.5, hue: Math.random()*360}); function loop() { ctx.fillStyle = 'black'; ctx.fillRect(0,0,w,h); ctx.globalCompositeOperation = 'lighter'; for(let i=0; i<orbs.length; i++) { let o = orbs[i]; o.x += o.vx; o.y += o.vy; if(o.x < -o.r) o.x = w+o.r; else if(o.x > w+o.r) o.x = -o.r; if(o.y < -o.r) o.y = h+o.r; else if(o.y > h+o.r) o.y = -o.r; ctx.beginPath(); let grad = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r); grad.addColorStop(0, `hsla(${o.hue}, 100%, 50%, 0.3)`); grad.addColorStop(1, `hsla(${o.hue}, 100%, 50%, 0)`); ctx.fillStyle = grad; ctx.arc(o.x, o.y, o.r, 0, Math.PI*2); ctx.fill(); o.hue += 0.5; } ctx.globalCompositeOperation = 'source-over'; bgAnimId = requestAnimationFrame(loop); } loop(); }
 
-        // 3. Nexus Network Particles
-        function startParticles() {
-            let particles = []; let count = Math.floor(w / 20); 
-            for(let i=0; i<count; i++) particles.push({x: Math.random()*w, y: Math.random()*h, vx: Math.random()*1-0.5, vy: Math.random()*1-0.5});
-            function loop() {
-                ctx.fillStyle = 'black'; ctx.fillRect(0,0,w,h);
-                ctx.fillStyle = '#00ffaa'; ctx.strokeStyle = 'rgba(0, 255, 170, 0.15)';
-                for(let i=0; i<particles.length; i++) {
-                    let p = particles[i]; p.x += p.vx; p.y += p.vy;
-                    if(p.x<0 || p.x>w) p.vx*=-1; if(p.y<0 || p.y>h) p.vy*=-1;
-                    ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
-                    for(let j=i+1; j<particles.length; j++) {
-                        let p2 = particles[j]; let dist = Math.hypot(p.x-p2.x, p.y-p2.y);
-                        if(dist < 120) { ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); }
-                    }
-                }
-                bgAnimId = requestAnimationFrame(loop);
-            }
-            loop();
-        }
-
-        // 4. Warp Speed Starfield
-        function startStarfield() {
-            let stars = []; for(let i=0; i<200; i++) stars.push({x: Math.random()*w-w/2, y: Math.random()*h-h/2, z: Math.random()*w});
-            function loop() {
-                ctx.fillStyle = 'black'; ctx.fillRect(0,0,w,h); ctx.fillStyle = 'white';
-                let cx = w/2, cy = h/2;
-                for(let i=0; i<stars.length; i++) {
-                    let s = stars[i]; s.z -= 5;
-                    if(s.z <= 0) { s.x = Math.random()*w-w/2; s.y = Math.random()*h-h/2; s.z = w; }
-                    let sx = cx + (s.x / s.z) * w, sy = cy + (s.y / s.z) * w;
-                    let size = (1 - s.z / w) * 3;
-                    ctx.beginPath(); ctx.arc(sx, sy, size, 0, Math.PI*2); ctx.fill();
-                }
-                bgAnimId = requestAnimationFrame(loop);
-            }
-            loop();
-        }
-
-        // 5. Neon Waves
-        function startWaves() {
-            let tick = 0;
-            function loop() {
-                ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(0,0,w,h);
-                tick += 0.05; ctx.beginPath(); ctx.moveTo(0, h/2);
-                for(let i=0; i<w; i+=10) {
-                    let y = h/2 + Math.sin(i*0.01 + tick) * 50 + Math.sin(i*0.02 + tick*0.8) * 30;
-                    ctx.lineTo(i, y);
-                }
-                ctx.strokeStyle = 'rgba(0, 255, 170, 0.5)'; ctx.lineWidth = 2; ctx.stroke();
-                bgAnimId = requestAnimationFrame(loop);
-            }
-            loop();
-        }
-
-        // 6. Floating Bokeh Orbs
-        function startBokeh() {
-            let orbs = []; for(let i=0; i<30; i++) orbs.push({x: Math.random()*w, y: Math.random()*h, r: Math.random()*50+20, vx: Math.random()-0.5, vy: Math.random()-0.5, hue: Math.random()*360});
-            function loop() {
-                ctx.fillStyle = 'black'; ctx.fillRect(0,0,w,h); ctx.globalCompositeOperation = 'lighter';
-                for(let i=0; i<orbs.length; i++) {
-                    let o = orbs[i]; o.x += o.vx; o.y += o.vy;
-                    if(o.x < -o.r) o.x = w+o.r; else if(o.x > w+o.r) o.x = -o.r;
-                    if(o.y < -o.r) o.y = h+o.r; else if(o.y > h+o.r) o.y = -o.r;
-                    ctx.beginPath(); let grad = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
-                    grad.addColorStop(0, `hsla(${o.hue}, 100%, 50%, 0.3)`); grad.addColorStop(1, `hsla(${o.hue}, 100%, 50%, 0)`);
-                    ctx.fillStyle = grad; ctx.arc(o.x, o.y, o.r, 0, Math.PI*2); ctx.fill(); o.hue += 0.5;
-                }
-                ctx.globalCompositeOperation = 'source-over';
-                bgAnimId = requestAnimationFrame(loop);
-            }
-            loop();
-        }
-
-        // Initialize First Background
         switchAnimation(currentAnimType);
-
 
         // --------------------------------------------------------
         // --- CLOCK & SYSTEM SCRIPTS ---
@@ -594,69 +482,29 @@
         document.getElementById('night-color').value = nightColor;
         document.getElementById('night-toggle').checked = autoNightMode;
 
-        // --- TRUE PING LOGIC (0-1000 CAPPED WITH SMART COLORS) ---
         const networkDot = document.getElementById('network-dot');
         const pingBox = document.getElementById('ping-box');
         const pingText = document.getElementById('stat-ping');
 
         function checkNetwork() {
             try {
-                if (!navigator.onLine) { 
-                    networkDot.className = 'network-dot red'; 
-                    pingText.textContent = 'ERR';
-                    pingBox.style.backgroundColor = '#ff3333';
-                    pingBox.style.borderColor = '#ff3333';
-                    pingBox.style.color = '#ffffff';
-                    return; 
-                } 
-
+                if (!navigator.onLine) { networkDot.className = 'network-dot red'; pingText.textContent = 'ERR'; pingBox.style.backgroundColor = '#ff3333'; pingBox.style.borderColor = '#ff3333'; pingBox.style.color = '#ffffff'; return; } 
                 const startTime = performance.now();
                 fetch('https://1.1.1.1/cdn-cgi/trace', { mode: 'no-cors', cache: 'no-store' })
                 .then(() => { 
                     let pingTime = Math.round(performance.now() - startTime);
-                    if (pingTime > 1000) pingTime = 1000;
-                    if (pingTime < 0) pingTime = 0;
-
+                    if (pingTime > 1000) pingTime = 1000; if (pingTime < 0) pingTime = 0;
                     pingText.textContent = pingTime;
-
-                    if (pingTime < 150) {
-                        pingBox.style.backgroundColor = '#00ffaa'; 
-                        pingBox.style.borderColor = '#00ffaa';
-                        pingBox.style.color = '#000000'; 
-                        networkDot.className = 'network-dot green'; 
-                    } else if (pingTime < 350) {
-                        pingBox.style.backgroundColor = '#ffcc00'; 
-                        pingBox.style.borderColor = '#ffcc00';
-                        pingBox.style.color = '#000000'; 
-                        networkDot.className = 'network-dot yellow'; 
-                    } else {
-                        pingBox.style.backgroundColor = '#ff3333'; 
-                        pingBox.style.borderColor = '#ff3333';
-                        pingBox.style.color = '#ffffff'; 
-                        networkDot.className = 'network-dot red'; 
-                    }
+                    if (pingTime < 150) { pingBox.style.backgroundColor = '#00ffaa'; pingBox.style.borderColor = '#00ffaa'; pingBox.style.color = '#000000'; networkDot.className = 'network-dot green'; } 
+                    else if (pingTime < 350) { pingBox.style.backgroundColor = '#ffcc00'; pingBox.style.borderColor = '#ffcc00'; pingBox.style.color = '#000000'; networkDot.className = 'network-dot yellow'; } 
+                    else { pingBox.style.backgroundColor = '#ff3333'; pingBox.style.borderColor = '#ff3333'; pingBox.style.color = '#ffffff'; networkDot.className = 'network-dot red'; }
                 })
-                .catch(() => { 
-                    networkDot.className = 'network-dot red'; 
-                    pingText.textContent = 'ERR';
-                    pingBox.style.backgroundColor = '#ff3333';
-                    pingBox.style.borderColor = '#ff3333';
-                    pingBox.style.color = '#ffffff';
-                });
+                .catch(() => { networkDot.className = 'network-dot red'; pingText.textContent = 'ERR'; pingBox.style.backgroundColor = '#ff3333'; pingBox.style.borderColor = '#ff3333'; pingBox.style.color = '#ffffff'; });
             } catch(e) {}
         }
-        window.addEventListener('online', checkNetwork); 
-        window.addEventListener('offline', checkNetwork);
-        setInterval(checkNetwork, 5000); 
-        checkNetwork();
+        window.addEventListener('online', checkNetwork); window.addEventListener('offline', checkNetwork); setInterval(checkNetwork, 5000); checkNetwork();
 
-        function updateColors() {
-            try {
-                const hour = new Date().getHours();
-                if (autoNightMode && (hour >= 22 || hour < 6)) { document.documentElement.style.setProperty('--clock-color', nightColor); } 
-                else { document.documentElement.style.setProperty('--clock-color', dayColor); }
-            } catch(e) {}
-        }
+        function updateColors() { try { const hour = new Date().getHours(); if (autoNightMode && (hour >= 22 || hour < 6)) { document.documentElement.style.setProperty('--clock-color', nightColor); } else { document.documentElement.style.setProperty('--clock-color', dayColor); } } catch(e) {} }
         setInterval(updateColors, 60000); updateColors(); 
 
         document.getElementById('day-color').addEventListener('input', (e) => { dayColor = e.target.value; safeStorage.set('dayColor', dayColor); updateColors(); resetHideTimer(); });
@@ -666,29 +514,13 @@
         const marathiDays = ["रविवार", "सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
         const marathiMonths = ["जानेवारी", "फेब्रुवारी", "मार्च", "एप्रिल", "मे", "जून", "जुलै", "ऑगस्ट", "सप्टेंबर", "ऑक्टोबर", "नोव्हेंबर", "डिसेंबर"];
 
-        function buildStrip(id, maxNumber) {
-            try {
-                const strip = document.getElementById(id); let html = '';
-                for (let i = 0; i <= maxNumber; i++) { html += `<div class="digit">${i}</div>`; }
-                strip.innerHTML = html;
-            } catch(e) {}
-        }
+        function buildStrip(id, maxNumber) { try { const strip = document.getElementById(id); let html = ''; for (let i = 0; i <= maxNumber; i++) { html += `<div class="digit">${i}</div>`; } strip.innerHTML = html; } catch(e) {} }
         buildStrip('h-tens', 2); buildStrip('h-units', 9); buildStrip('m-tens', 5); buildStrip('m-units', 9);
 
-        function updateStrip(id, value) {
-            try {
-                const strip = document.getElementById(id);
-                strip.style.transform = `translate3d(0, ${-(value * DIGIT_HEIGHT)}px, 0)`;
-            } catch(e) {}
-        }
+        function updateStrip(id, value) { try { const strip = document.getElementById(id); strip.style.transform = `translate3d(0, ${-(value * DIGIT_HEIGHT)}px, 0)`; } catch(e) {} }
 
         function updateDateHeader(now) {
-            if (isEditMode) {
-                document.getElementById('day-marathi').textContent = "WWWWW";
-                document.getElementById('month-marathi').textContent = "MMMM";
-                document.getElementById('date-num').textContent = "DD/MM/YYYY";
-                document.getElementById('sec-num').textContent = "SS"; return; 
-            }
+            if (isEditMode) { document.getElementById('day-marathi').textContent = "WWWWW"; document.getElementById('month-marathi').textContent = "MMMM"; document.getElementById('date-num').textContent = "DD/MM/YYYY"; document.getElementById('sec-num').textContent = "SS"; return; }
             try {
                 document.getElementById('day-marathi').textContent = marathiDays[now.getDay()];
                 document.getElementById('month-marathi').textContent = marathiMonths[now.getMonth()];
@@ -710,34 +542,15 @@
         }
         try { updateClock(); } catch(e) {}
 
-        const timePos = document.getElementById('clock-positioner'); 
-        const headerPos = document.getElementById('header-positioner');
-        const pingPos = document.getElementById('ping-positioner'); 
-        const layoutPanel = document.getElementById('layout-panel'); 
-        const layoutTitle = document.getElementById('layout-title');
-        const scaleXSlider = document.getElementById('scale-x'); 
-        const scaleYSlider = document.getElementById('scale-y');
-        const layoutFontSelect = document.getElementById('layout-font-select');
+        const timePos = document.getElementById('clock-positioner'); const headerPos = document.getElementById('header-positioner'); const pingPos = document.getElementById('ping-positioner'); 
+        const layoutPanel = document.getElementById('layout-panel'); const layoutTitle = document.getElementById('layout-title');
+        const scaleXSlider = document.getElementById('scale-x'); const scaleYSlider = document.getElementById('scale-y'); const layoutFontSelect = document.getElementById('layout-font-select');
         
         let isEditMode = false; let activeTarget = 'time'; 
-        const DEFAULT_LAYOUT = { 
-            time: { x: 15, y: -11, sx: 1.05, sy: 0.9 }, 
-            header: { x: 0, y: 15, sx: 1.05, sy: 1 },
-            ping: { x: 0, y: 0, sx: 1, sy: 1 } 
-        };
+        const DEFAULT_LAYOUT = { time: { x: 15, y: -11, sx: 1.05, sy: 0.9 }, header: { x: 0, y: 15, sx: 1.05, sy: 1 }, ping: { x: 0, y: 0, sx: 1, sy: 1 } };
         let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
         
-        try { 
-            const savedStr = safeStorage.get('dualLayout', null); 
-            if (savedStr) { 
-                let parsed = JSON.parse(savedStr); 
-                if(parsed && parsed.time && parsed.header) {
-                    layout.time = parsed.time;
-                    layout.header = parsed.header;
-                    if(parsed.ping) layout.ping = parsed.ping; 
-                } 
-            } 
-        } catch(e) {}
+        try { const savedStr = safeStorage.get('dualLayout', null); if (savedStr) { let parsed = JSON.parse(savedStr); if(parsed && parsed.time && parsed.header) { layout.time = parsed.time; layout.header = parsed.header; if(parsed.ping) layout.ping = parsed.ping; } } } catch(e) {}
 
         function autoSaveLayout() { safeStorage.set('dualLayout', JSON.stringify(layout)); }
         
@@ -751,72 +564,37 @@
         applyTransforms();
 
         function loadTargetToSliders() {
-            scaleXSlider.value = layout[activeTarget].sx; 
-            scaleYSlider.value = layout[activeTarget].sy;
-            timePos.classList.remove('active-target'); 
-            headerPos.classList.remove('active-target');
-            pingPos.classList.remove('active-target');
-
-            if(activeTarget === 'time') { 
-                timePos.classList.add('active-target'); layoutTitle.textContent = "EDITING: CLOCK"; scaleXSlider.max = 1.3; layoutFontSelect.value = timeFont; 
-            } else if (activeTarget === 'header') { 
-                headerPos.classList.add('active-target'); layoutTitle.textContent = "EDITING: HEADER"; scaleXSlider.max = 1.15; layoutFontSelect.value = headerFont; 
-            } else if (activeTarget === 'ping') { 
-                pingPos.classList.add('active-target'); layoutTitle.textContent = "EDITING: PING BOX"; scaleXSlider.max = 2.0; layoutFontSelect.value = headerFont; 
-            }
+            scaleXSlider.value = layout[activeTarget].sx; scaleYSlider.value = layout[activeTarget].sy;
+            timePos.classList.remove('active-target'); headerPos.classList.remove('active-target'); pingPos.classList.remove('active-target');
+            if(activeTarget === 'time') { timePos.classList.add('active-target'); layoutTitle.textContent = "EDITING: CLOCK"; scaleXSlider.max = 1.3; layoutFontSelect.value = timeFont; } 
+            else if (activeTarget === 'header') { headerPos.classList.add('active-target'); layoutTitle.textContent = "EDITING: HEADER"; scaleXSlider.max = 1.15; layoutFontSelect.value = headerFont; } 
+            else if (activeTarget === 'ping') { pingPos.classList.add('active-target'); layoutTitle.textContent = "EDITING: PING BOX"; scaleXSlider.max = 2.0; layoutFontSelect.value = headerFont; }
         }
 
         layoutFontSelect.addEventListener('change', (e) => {
-            if (activeTarget === 'header' || activeTarget === 'ping') { 
-                headerFont = e.target.value; 
-                headerPos.style.fontFamily = headerFont; 
-                pingPos.style.fontFamily = headerFont; 
-                safeStorage.set('headerFont', headerFont); 
-            } else { 
-                timeFont = e.target.value; 
-                timePos.style.fontFamily = timeFont; 
-                safeStorage.set('timeFont', timeFont); 
-            }
+            if (activeTarget === 'header' || activeTarget === 'ping') { headerFont = e.target.value; headerPos.style.fontFamily = headerFont; pingPos.style.fontFamily = headerFont; safeStorage.set('headerFont', headerFont); } 
+            else { timeFont = e.target.value; timePos.style.fontFamily = timeFont; safeStorage.set('timeFont', timeFont); }
         });
 
         scaleXSlider.addEventListener('input', (e) => { layout[activeTarget].sx = parseFloat(e.target.value); applyTransforms(); autoSaveLayout(); });
         scaleYSlider.addEventListener('input', (e) => { layout[activeTarget].sy = parseFloat(e.target.value); applyTransforms(); autoSaveLayout(); });
 
         let isDragging = false; let startX, startY, initialX, initialY; let dragTarget = null; 
-        function startDrag(e, targetStr) {
-            if (!isEditMode) return; isDragging = true; dragTarget = targetStr; activeTarget = targetStr; loadTargetToSliders();    
-            let touchX = e.touches ? e.touches[0].clientX : e.clientX; let touchY = e.touches ? e.touches[0].clientY : e.clientY;
-            startX = touchX; startY = touchY; initialX = layout[dragTarget].x; initialY = layout[dragTarget].y;
-        }
-        function moveDrag(e) {
-            if (!isDragging || !isEditMode || !dragTarget) return; e.preventDefault(); 
-            let touchX = e.touches ? e.touches[0].clientX : e.clientX; let touchY = e.touches ? e.touches[0].clientY : e.clientY;
-            const maxMoveX = window.innerWidth / 3; const maxMoveY = window.innerHeight / 3;
-            layout[dragTarget].x = Math.max(-maxMoveX, Math.min(maxMoveX, initialX + (touchX - startX)));
-            layout[dragTarget].y = Math.max(-maxMoveY, Math.min(maxMoveY, initialY + (touchY - startY)));
-            applyTransforms();
-        }
+        function startDrag(e, targetStr) { if (!isEditMode) return; isDragging = true; dragTarget = targetStr; activeTarget = targetStr; loadTargetToSliders(); let touchX = e.touches ? e.touches[0].clientX : e.clientX; let touchY = e.touches ? e.touches[0].clientY : e.clientY; startX = touchX; startY = touchY; initialX = layout[dragTarget].x; initialY = layout[dragTarget].y; }
+        function moveDrag(e) { if (!isDragging || !isEditMode || !dragTarget) return; e.preventDefault(); let touchX = e.touches ? e.touches[0].clientX : e.clientX; let touchY = e.touches ? e.touches[0].clientY : e.clientY; const maxMoveX = window.innerWidth / 3; const maxMoveY = window.innerHeight / 3; layout[dragTarget].x = Math.max(-maxMoveX, Math.min(maxMoveX, initialX + (touchX - startX))); layout[dragTarget].y = Math.max(-maxMoveY, Math.min(maxMoveY, initialY + (touchY - startY))); applyTransforms(); }
         function endDrag() { if (isDragging) { isDragging = false; dragTarget = null; autoSaveLayout(); } }
 
         timePos.addEventListener('touchstart', (e) => startDrag(e, 'time')); timePos.addEventListener('mousedown', (e) => startDrag(e, 'time'));
         headerPos.addEventListener('touchstart', (e) => startDrag(e, 'header')); headerPos.addEventListener('mousedown', (e) => startDrag(e, 'header'));
         pingPos.addEventListener('touchstart', (e) => startDrag(e, 'ping')); pingPos.addEventListener('mousedown', (e) => startDrag(e, 'ping'));
         
-        window.addEventListener('touchmove', moveDrag, {passive: false}); window.addEventListener('mousemove', moveDrag);
-        window.addEventListener('touchend', endDrag); window.addEventListener('mouseup', endDrag);
+        window.addEventListener('touchmove', moveDrag, {passive: false}); window.addEventListener('mousemove', moveDrag); window.addEventListener('touchend', endDrag); window.addEventListener('mouseup', endDrag);
 
-        document.getElementById('edit-layout-btn').addEventListener('click', () => {
-            hideSettings(); isEditMode = true; document.body.classList.add('edit-mode');
-            layoutPanel.style.display = 'flex'; activeTarget = 'time'; loadTargetToSliders();
-        });
-        document.getElementById('layout-save').addEventListener('click', () => {
-            isEditMode = false; document.body.classList.remove('edit-mode'); layoutPanel.style.display = 'none';
-            timePos.classList.remove('active-target'); headerPos.classList.remove('active-target'); pingPos.classList.remove('active-target'); autoSaveLayout();
-        });
+        document.getElementById('edit-layout-btn').addEventListener('click', () => { hideSettings(); isEditMode = true; document.body.classList.add('edit-mode'); layoutPanel.style.display = 'flex'; activeTarget = 'time'; loadTargetToSliders(); });
+        document.getElementById('layout-save').addEventListener('click', () => { isEditMode = false; document.body.classList.remove('edit-mode'); layoutPanel.style.display = 'none'; timePos.classList.remove('active-target'); headerPos.classList.remove('active-target'); pingPos.classList.remove('active-target'); autoSaveLayout(); });
         document.getElementById('layout-reset').addEventListener('click', () => { layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); loadTargetToSliders(); applyTransforms(); autoSaveLayout(); });
 
-        const settingsMenu = document.getElementById('settings-menu'); const fullscreenBtn = document.getElementById('fullscreen-btn');
-        let hideTimeout; let wakeLock = null;
+        const settingsMenu = document.getElementById('settings-menu'); const fullscreenBtn = document.getElementById('fullscreen-btn'); let hideTimeout; let wakeLock = null;
 
         async function requestWakeLock() { if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} } }
         function releaseWakeLock() { if (wakeLock !== null) { wakeLock.release().then(() => { wakeLock = null; }); } }
@@ -827,179 +605,185 @@
 
         document.getElementById('close-settings').addEventListener('click', hideSettings);
         document.getElementById('format-toggle').addEventListener('change', function(e) { is12Hour = e.target.checked; safeStorage.set('is12Hour', is12Hour); resetHideTimer(); });
-
-        fullscreenBtn.addEventListener('click', function() {
-            try {
-                if (!document.fullscreenElement) { document.documentElement.requestFullscreen().then(() => { requestWakeLock(); }).catch(err => {}); } 
-                else { if (document.exitFullscreen) { document.exitFullscreen().then(() => { releaseWakeLock(); }); } }
-            } catch(e) {}
-            hideSettings();
-        });
+        fullscreenBtn.addEventListener('click', function() { try { if (!document.fullscreenElement) { document.documentElement.requestFullscreen().then(() => { requestWakeLock(); }).catch(err => {}); } else { if (document.exitFullscreen) { document.exitFullscreen().then(() => { releaseWakeLock(); }); } } } catch(e) {} hideSettings(); });
         document.addEventListener('visibilitychange', async () => { if (wakeLock !== null && document.visibilityState === 'visible') { requestWakeLock(); } });
 
-        // --- GLOBAL DOUBLE TAP LOGIC ---
         let lastTapTime = 0;
         document.body.addEventListener('click', function(e) {
             const tapLength = new Date().getTime() - lastTapTime;
-            
-            if (e.target.closest('#fullscreen-alert')) {
-                if (tapLength < 300 && tapLength > 0) { dismissFullscreenAlert(); }
-                lastTapTime = new Date().getTime();
-                return;
-            }
-
+            if (e.target.closest('#fullscreen-alert')) { if (tapLength < 300 && tapLength > 0) { dismissFullscreenAlert(); } lastTapTime = new Date().getTime(); return; }
             if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || e.target.closest('#message-board') || isEditMode) return;
-            
             if (tapLength < 300 && tapLength > 0) { showSettings(); }
             lastTapTime = new Date().getTime();
         });
 
         // --- LIVE MESSAGING LOGIC ---
         const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbwnGUMYmNW0gidnQFyHVFIzyRWRTZPwiquQZ9aYkIlT9x6VQ7cIrlfQiV5COSO05mv5/exec";
-        const messageBoard = document.getElementById('message-board');
-        const messageList = document.getElementById('message-list');
-        const alertOverlay = document.getElementById('fullscreen-alert');
-        const alertText = document.getElementById('alert-text');
-        const alertImage = document.getElementById('alert-image');
-        
-        let lastSeenMessageId = null;
-        let alertTimeout = null;
+        const messageBoard = document.getElementById('message-board'); const messageList = document.getElementById('message-list');
+        const alertOverlay = document.getElementById('fullscreen-alert'); const alertText = document.getElementById('alert-text'); const alertImage = document.getElementById('alert-image');
+        let lastSeenMessageId = null; let alertTimeout = null;
 
-        document.getElementById('open-messages-btn').addEventListener('click', () => {
-            hideSettings();
-            messageBoard.style.display = 'flex';
-            fetchMessagesForBoard();
-        });
+        document.getElementById('open-messages-btn').addEventListener('click', () => { hideSettings(); messageBoard.style.display = 'flex'; fetchMessagesForBoard(); });
         document.getElementById('close-messages').addEventListener('click', () => { messageBoard.style.display = 'none'; });
 
         function fetchMessagesForBoard() {
             messageList.innerHTML = `<div class="loading-text">Fetching latest messages...</div>`;
-            fetch(GOOGLE_APP_URL)
-                .then(response => response.json())
-                .then(data => {
-                    messageList.innerHTML = ''; 
-                    if (data.length === 0) { messageList.innerHTML = `<div class="loading-text">No messages right now.</div>`; return; }
-
-                    data.forEach(msg => {
-                        if(!msg.message && !msg.date && !msg.image) return;
-                        
-                        let safePriority = (msg.priority || "Normal").trim();
-                        let safeMsg = msg.message || "";
-                        let safeDate = msg.date || "";
-                        let safeImg = msg.image ? `<img class="msg-img-preview" src="data:image/jpeg;base64,${msg.image}">` : "";
-
-                        let card = document.createElement('div');
-                        card.className = `msg-card ${safePriority}`;
-                        card.innerHTML = `
-                            ${safeImg}
-                            <div class="msg-text">${safeMsg}</div>
-                            <div class="msg-meta"><span>Priority: ${safePriority}</span><span>${safeDate}</span></div>
-                        `;
-                        messageList.appendChild(card);
-                    });
-                })
-                .catch(error => { messageList.innerHTML = `<div class="loading-text" style="color:red;">Failed to load messages.</div>`; });
+            fetch(GOOGLE_APP_URL).then(response => response.json()).then(data => { messageList.innerHTML = ''; if (data.length === 0) { messageList.innerHTML = `<div class="loading-text">No messages right now.</div>`; return; } data.forEach(msg => { if(!msg.message && !msg.date && !msg.image) return; let safePriority = (msg.priority || "Normal").trim(); let safeMsg = msg.message || ""; let safeDate = msg.date || ""; let safeImg = msg.image ? `<img class="msg-img-preview" src="data:image/jpeg;base64,${msg.image}">` : ""; let card = document.createElement('div'); card.className = `msg-card ${safePriority}`; card.innerHTML = `${safeImg}<div class="msg-text">${safeMsg}</div><div class="msg-meta"><span>Priority: ${safePriority}</span><span>${safeDate}</span></div>`; messageList.appendChild(card); }); }).catch(error => { messageList.innerHTML = `<div class="loading-text" style="color:red;">Failed to load messages.</div>`; });
         }
 
         function checkLatestMessage() {
-            fetch(GOOGLE_APP_URL)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.length === 0) return;
-                    
-                    const newestMsg = data[0];
-                    if(!newestMsg.message && !newestMsg.date && !newestMsg.image) return; 
-
-                    const imgSnippet = newestMsg.image ? newestMsg.image.substring(0, 20) : "";
-                    const currentMessageId = newestMsg.date + newestMsg.message + imgSnippet;
-
-                    if (lastSeenMessageId === null) {
-                        lastSeenMessageId = currentMessageId;
-                        return;
-                    }
-
-                    if (currentMessageId !== lastSeenMessageId) {
-                        lastSeenMessageId = currentMessageId;
-                        triggerFullscreenAlert(newestMsg.message, newestMsg.priority, newestMsg.image);
-                    }
-                })
-                .catch(e => console.log("Background check error", e));
+            fetch(GOOGLE_APP_URL).then(response => response.json()).then(data => { if (data.length === 0) return; const newestMsg = data[0]; if(!newestMsg.message && !newestMsg.date && !newestMsg.image) return; const imgSnippet = newestMsg.image ? newestMsg.image.substring(0, 20) : ""; const currentMessageId = newestMsg.date + newestMsg.message + imgSnippet; if (lastSeenMessageId === null) { lastSeenMessageId = currentMessageId; return; } if (currentMessageId !== lastSeenMessageId) { lastSeenMessageId = currentMessageId; triggerFullscreenAlert(newestMsg.message, newestMsg.priority, newestMsg.image); } }).catch(e => console.log("Background check error", e));
         }
 
         function triggerFullscreenAlert(msg, priority, imageStr) {
-            clearTimeout(alertTimeout);
-            
-            try { if (typeof fully !== 'undefined') fully.setScreenBrightness(255); } catch(e) {}
-
-            if (imageStr && imageStr.trim() !== "") {
-                let cleanBase64 = imageStr.replace(/\r?\n|\r/g, ''); 
-                alertImage.src = `data:image/jpeg;base64,${cleanBase64}`;
-                alertImage.style.display = 'block';
-                alertOverlay.classList.add('has-image'); 
-            } else {
-                alertImage.src = "";
-                alertImage.style.display = 'none';
-                alertOverlay.classList.remove('has-image'); 
-                
-                let hasManualBreak = msg.includes('\n');
-                if (!hasManualBreak && msg.length >= 12 && msg.length < 65) {
-                    let middle = Math.floor(msg.length / 2);
-                    let before = msg.lastIndexOf(' ', middle);
-                    let after = msg.indexOf(' ', middle + 1);
-                    
-                    let splitIndex = -1;
-                    if (before === -1 && after === -1) { splitIndex = -1; } 
-                    else if (before === -1) { splitIndex = after; } 
-                    else if (after === -1) { splitIndex = before; } 
-                    else { splitIndex = (middle - before < after - middle) ? before : after; }
-                    
-                    if (splitIndex !== -1) { msg = msg.substring(0, splitIndex) + "<br>" + msg.substring(splitIndex + 1); }
-                }
-            }
-
-            alertText.innerHTML = msg;
-            const charCount = msg.length;
-
-            if (imageStr && imageStr.trim() !== "") {
-                if (charCount === 0) { 
-                    alertText.style.display = "none"; 
-                } else { 
-                    alertText.style.display = "block";
-                    alertText.style.fontSize = "clamp(18px, 5vmin, 45px)"; 
-                }
-            } else {
-                alertText.style.display = "block";
-                if (charCount < 20) { alertText.style.fontSize = "clamp(50px, 26vmin, 300px)"; } 
-                else if (charCount < 65) { alertText.style.fontSize = "clamp(35px, 18vmin, 200px)"; } 
-                else if (charCount < 120) { alertText.style.fontSize = "clamp(25px, 11vmin, 120px)"; } 
-                else { alertText.style.fontSize = "clamp(18px, 7vmin, 80px)"; }
-            }
-            
+            clearTimeout(alertTimeout); try { if (typeof fully !== 'undefined') fully.setScreenBrightness(255); } catch(e) {}
+            if (imageStr && imageStr.trim() !== "") { let cleanBase64 = imageStr.replace(/\r?\n|\r/g, ''); alertImage.src = `data:image/jpeg;base64,${cleanBase64}`; alertImage.style.display = 'block'; alertOverlay.classList.add('has-image'); } else { alertImage.src = ""; alertImage.style.display = 'none'; alertOverlay.classList.remove('has-image'); let hasManualBreak = msg.includes('\n'); if (!hasManualBreak && msg.length >= 12 && msg.length < 65) { let middle = Math.floor(msg.length / 2); let before = msg.lastIndexOf(' ', middle); let after = msg.indexOf(' ', middle + 1); let splitIndex = -1; if (before === -1 && after === -1) { splitIndex = -1; } else if (before === -1) { splitIndex = after; } else if (after === -1) { splitIndex = before; } else { splitIndex = (middle - before < after - middle) ? before : after; } if (splitIndex !== -1) { msg = msg.substring(0, splitIndex) + "<br>" + msg.substring(splitIndex + 1); } } }
+            alertText.innerHTML = msg; const charCount = msg.length;
+            if (imageStr && imageStr.trim() !== "") { if (charCount === 0) { alertText.style.display = "none"; } else { alertText.style.display = "block"; alertText.style.fontSize = "clamp(18px, 5vmin, 45px)"; } } else { alertText.style.display = "block"; if (charCount < 20) { alertText.style.fontSize = "clamp(50px, 26vmin, 300px)"; } else if (charCount < 65) { alertText.style.fontSize = "clamp(35px, 18vmin, 200px)"; } else if (charCount < 120) { alertText.style.fontSize = "clamp(25px, 11vmin, 120px)"; } else { alertText.style.fontSize = "clamp(18px, 7vmin, 80px)"; } }
             const isHighPriority = (priority || "").toLowerCase() === 'high';
+            if (isHighPriority) { alertOverlay.classList.add('blink-red'); alertOverlay.classList.remove('normal-alert'); alertOverlay.style.display = 'flex'; alertTimeout = setTimeout(dismissFullscreenAlert, 600000); } else { alertOverlay.classList.remove('blink-red'); alertOverlay.classList.add('normal-alert'); alertOverlay.style.display = 'flex'; alertTimeout = setTimeout(dismissFullscreenAlert, 300000); }
+        }
+
+        function dismissFullscreenAlert() { clearTimeout(alertTimeout); alertOverlay.style.display = 'none'; alertOverlay.classList.remove('blink-red', 'normal-alert', 'has-image'); alertImage.src = ""; try { if (typeof fully !== 'undefined') fully.setScreenBrightness(-1); } catch(e) {} }
+        setInterval(checkLatestMessage, 5000); setTimeout(checkLatestMessage, 3000);
+
+        // --------------------------------------------------------
+        // --- OPENSKY LIVE FLIGHT RADAR (100KM RADIUS) ---
+        // --------------------------------------------------------
+        const OPENSKY_CLIENT_ID = 'gaikwadsambhaji-api-client';
+        const OPENSKY_CLIENT_SECRET = '8qVtYXTeqy72goOBkr5YzsffYUZaLvCW'; 
+
+        const USER_LAT = 19.829922517810658;
+        const USER_LON = 75.19324674961442;
+        
+        // 100km Bounding Box (0.9 degrees)
+        const lamin = USER_LAT - 0.9;
+        const lamax = USER_LAT + 0.9;
+        const lomin = USER_LON - 0.9;
+        const lomax = USER_LON + 0.9;
+
+        let openskyToken = null;
+        let tokenExpiry = 0;
+        let flightActiveTimer = null;
+
+        function calculateRangeBearing(lat1, lon1, lat2, lon2) {
+            const R = 3440.065; 
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const range = R * c; 
+            const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+            const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) - Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+            let bearing = Math.atan2(y, x) * 180 / Math.PI;
+            bearing = (bearing + 360) % 360; 
+
+            let dir = "N";
+            if (bearing > 22.5 && bearing <= 67.5) dir = "NE";
+            else if (bearing > 67.5 && bearing <= 112.5) dir = "E";
+            else if (bearing > 112.5 && bearing <= 157.5) dir = "SE";
+            else if (bearing > 157.5 && bearing <= 202.5) dir = "S";
+            else if (bearing > 202.5 && bearing <= 247.5) dir = "SW";
+            else if (bearing > 247.5 && bearing <= 292.5) dir = "W";
+            else if (bearing > 292.5 && bearing <= 337.5) dir = "NW";
+
+            return { range: range.toFixed(1), bearing: Math.round(bearing), dir: dir };
+        }
+
+        async function getOpenSkyToken() {
+            if (openskyToken && Date.now() < tokenExpiry) return openskyToken;
+            const tokenUrl = "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token";
+            const body = new URLSearchParams({ 'grant_type': 'client_credentials', 'client_id': OPENSKY_CLIENT_ID, 'client_secret': OPENSKY_CLIENT_SECRET });
+            try {
+                const response = await fetch(tokenUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body });
+                const data = await response.json();
+                if (data.access_token) {
+                    openskyToken = data.access_token;
+                    tokenExpiry = Date.now() + (data.expires_in - 30) * 1000; 
+                    return openskyToken;
+                }
+            } catch (e) { console.log("OpenSky Auth Error:", e); }
+            return null;
+        }
+
+        async function checkFlights() {
+            const token = await getOpenSkyToken();
+            if (!token) return;
+
+            const url = `https://opensky-network.org/api/states/all?lamin=${lamin}&lomin=${lomin}&lamax=${lamax}&lomax=${lomax}`;
             
-            if (isHighPriority) {
-                alertOverlay.classList.add('blink-red');
-                alertOverlay.classList.remove('normal-alert');
-                alertOverlay.style.display = 'flex';
-                alertTimeout = setTimeout(dismissFullscreenAlert, 600000); 
+            try {
+                const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await response.json();
+                
+                if (data.states && data.states.length > 0) {
+                    document.body.classList.add('flight-detected');
+
+                    const flight = data.states[0];
+                    const icao24 = flight[0] ? flight[0].toUpperCase() : "UNKNOWN"; 
+                    const callsign = flight[1] ? flight[1].trim() : "UNKNOWN";
+                    const lon = flight[5];
+                    const lat = flight[6];
+                    const altitude = flight[13] !== null ? Math.round(flight[13] * 3.28084) : 0; 
+                    const velocity = flight[9] !== null ? Math.round(flight[9] * 1.94384) : 0; 
+                    const heading = flight[10] !== null ? Math.round(flight[10]) : 0; 
+                    const verticalRate = flight[11] !== null ? Math.round(flight[11] * 196.85) : 0; 
+                    
+                    const geo = calculateRangeBearing(USER_LAT, USER_LON, lat, lon);
+
+                    document.getElementById('fl-callsign').innerText = callsign;
+                    document.getElementById('fl-tab-1').innerText = callsign;
+                    document.getElementById('fl-count').innerText = data.states.length;
+                    
+                    document.getElementById('fl-range').innerText = geo.range + " NM";
+                    document.getElementById('fl-bearing').innerText = geo.bearing + "°";
+                    document.getElementById('fl-dir').innerText = geo.dir;
+                    
+                    document.getElementById('fl-alt').innerText = altitude.toLocaleString() + " FT";
+                    document.getElementById('fl-speed').innerText = velocity + " KT";
+                    document.getElementById('fl-hdg').innerText = heading + "°";
+                    
+                    let vStatus = verticalRate > 0 ? `▲ +${verticalRate}` : verticalRate < 0 ? `▼ ${verticalRate}` : "● 0";
+                    document.getElementById('fl-vrt').innerText = vStatus + " FT/MIN";
+                    document.getElementById('fl-stat').innerText = flight[8] ? "GROUND" : "AIRBORNE"; 
+
+                    document.getElementById('fl-icao').innerText = icao24;
+                    document.getElementById('fl-callsign2').innerText = callsign;
+
+                    document.getElementById('radar-icon').style.transform = `rotate(${heading - 90}deg)`; 
+
+                    clearTimeout(flightActiveTimer);
+                    flightActiveTimer = setTimeout(() => { document.body.classList.remove('flight-detected'); }, 90000);
+                } else {
+                    document.body.classList.remove('flight-detected');
+                }
+            } catch (error) { console.log("Radar error:", error); }
+        }
+
+        // --- MANUAL DEMO BUTTON FOR TESTING UI ---
+        document.getElementById('demo-flight-btn').addEventListener('click', () => {
+            hideSettings();
+            if(document.body.classList.contains('flight-detected')) {
+                document.body.classList.remove('flight-detected');
             } else {
-                alertOverlay.classList.remove('blink-red');
-                alertOverlay.classList.add('normal-alert');
-                alertOverlay.style.display = 'flex';
-                alertTimeout = setTimeout(dismissFullscreenAlert, 300000); 
+                document.body.classList.add('flight-detected');
+                document.getElementById('fl-callsign').innerText = "AI 2T47";
+                document.getElementById('fl-tab-1').innerText = "AI 2T47";
+                document.getElementById('fl-range').innerText = "6.8 NM";
+                document.getElementById('fl-bearing').innerText = "315°";
+                document.getElementById('fl-dir').innerText = "NW";
+                document.getElementById('fl-alt').innerText = "34,000 FT";
+                document.getElementById('fl-speed').innerText = "462 KT";
+                document.getElementById('fl-hdg').innerText = "278°";
+                document.getElementById('fl-vrt').innerText = "▲ +850 FT/MIN";
+                document.getElementById('fl-stat').innerText = "AIRBORNE";
+                document.getElementById('fl-icao').innerText = "800123";
+                document.getElementById('radar-icon').style.transform = `rotate(188deg)`;
             }
-        }
+        });
 
-        function dismissFullscreenAlert() {
-            clearTimeout(alertTimeout);
-            alertOverlay.style.display = 'none';
-            alertOverlay.classList.remove('blink-red', 'normal-alert', 'has-image');
-            alertImage.src = "";
-            try { if (typeof fully !== 'undefined') fully.setScreenBrightness(-1); } catch(e) {}
-        }
-
-        setInterval(checkLatestMessage, 5000);
-        setTimeout(checkLatestMessage, 3000);
+        setInterval(checkFlights, 60000);
+        setTimeout(checkFlights, 5000); 
 
     </script>
 </body>
