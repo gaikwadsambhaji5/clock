@@ -110,7 +110,6 @@
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
         /* --- FLOATING PING & RATE ANCHORS --- */
-        /* Changed from restricted margins to pure center-anchoring to allow free movement anywhere */
         .ping-wrapper, .rate-wrapper {
             position: absolute; top: 50%; left: 50%;
             width: 0; height: 0; 
@@ -125,35 +124,49 @@
             border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
         }
 
+        .ping-box, .rate-box {
+            border: 5px solid #000000; 
+            border-radius: 12px;
+            font-family: inherit; 
+            font-weight: bold;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center; 
+            justify-content: center;
+        }
+
         .ping-box {
-            border: 2px solid #ffffff; border-radius: 12px;
-            padding: 10px 25px; font-size: 32px;
-            font-family: inherit; font-weight: bold;
-            color: #ffffff; min-width: 140px; text-align: center;
-            background-color: rgba(0, 0, 0, 0.5); 
-            transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            padding: 0px 15px 5px 15px;
+            color: #000000; 
+            background-color: #00ffaa; 
         }
 
         .rate-box {
-            border: 2px solid #00ffaa; border-radius: 12px;
-            padding: 10px 25px; font-size: 32px;
-            font-family: inherit; font-weight: bold;
-            color: #00ffaa; min-width: 140px; text-align: center;
-            background-color: rgba(0, 0, 0, 0.5); 
-            transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            display: flex; flex-direction: column; gap: 2px; line-height: 1.1;
-            
-        }
-        
-        .rate-label {
-            font-size: 0.55em; color: #ffffff; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px;
+            padding: 5px 15px 2px 15px;
+            color: #000000; 
+            background-color: #ffffff; 
+            flex-direction: column; 
+            line-height: 1;
         }
 
-        .rate-value {
-        font-size: 55px; /* Change this number to make it as big as you want! */
-        line-height: 1;
+        .rate-label {
+            font-size: 24px; 
+            color: #000000; 
+            letter-spacing: 0px;
+            margin-bottom: -10px; 
+        }
+
+        .big-val {
+            font-size: 90px; 
+            line-height: 0.9;
+            letter-spacing: -2px;
+        }
+
+        .small-unit {
+            font-size: 40px;
+            line-height: 1;
+            margin-left: 2px;
+            margin-top: 30px; 
         }
 
         /* --- MENUS --- */
@@ -257,9 +270,9 @@
         }
 
         .edit-mode .active-target {
-            border: 1px solid #00ffaa !important;
-            background: rgba(0, 255, 170, 0.05);
-            box-shadow: 0 0 15px rgba(0,255,170,0.3);
+            border: 2px solid #00ffaa !important;
+            background: rgba(0, 255, 170, 0.1);
+            box-shadow: 0 0 25px rgba(0,255,170,0.5);
         }
         .edit-mode .active-target::after, .edit-mode .active-target::before {
             content: ''; position: absolute; width: 8px; height: 8px; background: #00ffaa; border: 1px solid #000;
@@ -339,7 +352,7 @@
     <div class="ping-wrapper">
         <div id="ping-positioner" data-target="ping">
             <div class="ping-box" id="ping-box">
-                <span id="stat-ping">--</span><span style="font-size: 0.6em; opacity: 0.9; margin-left: 2px;">ms</span>
+                <span id="stat-ping" class="big-val">--</span><span class="small-unit">ms</span>
             </div>
         </div>
     </div>
@@ -348,8 +361,8 @@
     <div class="rate-wrapper">
         <div id="rate-positioner" data-target="rate">
             <div class="rate-box" id="rate-box">
-                <div class="rate-label">1 Dollar</div>
-                <div class="rate-value"><span id="stat-rate">--</span>₹</div>
+                <div class="rate-label">1 Doller</div>
+                <div class="rate-value"><span id="stat-rate" class="big-val">--</span></div>
             </div>
         </div>
     </div>
@@ -639,17 +652,24 @@
         window.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
 
         const DIGIT_HEIGHT = 380; 
+        
+        // --- INDEPENDENT FONT LOADING ---
         let is12Hour = safeStorage.get('is12Hour', 'false') === 'true';
         let headerFont = safeStorage.get('headerFont', "'Teko Local', sans-serif");
         let timeFont = safeStorage.get('timeFont', "'Teko Local', sans-serif");
+        let pingFont = safeStorage.get('pingFont', "'Teko Local', sans-serif");
+        let rateFont = safeStorage.get('rateFont', "'Teko Local', sans-serif");
+        
         let dayColor = safeStorage.get('dayColor', "#ffffff");
         let nightColor = safeStorage.get('nightColor', "#00aaff");
         let autoNightMode = safeStorage.get('autoNightMode', 'true') !== 'false';
         
+        // Apply independent fonts
         document.getElementById('header-positioner').style.fontFamily = headerFont;
         document.getElementById('clock-positioner').style.fontFamily = timeFont;
-        document.getElementById('ping-positioner').style.fontFamily = headerFont; 
-        document.getElementById('rate-positioner').style.fontFamily = headerFont; 
+        document.getElementById('ping-positioner').style.fontFamily = pingFont; 
+        document.getElementById('rate-positioner').style.fontFamily = rateFont; 
+        
         document.getElementById('format-toggle').checked = is12Hour;
         document.getElementById('day-color').value = dayColor;
         document.getElementById('night-color').value = nightColor;
@@ -666,7 +686,6 @@
                     networkDot.className = 'network-dot red'; 
                     pingText.textContent = 'ERR';
                     pingBox.style.backgroundColor = '#ff3333';
-                    pingBox.style.borderColor = '#ff3333';
                     pingBox.style.color = '#ffffff';
                     return; 
                 } 
@@ -682,17 +701,14 @@
 
                     if (pingTime < 150) {
                         pingBox.style.backgroundColor = '#00ffaa'; 
-                        pingBox.style.borderColor = '#00ffaa';
                         pingBox.style.color = '#000000'; 
                         networkDot.className = 'network-dot green'; 
                     } else if (pingTime < 350) {
                         pingBox.style.backgroundColor = '#ffcc00'; 
-                        pingBox.style.borderColor = '#ffcc00';
                         pingBox.style.color = '#000000'; 
                         networkDot.className = 'network-dot yellow'; 
                     } else {
                         pingBox.style.backgroundColor = '#ff3333'; 
-                        pingBox.style.borderColor = '#ff3333';
                         pingBox.style.color = '#ffffff'; 
                         networkDot.className = 'network-dot red'; 
                     }
@@ -701,7 +717,6 @@
                     networkDot.className = 'network-dot red'; 
                     pingText.textContent = 'ERR';
                     pingBox.style.backgroundColor = '#ff3333';
-                    pingBox.style.borderColor = '#ff3333';
                     pingBox.style.color = '#ffffff';
                 });
             } catch(e) {}
@@ -722,7 +737,6 @@
 
         function fetchExchangeRate() {
             const now = new Date().getTime();
-            // Fetch checks limit reduced to 10 minutes to act as a true "live" display monitor
             if (now - lastRateFetch < 600000 && cachedRate !== '--') {
                 return;
             }
@@ -744,7 +758,7 @@
         }
         
         fetchExchangeRate();
-        setInterval(fetchExchangeRate, 60000); // Evaluates cache age every minute
+        setInterval(fetchExchangeRate, 60000);
 
         function updateColors() {
             try {
@@ -822,7 +836,6 @@
         
         let isEditMode = false; let activeTarget = 'time'; 
         
-        // Changed default layout logic to place elements at pure center-origin points
         const DEFAULT_LAYOUT = { 
             time: { x: 15, y: -11, sx: 1.05, sy: 0.9, rot: 0, alpha: 1 }, 
             header: { x: 0, y: 15, sx: 1.05, sy: 1, rot: 0, alpha: 1 },
@@ -870,28 +883,37 @@
             pingPos.classList.remove('active-target');
             ratePos.classList.remove('active-target');
 
+            // Map the correct independent font to the dropdown
             if(activeTarget === 'time') { 
                 timePos.classList.add('active-target'); layoutTitle.textContent = "CLOCK PROPERTIES"; scaleXSlider.max = 1.3; layoutFontSelect.value = timeFont; 
             } else if (activeTarget === 'header') { 
                 headerPos.classList.add('active-target'); layoutTitle.textContent = "HEADER PROPERTIES"; scaleXSlider.max = 1.15; layoutFontSelect.value = headerFont; 
             } else if (activeTarget === 'ping') { 
-                pingPos.classList.add('active-target'); layoutTitle.textContent = "PING PROPERTIES"; scaleXSlider.max = 2.0; layoutFontSelect.value = headerFont; 
+                pingPos.classList.add('active-target'); layoutTitle.textContent = "PING PROPERTIES"; scaleXSlider.max = 2.0; layoutFontSelect.value = pingFont; 
             } else if (activeTarget === 'rate') { 
-                ratePos.classList.add('active-target'); layoutTitle.textContent = "RATE PROPERTIES"; scaleXSlider.max = 2.0; layoutFontSelect.value = headerFont; 
+                ratePos.classList.add('active-target'); layoutTitle.textContent = "RATE PROPERTIES"; scaleXSlider.max = 2.0; layoutFontSelect.value = rateFont; 
             }
         }
 
+        // Apply font exclusively to the actively selected target
         layoutFontSelect.addEventListener('change', (e) => {
-            if (activeTarget === 'header' || activeTarget === 'ping' || activeTarget === 'rate') { 
-                headerFont = e.target.value; 
-                headerPos.style.fontFamily = headerFont; 
-                pingPos.style.fontFamily = headerFont; 
-                ratePos.style.fontFamily = headerFont;
-                safeStorage.set('headerFont', headerFont); 
-            } else { 
-                timeFont = e.target.value; 
-                timePos.style.fontFamily = timeFont; 
-                safeStorage.set('timeFont', timeFont); 
+            const selectedFont = e.target.value;
+            if (activeTarget === 'header') { 
+                headerFont = selectedFont; 
+                headerPos.style.fontFamily = selectedFont; 
+                safeStorage.set('headerFont', selectedFont); 
+            } else if (activeTarget === 'ping') { 
+                pingFont = selectedFont; 
+                pingPos.style.fontFamily = selectedFont; 
+                safeStorage.set('pingFont', selectedFont); 
+            } else if (activeTarget === 'rate') { 
+                rateFont = selectedFont; 
+                ratePos.style.fontFamily = selectedFont; 
+                safeStorage.set('rateFont', selectedFont); 
+            } else if (activeTarget === 'time') { 
+                timeFont = selectedFont; 
+                timePos.style.fontFamily = selectedFont; 
+                safeStorage.set('timeFont', selectedFont); 
             }
         });
 
@@ -910,7 +932,6 @@
             if (!isDragging || !isEditMode || !dragTarget) return; e.preventDefault(); 
             let touchX = e.touches ? e.touches[0].clientX : e.clientX; let touchY = e.touches ? e.touches[0].clientY : e.clientY;
             
-            // Replaced limited logic with true 1:1 freedom dragging
             layout[dragTarget].x = initialX + (touchX - startX);
             layout[dragTarget].y = initialY + (touchY - startY);
             
