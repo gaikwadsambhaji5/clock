@@ -109,16 +109,17 @@
         }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
-        /* --- FLOATING PING ANCHOR --- */
-        .ping-wrapper {
+        /* --- FLOATING PING & RATE ANCHORS --- */
+        /* Changed from restricted margins to pure center-anchoring to allow free movement anywhere */
+        .ping-wrapper, .rate-wrapper {
             position: absolute; top: 50%; left: 50%;
             width: 0; height: 0; 
-            display: flex; justify-content: center; align-items: flex-start;
+            display: flex; justify-content: center; align-items: center;
             z-index: 50; pointer-events: none; 
         }
 
-        #ping-positioner {
-            pointer-events: auto; margin-top: 140px; 
+        #ping-positioner, #rate-positioner {
+            pointer-events: auto;
             display: flex; justify-content: center; align-items: center;
             transform-origin: center; padding: 10px; position: relative;
             border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
@@ -132,21 +133,6 @@
             background-color: rgba(0, 0, 0, 0.5); 
             transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-
-        /* --- FLOATING RATE ANCHOR --- */
-        .rate-wrapper {
-            position: absolute; top: 75%; left: 50%;
-            width: 0; height: 0; 
-            display: flex; justify-content: center; align-items: flex-start;
-            z-index: 50; pointer-events: none; 
-        }
-
-        #rate-positioner {
-            pointer-events: auto; margin-top: 20px; 
-            display: flex; justify-content: center; align-items: center;
-            transform-origin: center; padding: 10px; position: relative;
-            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
         }
 
         .rate-box {
@@ -730,8 +716,8 @@
 
         function fetchExchangeRate() {
             const now = new Date().getTime();
-            // Fetch once every 6 hours (21600000 ms) to respect API fair use limits
-            if (now - lastRateFetch < 21600000 && cachedRate !== '--') {
+            // Fetch checks limit reduced to 10 minutes to act as a true "live" display monitor
+            if (now - lastRateFetch < 600000 && cachedRate !== '--') {
                 return;
             }
             
@@ -752,7 +738,7 @@
         }
         
         fetchExchangeRate();
-        setInterval(fetchExchangeRate, 3600000); // Check cache age every hour
+        setInterval(fetchExchangeRate, 60000); // Evaluates cache age every minute
 
         function updateColors() {
             try {
@@ -829,11 +815,13 @@
         const layoutFontSelect = document.getElementById('layout-font-select');
         
         let isEditMode = false; let activeTarget = 'time'; 
+        
+        // Changed default layout logic to place elements at pure center-origin points
         const DEFAULT_LAYOUT = { 
             time: { x: 15, y: -11, sx: 1.05, sy: 0.9, rot: 0, alpha: 1 }, 
             header: { x: 0, y: 15, sx: 1.05, sy: 1, rot: 0, alpha: 1 },
-            ping: { x: 0, y: 0, sx: 1, sy: 1, rot: 0, alpha: 1 },
-            rate: { x: 0, y: 0, sx: 1, sy: 1, rot: 0, alpha: 1 } 
+            ping: { x: 0, y: 140, sx: 1, sy: 1, rot: 0, alpha: 1 },
+            rate: { x: 0, y: 250, sx: 1, sy: 1, rot: 0, alpha: 1 } 
         };
         let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
         
@@ -915,9 +903,11 @@
         function moveDrag(e) {
             if (!isDragging || !isEditMode || !dragTarget) return; e.preventDefault(); 
             let touchX = e.touches ? e.touches[0].clientX : e.clientX; let touchY = e.touches ? e.touches[0].clientY : e.clientY;
-            const maxMoveX = window.innerWidth / 3; const maxMoveY = window.innerHeight / 3;
-            layout[dragTarget].x = Math.max(-maxMoveX, Math.min(maxMoveX, initialX + (touchX - startX)));
-            layout[dragTarget].y = Math.max(-maxMoveY, Math.min(maxMoveY, initialY + (touchY - startY)));
+            
+            // Replaced limited logic with true 1:1 freedom dragging
+            layout[dragTarget].x = initialX + (touchX - startX);
+            layout[dragTarget].y = initialY + (touchY - startY);
+            
             applyTransforms();
         }
         function endDrag() { if (isDragging) { isDragging = false; dragTarget = null; autoSaveLayout(); } }
