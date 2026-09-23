@@ -311,10 +311,12 @@
 
         /* --- COMMUTE TRACKER OVERLAY --- */
         #commute-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 25, 0.95); z-index: 6000; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); cursor: pointer; }
-        #commute-arrived-msg { display: none; text-align: center; flex-direction: column; align-items: center; }
+        #commute-arrived-msg { display: none; text-align: center; flex-direction: column; align-items: center; position: relative; }
         #commute-title { font-size: clamp(40px, 8vw, 80px); font-weight: 900; margin-bottom: 20px; color: #ffffff; letter-spacing: -1px; text-align: center; line-height: 1.1; }
         #commute-stats { font-size: clamp(20px, 4vw, 40px); font-weight: bold; color: #94a3b8; background: rgba(255,255,255,0.1); padding: 15px 30px; border-radius: 100px; text-align: center; }
         .stat-highlight { color: #38bdf8; }
+        .dismiss-hint { position: absolute; bottom: -60px; font-size: 16px; color: rgba(255,255,255,0.4); font-weight: bold; animation: fade-hint 2s infinite alternate; }
+        @keyframes fade-hint { from { opacity: 0.3; } to { opacity: 1; } }
         
         #commute-timeline-container { display: none; width: 90%; max-width: 1200px; }
         .timeline-row { display: flex; width: 100%; align-items: flex-start; justify-content: center; position: relative; }
@@ -328,8 +330,6 @@
         .t-segment { flex: 1; position: relative; margin: 0 -20px; margin-top: 40px; z-index: 0; }
         .t-line-bg { position: absolute; left: 0; right: 0; top: 0; transform: translateY(-50%); height: 12px; background: #334155; border-radius: 10px; }
         .t-line-fill { position: absolute; left: 0; top: 0; transform: translateY(-50%); height: 12px; background: #38bdf8; border-radius: 10px; width: 0%; box-shadow: 0 0 20px rgba(56,189,248,0.5); transition: width 0.3s linear;}
-        .dismiss-hint { position: absolute; bottom: 30px; font-size: 16px; color: rgba(255,255,255,0.4); font-weight: bold; animation: fade-hint 2s infinite alternate; }
-        @keyframes fade-hint { from { opacity: 0.3; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -517,7 +517,7 @@
         };
 
         // --------------------------------------------------------
-        // --- COMMUTE TRACKER LOGIC (STRICT TIMESTAMP EDITION) ---
+        // --- COMMUTE TRACKER LOGIC (SHEET TIME EDITION) ---
         // --------------------------------------------------------
         
         const COMMUTE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyevrcmR88aEx0RfXa2tO8AL6t0DV4MbVlFA-QWyMwG80YN4V7yam4dQgYlLQidgcXV/exec"; 
@@ -529,7 +529,7 @@
         
         let activeCommuteState = { active: false, type: 'none', startMins: 0, avgTravelTimeMins: 30, currentArrival: null, currentArrivalTime: null };
 
-        // Touch to dismiss logic
+        // TOUCH TO DISMISS LOGIC
         commuteOverlay.addEventListener('click', function(e) {
             if (arrivedMsgBox.style.display === 'flex') {
                 commuteOverlay.style.display = 'none';
@@ -654,13 +654,13 @@
                         
                         let isDismissed = safeStorage.get('dismissed_hA') === String(tArriveHome);
                         
-                        // Strict Time Check: Diff must be between -10 mins and exactly 15 mins based on SHEET time
+                        // Strict Time Check: Auto-Hides exactly after 15 mins
                         if (!isDismissed && diffMins >= -10 && diffMins <= 15) {
                             showArrivedMessage("Welcome Home Sambhaji!", "Leave Office", formatTimeForCommute(oL), "Arrive Home", formatTimeForCommute(hA), getDuration(tLeaveOffice, tArriveHome));
                             activeCommuteState.currentArrival = 'home';
                             activeCommuteState.currentArrivalTime = tArriveHome;
                         }
-                        return; // Auto-hides immediately after 15 mins or if dismissed
+                        return; 
                     }
 
                     // CONDITION 3: MOVING TO HOME
@@ -681,13 +681,13 @@
                         
                         let isDismissed = safeStorage.get('dismissed_oA') === String(tArriveOffice);
                         
-                        // Strict Time Check: Diff must be between -10 mins and exactly 15 mins based on SHEET time
+                        // Strict Time Check: Auto-Hides exactly after 15 mins
                         if (!isDismissed && diffMins >= -10 && diffMins <= 15) {
                             showArrivedMessage("Sambhaji is now in Office", "Leave Home", formatTimeForCommute(hL), "Arrive Office", formatTimeForCommute(oA), getDuration(tLeaveHome, tArriveOffice));
                             activeCommuteState.currentArrival = 'office';
                             activeCommuteState.currentArrivalTime = tArriveOffice;
                         }
-                        return; // Auto-hides immediately after 15 mins or if dismissed
+                        return; 
                     }
 
                     // CONDITION 1: MOVING TO OFFICE
