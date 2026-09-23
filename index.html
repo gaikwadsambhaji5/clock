@@ -320,8 +320,8 @@
         }
 
         #commute-arrived-msg { display: none; text-align: center; flex-direction: column; align-items: center; }
-        #commute-title { font-size: clamp(40px, 8vw, 80px); font-weight: 900; margin-bottom: 20px; color: #ffffff; letter-spacing: -1px; }
-        #commute-stats { font-size: clamp(20px, 4vw, 40px); font-weight: bold; color: #94a3b8; background: rgba(255,255,255,0.1); padding: 15px 30px; border-radius: 100px; }
+        #commute-title { font-size: clamp(40px, 8vw, 80px); font-weight: 900; margin-bottom: 20px; color: #ffffff; letter-spacing: -1px; text-align: center; line-height: 1.1; }
+        #commute-stats { font-size: clamp(20px, 4vw, 40px); font-weight: bold; color: #94a3b8; background: rgba(255,255,255,0.1); padding: 15px 30px; border-radius: 100px; text-align: center; }
         .stat-highlight { color: #38bdf8; }
 
         #commute-timeline-container { display: none; width: 90%; max-width: 1200px; }
@@ -593,13 +593,13 @@
         function checkCommuteStatus() {
             if(!COMMUTE_WEB_APP_URL || COMMUTE_WEB_APP_URL.includes("YOUR_COMMUTE")) return;
 
-            // CRITICAL FIX: Append a timestamp to the URL to prevent the browser from caching old data
-            const fetchUrl = COMMUTE_WEB_APP_URL + (COMMUTE_WEB_APP_URL.includes('?') ? '&' : '?') + 'nocache=' + new Date().getTime();
+            // FIX: Aggressive Cache-Busting so the browser never uses old data
+            const fetchUrl = COMMUTE_WEB_APP_URL + (COMMUTE_WEB_APP_URL.includes('?') ? '&' : '?') + "nocache=" + new Date().getTime() + "&rnd=" + Math.random();
 
-            fetch(fetchUrl)
+            fetch(fetchUrl, { cache: 'no-store' }) // Force network fetch
                 .then(res => res.json())
                 .then(data => {
-                    const validData = data.filter(r => r.Date && r.Date.trim() !== "");
+                    const validData = data.filter(r => r.Date && String(r.Date).trim() !== "");
                     if(validData.length === 0) return;
                     
                     const todayRow = validData[validData.length - 1];
@@ -607,7 +607,7 @@
                     const now = new Date();
                     const currentMins = now.getHours() * 60 + now.getMinutes();
 
-                    // Parse times
+                    // Parse times safely
                     const tLeaveHome = timeStrToMinutes(todayRow['Leave Home']);
                     const tArriveOffice = timeStrToMinutes(todayRow['Arrive Office']);
                     const tLeaveOffice = timeStrToMinutes(todayRow['Leave Office']);
@@ -619,32 +619,37 @@
                     arrivedMsgBox.style.display = 'none';
                     timelineBox.style.display = 'none';
 
-                    // CONDITION 4: AT HOME (15 min window)
+                    // CONDITION 4: AT HOME (Extended to 30 min window)
                     if (tArriveHome && tLeaveOffice) {
                         let diffMins = currentMins - tArriveHome;
                         if (diffMins < -720) diffMins += 1440; // Fix for crossing midnight
                         
-                        // Fix: Allow for slight device clock delay (e.g., -5 mins) to guarantee message shows
-                        if (diffMins >= -5 && diffMins < 15) {
+                        // Fix: Expanded window to 30 mins so it never gets skipped by a delay
+                        if (diffMins >= -10 && diffMins < 30) {
                             showArrivedMessage("Welcome Home Sambhaji!", "Leave Office", formatTimeForCommute(todayRow['Leave Office']), "Arrive Home", formatTimeForCommute(todayRow['Arrive Home']), (tArriveHome - tLeaveOffice));
                         }
-                        return;
+                        return; // Exits logic completely so it doesn't get stuck in timeline mode
                     }
 
                     // CONDITION 3: MOVING TO HOME
                     if (tLeaveOffice && !tArriveHome) {
+                        let diffMins = currentMins - tLeaveOffice;
+                        if (diffMins < -720) diffMins += 1440; 
+                        
+                        // Failsafe: Hide timeline if it's been over 3 hours and you forgot to log
+                        if (diffMins > 180) return; 
+
                         showMovingTimeline('office', 'home', formatTimeForCommute(todayRow['Leave Office']));
                         activeCommuteState = { active: true, type: 'evening', startMins: tLeaveOffice, avgTravelTimeMins: avgs.avgEvening };
                         return;
                     }
 
-                    // CONDITION 2: AT OFFICE (15 min window)
+                    // CONDITION 2: AT OFFICE (Extended to 30 min window)
                     if (tArriveOffice && tLeaveHome) {
                         let diffMins = currentMins - tArriveOffice;
-                        if (diffMins < -720) diffMins += 1440; // Fix for crossing midnight
+                        if (diffMins < -720) diffMins += 1440; 
                         
-                        // Fix: Allow for slight device clock delay (e.g., -5 mins) to guarantee message shows
-                        if (diffMins >= -5 && diffMins < 15) {
+                        if (diffMins >= -10 && diffMins < 30) {
                             showArrivedMessage("Sambhaji is now in Office", "Leave Home", formatTimeForCommute(todayRow['Leave Home']), "Arrive Office", formatTimeForCommute(todayRow['Arrive Office']), (tArriveOffice - tLeaveHome));
                         }
                         return;
@@ -652,6 +657,11 @@
 
                     // CONDITION 1: MOVING TO OFFICE
                     if (tLeaveHome && !tArriveOffice) {
+                        let diffMins = currentMins - tLeaveHome;
+                        if (diffMins < -720) diffMins += 1440; 
+                        
+                        if (diffMins > 180) return; // Failsafe
+
                         showMovingTimeline('home', 'office', formatTimeForCommute(todayRow['Leave Home']));
                         activeCommuteState = { active: true, type: 'morning', startMins: tLeaveHome, avgTravelTimeMins: avgs.avgMorning };
                         return;
