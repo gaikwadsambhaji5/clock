@@ -18,61 +18,183 @@
             font-style: normal;
         }
 
-        :root { --clock-color: #ffffff; }
+        :root {
+            --clock-color: #ffffff;
+        }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+        * {
+            box-sizing: border-box; margin: 0; padding: 0;
+            -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
+        }
 
         body {
-            color: var(--clock-color); display: flex; flex-direction: column; align-items: center;
-            height: 100vh; overflow: hidden; user-select: none; -webkit-user-select: none; padding: 0 45px; 
+            color: var(--clock-color);
+            display: flex; flex-direction: column; align-items: center;
+            height: 100vh; overflow: hidden; user-select: none; 
+            -webkit-user-select: none; padding: 0 45px; 
             transition: color 1s ease; touch-action: manipulation;
         }
 
-        canvas#c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; background-color: #000000; }
+        /* --- ANIMATED BACKGROUND CANVAS --- */
+        canvas#c {
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; pointer-events: none; 
+            background-color: #000000;
+        }
 
-        #header-positioner { width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 20px; transform-origin: top center; z-index: 10; padding: 10px; border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease; position: relative; }
-        .date-header { width: 86%; display: flex; justify-content: space-between; align-items: baseline; letter-spacing: 1px; line-height: 1; margin-bottom: 0px; font-variant-numeric: tabular-nums; font-size: clamp(35px, 5.5vw, 55px); white-space: nowrap; }
+        /* --- HEADER LAYOUT --- */
+        #header-positioner {
+            width: 100%; display: flex; flex-direction: column; align-items: center;
+            margin-top: 20px; transform-origin: top center; z-index: 10; padding: 10px;
+            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
+            position: relative;
+        }
+
+        .date-header {
+            width: 86%; display: flex; justify-content: space-between; align-items: baseline;
+            letter-spacing: 1px; line-height: 1; margin-bottom: 0px;
+            font-variant-numeric: tabular-nums; font-size: clamp(35px, 5.5vw, 55px); white-space: nowrap; 
+        }
+
         .pipe { font-size: 0.8em; transform: translateY(-2px); opacity: 0.8; }
         #date-num { display: inline-block; text-align: center; }
         #sec-wrapper { display: flex; align-items: center; gap: 8px; }
         #sec-num { display: inline-block; width: 1.2em; text-align: right; }
 
-        .network-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; transition: background-color 0.5s ease, box-shadow 0.5s ease; }
+        /* --- NETWORK STATUS DOT --- */
+        .network-dot {
+            width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+            transition: background-color 0.5s ease, box-shadow 0.5s ease;
+        }
         .network-dot.green { background-color: #00ffaa; box-shadow: 0 0 10px #00ffaa; }
         .network-dot.yellow { background-color: #ffcc00; box-shadow: 0 0 10px #ffcc00; }
         .network-dot.red { background-color: #ff3333; box-shadow: 0 0 10px #ff3333; animation: blink-dot 1s infinite; }
         @keyframes blink-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 
-        .divider { width: 86%; height: 5px; background-color: var(--clock-color); margin-bottom: 0px; transition: background-color 1s ease; }
+        .divider {
+            width: 86%; height: 5px; background-color: var(--clock-color);
+            margin-bottom: 0px; transition: background-color 1s ease;
+        }
 
-        #clock-positioner { display: flex; justify-content: center; align-items: center; transform-origin: top center; margin-top: 25px; padding: 10px; border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease; position: relative; }
+        /* --- CLOCK LAYOUT --- */
+        #clock-positioner {
+            display: flex; justify-content: center; align-items: center;
+            transform-origin: top center; margin-top: 25px; padding: 10px;
+            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
+            position: relative;
+        }
+
         .time-container { display: flex; align-items: center; justify-content: center; pointer-events: none; }
         .digit-window { height: 380px; width: 180px; overflow: hidden; position: relative; }
         .tens-window { margin-right: 15px; }
-        .digit-strip { display: flex; flex-direction: column; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform; }
-        .digit { height: 380px; line-height: 380px; font-size: 480px; width: 180px; text-align: center; display: flex; justify-content: center; align-items: center; }
+        
+        .digit-strip {
+            display: flex; flex-direction: column;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform;
+        }
 
-        .center-col { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 380px; margin: 0 15px; transform: translateY(-15px); width: 60px; }
-        .separator { font-size: 250px; line-height: 1; font-weight: bold; animation: blink 1s step-end infinite; }
+        .digit {
+            height: 380px; line-height: 380px; font-size: 480px; width: 180px;
+            text-align: center; display: flex; justify-content: center; align-items: center;
+        }
+
+        .center-col {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 380px; margin: 0 15px; transform: translateY(-15px); width: 60px; 
+        }
+
+        .separator {
+            font-size: 250px; line-height: 1; font-weight: bold;
+            animation: blink 1s step-end infinite;
+        }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
-        .ping-wrapper, .rate-wrapper { position: absolute; top: 50%; left: 50%; width: 0; height: 0; display: flex; justify-content: center; align-items: center; z-index: 50; pointer-events: none; }
-        #ping-positioner, #rate-positioner { pointer-events: auto; display: flex; justify-content: center; align-items: center; transform-origin: center; padding: 10px; position: relative; border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease; }
-        .ping-box, .rate-box { border: 5px solid #000000; border-radius: 12px; font-family: inherit; font-weight: bold; box-shadow: 0 6px 20px rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; }
-        .ping-box { padding: 0px 15px 5px 15px; color: #000000; background-color: #00ffaa; }
-        .rate-box { padding: 5px 15px 2px 15px; color: #000000; background-color: #ffffff; flex-direction: column; line-height: 1; }
-        .rate-label { font-size: 24px; color: #000000; letter-spacing: 0px; margin-bottom: -10px; }
-        .big-val { font-size: 90px; line-height: 0.9; letter-spacing: -2px; }
-        .small-unit { font-size: 40px; line-height: 1; margin-left: 2px; margin-top: 30px; }
+        /* --- FLOATING PING & RATE ANCHORS --- */
+        .ping-wrapper, .rate-wrapper {
+            position: absolute; top: 50%; left: 50%;
+            width: 0; height: 0; 
+            display: flex; justify-content: center; align-items: center;
+            z-index: 50; pointer-events: none; 
+        }
 
-        .settings-overlay { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 2px solid rgba(255, 255, 255, 0.2); padding: 30px; border-radius: 20px; z-index: 1000; flex-direction: column; align-items: center; gap: 15px; box-shadow: 0 20px 50px rgba(0,0,0,0.9); font-family: -apple-system, sans-serif; min-width: 340px; }
-        .close-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #ffffff; font-size: 24px; font-weight: bold; cursor: pointer; opacity: 0.7; }
-        .settings-btn { background: #ffffff; color: #000000; border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; }
+        #ping-positioner, #rate-positioner {
+            pointer-events: auto;
+            display: flex; justify-content: center; align-items: center;
+            transform-origin: center; padding: 10px; position: relative;
+            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
+        }
+
+        .ping-box, .rate-box {
+            border: 5px solid #000000; 
+            border-radius: 12px;
+            font-family: inherit; 
+            font-weight: bold;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center; 
+            justify-content: center;
+        }
+
+        .ping-box {
+            padding: 0px 15px 5px 15px;
+            color: #000000; 
+            background-color: #00ffaa; 
+        }
+
+        .rate-box {
+            padding: 5px 15px 2px 15px;
+            color: #000000; 
+            background-color: #ffffff; 
+            flex-direction: column; 
+            line-height: 1;
+        }
+
+        .rate-label {
+            font-size: 24px; 
+            color: #000000; 
+            letter-spacing: 0px;
+            margin-bottom: -10px; 
+        }
+
+        .big-val {
+            font-size: 90px; 
+            line-height: 0.9;
+            letter-spacing: -2px;
+        }
+
+        .small-unit {
+            font-size: 40px;
+            line-height: 1;
+            margin-left: 2px;
+            margin-top: 30px; 
+        }
+
+        /* --- MENUS --- */
+        .settings-overlay {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.2); padding: 30px; border-radius: 20px;
+            z-index: 1000; flex-direction: column; align-items: center; gap: 15px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9); font-family: -apple-system, sans-serif; min-width: 340px;
+        }
+
+        .close-btn {
+            position: absolute; top: 10px; right: 15px; background: none; border: none;
+            color: #ffffff; font-size: 24px; font-weight: bold; cursor: pointer; opacity: 0.7;
+        }
+
+        .settings-btn {
+            background: #ffffff; color: #000000; border: none; padding: 10px 20px;
+            font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%;
+        }
         .settings-btn.accent { background: #00ffaa; color: #000; }
         .settings-btn.message-btn { background: #ffcc00; color: #000; margin-bottom: 10px; }
+
         .toggle-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 15px; font-size: 16px; font-weight: bold; }
         .custom-select, .color-picker { background: #333; color: #fff; border: 1px solid #555; padding: 6px; border-radius: 8px; font-size: 14px; font-weight: bold; outline: none; }
         .color-picker { padding: 0; height: 30px; width: 50px; border: none; cursor: pointer; }
+
         .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 28px; }
@@ -80,7 +202,12 @@
         input:checked + .slider { background-color: #00ffaa; }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        .message-board { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 10, 0.98); z-index: 4000; flex-direction: column; padding: 40px 20px; font-family: -apple-system, sans-serif; overflow-y: auto; color: white; }
+        /* --- MESSAGE BOARD & ALERT OVERLAYS --- */
+        .message-board {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 10, 10, 0.98); z-index: 4000; flex-direction: column;
+            padding: 40px 20px; font-family: -apple-system, sans-serif; overflow-y: auto; color: white;
+        }
         .message-board-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .message-board-title { font-size: 24px; font-weight: bold; color: #00ffaa; }
         .close-msg-btn { background: none; border: none; color: white; font-size: 28px; cursor: pointer; }
@@ -93,49 +220,97 @@
         .msg-meta { font-size: 13px; color: #888; display: flex; justify-content: space-between; }
         .loading-text { text-align: center; color: #aaa; font-style: italic; margin-top: 20px; }
 
-        #fullscreen-alert { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; flex-direction: column; justify-content: center; align-items: center; padding: 20px 15px 75px 15px; text-align: center; font-family: -apple-system, sans-serif; cursor: pointer; box-sizing: border-box; }
-        #alert-image { display: none; max-width: 95vw; max-height: 50vh; object-fit: contain; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        #fullscreen-alert {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 5000; flex-direction: column; justify-content: center;
+            align-items: center; padding: 20px 15px 75px 15px; 
+            text-align: center; font-family: -apple-system, sans-serif;
+            cursor: pointer; box-sizing: border-box;
+        }
+
+        #alert-image {
+            display: none; max-width: 95vw; max-height: 50vh; 
+            object-fit: contain; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
         #alert-text { font-weight: bold; line-height: 1.35; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; max-height: 100%; overflow-y: auto; text-wrap: balance; }
         .alert-hint { position: absolute; bottom: 30px; font-size: 16px; color: rgba(150,150,150,0.8); font-weight: bold; transition: all 0.3s ease; }
+
         #fullscreen-alert.has-image { padding: 0; }
         #fullscreen-alert.has-image #alert-image { max-width: 100vw; max-height: 100vh; width: 100%; height: 100%; border-radius: 0; margin-bottom: 0; box-shadow: none; object-fit: contain; }
-        #fullscreen-alert.has-image #alert-text { position: absolute; bottom: 8%; max-width: 90vw; max-height: 30vh; background: rgba(0, 0, 0, 0.55); color: #ffffff !important; padding: 10px 25px; border-radius: 30px; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); text-shadow: 0px 1px 3px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); }
+        #fullscreen-alert.has-image #alert-text {
+            position: absolute; bottom: 8%; max-width: 90vw; max-height: 30vh;
+            background: rgba(0, 0, 0, 0.55); color: #ffffff !important; padding: 10px 25px;
+            border-radius: 30px; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            text-shadow: 0px 1px 3px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1);
+        }
         #fullscreen-alert.has-image .alert-hint { bottom: 10px; z-index: 5005; text-shadow: 0px 1px 4px rgba(0,0,0,0.8); }
+
         .normal-alert { background-color: #000000; }
         .normal-alert #alert-text { color: #ffffff; }
         .blink-red { animation: alert-blink-rbw 1.5s infinite; }
         .blink-red #alert-text { animation: text-color-sync 1.5s infinite; }
         .blink-red.has-image #alert-text { animation: none !important; color: #ffffff !important; }
+        
         @keyframes alert-blink-rbw { 0%, 32% { background-color: #FF0000; } 33%, 65% { background-color: #000000; } 66%, 99% { background-color: #FFFFFF; } 100% { background-color: #FF0000; } }
         @keyframes text-color-sync { 0%, 32% { color: #FFFFFF; } 33%, 65% { color: #FFFFFF; } 66%, 99% { color: #FF0000; } 100% { color: #FFFFFF; } }
 
-        #grid-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; background-image: linear-gradient(rgba(0, 255, 170, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 170, 0.1) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; }
+
+        /* --- ADVANCED LAYOUT CONTROL PANEL & GRID --- */
+        #grid-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5;
+            background-image: 
+                linear-gradient(rgba(0, 255, 170, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 170, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px; pointer-events: none;
+        }
         .edit-mode #grid-overlay { display: block; }
-        .edit-mode #header-positioner, .edit-mode #clock-positioner, .edit-mode #ping-positioner, .edit-mode #rate-positioner { border: 2px dashed rgba(255, 255, 255, 0.3); border-radius: 20px; }
-        .edit-mode .active-target { border: 2px solid #00ffaa !important; background: rgba(0, 255, 170, 0.1); box-shadow: 0 0 25px rgba(0,255,170,0.5); }
-        .edit-mode .active-target::after, .edit-mode .active-target::before { content: ''; position: absolute; width: 8px; height: 8px; background: #00ffaa; border: 1px solid #000; }
+
+        .edit-mode #header-positioner, .edit-mode #clock-positioner, .edit-mode #ping-positioner, .edit-mode #rate-positioner {
+            border: 2px dashed rgba(255, 255, 255, 0.3); border-radius: 20px;
+        }
+
+        .edit-mode .active-target {
+            border: 2px solid #00ffaa !important;
+            background: rgba(0, 255, 170, 0.1);
+            box-shadow: 0 0 25px rgba(0,255,170,0.5);
+        }
+        .edit-mode .active-target::after, .edit-mode .active-target::before {
+            content: ''; position: absolute; width: 8px; height: 8px; background: #00ffaa; border: 1px solid #000;
+        }
         .edit-mode .active-target::before { top: -4px; left: -4px; }
         .edit-mode .active-target::after { bottom: -4px; right: -4px; }
 
         .layout-panel { display: none; position: fixed; z-index: 2000; font-family: -apple-system, sans-serif; }
-        .advanced-panel { top: 20px; left: 20px; transform: none; width: 320px; background: rgba(15, 15, 15, 0.98); border: 1px solid rgba(0,255,170,0.5); backdrop-filter: blur(10px); padding: 0; box-shadow: 0 20px 40px rgba(0,0,0,0.8); transition: none; border-radius: 13px; }
-        .panel-header { background: rgba(0, 255, 170, 0.1); padding: 12px 15px; border-bottom: 1px solid rgba(0,255,170,0.3); display: flex; justify-content: space-between; align-items: center; cursor: grab; border-radius: 13px 13px 0 0; }
+        
+        .advanced-panel {
+            top: 20px; left: 20px; transform: none; width: 320px; background: rgba(15, 15, 15, 0.98);
+            border: 1px solid rgba(0,255,170,0.5); backdrop-filter: blur(10px); padding: 0;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8); transition: none; border-radius: 13px;
+        }
+        
+        .panel-header {
+            background: rgba(0, 255, 170, 0.1); padding: 12px 15px; border-bottom: 1px solid rgba(0,255,170,0.3);
+            display: flex; justify-content: space-between; align-items: center; cursor: grab; border-radius: 13px 13px 0 0;
+        }
         .panel-header:active { cursor: grabbing; }
         .panel-header h3 { margin: 0; color: #00ffaa; font-size: 14px; }
         .drag-icon { color: #00ffaa; font-size: 18px; line-height: 1; }
+        
         .panel-body { padding: 15px; display: flex; flex-direction: column; gap: 15px; }
         .slider-group { display: flex; flex-direction: column; gap: 5px; width: 100%; }
         .slider-group label { font-weight: bold; font-size: 12px; color: #ccc; }
         .slider-row { display: flex; gap: 15px; }
         .slider-row .slider-group { flex: 1; }
         input[type=range] { width: 100%; accent-color: #00ffaa; }
+        
         .layout-actions { display: flex; gap: 10px; margin-top: 5px; }
         .layout-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .btn-save { background: #00ffaa; color: #000; }
         .btn-reset { background: #555; color: #fff; }
 
         /* --- COMMUTE TRACKER OVERLAY --- */
-        #commute-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 25, 0.95); z-index: 6000; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
+        #commute-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 25, 0.95); z-index: 6000; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); cursor: pointer; }
         #commute-arrived-msg { display: none; text-align: center; flex-direction: column; align-items: center; }
         #commute-title { font-size: clamp(40px, 8vw, 80px); font-weight: 900; margin-bottom: 20px; color: #ffffff; letter-spacing: -1px; text-align: center; line-height: 1.1; }
         #commute-stats { font-size: clamp(20px, 4vw, 40px); font-weight: bold; color: #94a3b8; background: rgba(255,255,255,0.1); padding: 15px 30px; border-radius: 100px; text-align: center; }
@@ -153,57 +328,123 @@
         .t-segment { flex: 1; position: relative; margin: 0 -20px; margin-top: 40px; z-index: 0; }
         .t-line-bg { position: absolute; left: 0; right: 0; top: 0; transform: translateY(-50%); height: 12px; background: #334155; border-radius: 10px; }
         .t-line-fill { position: absolute; left: 0; top: 0; transform: translateY(-50%); height: 12px; background: #38bdf8; border-radius: 10px; width: 0%; box-shadow: 0 0 20px rgba(56,189,248,0.5); transition: width 0.3s linear;}
+        .dismiss-hint { position: absolute; bottom: 30px; font-size: 16px; color: rgba(255,255,255,0.4); font-weight: bold; animation: fade-hint 2s infinite alternate; }
+        @keyframes fade-hint { from { opacity: 0.3; } to { opacity: 1; } }
     </style>
 </head>
 <body>
 
+    <!-- Animated Canvas Background -->
     <canvas id="c"></canvas>
+
+    <!-- Alignment Grid Overlay -->
     <div id="grid-overlay"></div>
 
+    <!-- Header Block -->
     <div id="header-positioner" data-target="header">
         <div class="date-header">
-            <span id="day-marathi">सोमवार</span> <span class="pipe">|</span> <span id="month-marathi">ऑगस्ट</span> <span class="pipe">|</span> <span id="date-num">10/08/2026</span> <span class="pipe">|</span> 
-            <div id="sec-wrapper"><span id="sec-num">00</span><span id="network-dot" class="network-dot green"></span></div>
+            <span id="day-marathi">सोमवार</span> 
+            <span class="pipe">|</span> 
+            <span id="month-marathi">ऑगस्ट</span> 
+            <span class="pipe">|</span> 
+            <span id="date-num">10/08/2026</span>
+            <span class="pipe">|</span> 
+            <div id="sec-wrapper">
+                <span id="sec-num">00</span>
+                <span id="network-dot" class="network-dot green"></span>
+            </div>
         </div>
         <div class="divider"></div>
     </div>
 
+    <!-- Clock Block -->
     <div id="clock-positioner" data-target="time">
         <div class="time-container" id="clock">
             <div class="digit-window tens-window"><div class="digit-strip" id="h-tens"></div></div>
             <div class="digit-window"><div class="digit-strip" id="h-units"></div></div>
+            
             <div class="center-col"><div class="separator">:</div></div>
+
             <div class="digit-window tens-window"><div class="digit-strip" id="m-tens"></div></div>
             <div class="digit-window"><div class="digit-strip" id="m-units"></div></div>
         </div>
     </div>
 
-    <div class="ping-wrapper"><div id="ping-positioner" data-target="ping"><div class="ping-box" id="ping-box"><span id="stat-ping" class="big-val">--</span><span class="small-unit">ms</span></div></div></div>
-    <div class="rate-wrapper"><div id="rate-positioner" data-target="rate"><div class="rate-box" id="rate-box"><div class="rate-label">1 Doller</div><div class="rate-value"><span id="stat-rate" class="big-val">--</span></div></div></div></div>
+    <!-- PING BLOCK -->
+    <div class="ping-wrapper">
+        <div id="ping-positioner" data-target="ping">
+            <div class="ping-box" id="ping-box">
+                <span id="stat-ping" class="big-val">--</span><span class="small-unit">ms</span>
+            </div>
+        </div>
+    </div>
 
+    <!-- RATE BLOCK (Live Exchange Rate) -->
+    <div class="rate-wrapper">
+        <div id="rate-positioner" data-target="rate">
+            <div class="rate-box" id="rate-box">
+                <div class="rate-label">1 Doller</div>
+                <div class="rate-value"><span id="stat-rate" class="big-val">--</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Settings Menu -->
     <div class="settings-overlay" id="settings-menu">
         <button class="close-btn" id="close-settings">✕</button>
+        
         <button class="settings-btn message-btn" id="open-messages-btn">View Incoming Messages</button>
-        <div class="toggle-row" style="margin-top: 5px;"><span>Background Visuals</span>
+        
+        <div class="toggle-row" style="margin-top: 5px;">
+            <span>Background Visuals</span>
             <select id="bg-anim-select" class="custom-select" style="width: 140px;">
-                <option value="none">Off (Black)</option><option value="trails">Light Trails</option><option value="matrix">Matrix Rain</option><option value="particles">Nexus Network</option><option value="starfield">Warp Speed</option><option value="waves">Neon Waves</option><option value="bokeh">Floating Orbs</option>
+                <option value="none">Off (Black)</option>
+                <option value="trails">Light Trails</option>
+                <option value="matrix">Matrix Rain</option>
+                <option value="particles">Nexus Network</option>
+                <option value="starfield">Warp Speed</option>
+                <option value="waves">Neon Waves</option>
+                <option value="bokeh">Floating Orbs</option>
             </select>
         </div>
+
         <button class="settings-btn" id="fullscreen-btn" style="margin-top: 5px;">Toggle Full Screen</button>
         <button class="settings-btn accent" id="edit-layout-btn">Edit Layout</button>
-        <div class="toggle-row"><span>Day Color</span><input type="color" id="day-color" class="color-picker" value="#ffffff"></div>
-        <div class="toggle-row"><span>Night Color (10 PM - 6 AM)</span><input type="color" id="night-color" class="color-picker" value="#00aaff"></div>
-        <div class="toggle-row"><span>Auto Night Color Mode</span><label class="switch"><input type="checkbox" id="night-toggle" checked><span class="slider"></span></label></div>
-        <div class="toggle-row"><span>12-Hour Format</span><label class="switch"><input type="checkbox" id="format-toggle"><span class="slider"></span></label></div>
+
+        <div class="toggle-row">
+            <span>Day Color</span>
+            <input type="color" id="day-color" class="color-picker" value="#ffffff">
+        </div>
+        <div class="toggle-row">
+            <span>Night Color (10 PM - 6 AM)</span>
+            <input type="color" id="night-color" class="color-picker" value="#00aaff">
+        </div>
+        <div class="toggle-row">
+            <span>Auto Night Color Mode</span>
+            <label class="switch"><input type="checkbox" id="night-toggle" checked><span class="slider"></span></label>
+        </div>
+        <div class="toggle-row">
+            <span>12-Hour Format</span>
+            <label class="switch"><input type="checkbox" id="format-toggle"><span class="slider"></span></label>
+        </div>
     </div>
 
+    <!-- Message Board Overlay -->
     <div class="message-board" id="message-board">
-        <div class="message-board-header"><span class="message-board-title">Incoming Messages</span><button class="close-msg-btn" id="close-messages">✕</button></div>
-        <div id="message-list"><div class="loading-text">Loading messages securely...</div></div>
+        <div class="message-board-header">
+            <span class="message-board-title">Incoming Messages</span>
+            <button class="close-msg-btn" id="close-messages">✕</button>
+        </div>
+        <div id="message-list">
+            <div class="loading-text">Loading messages securely...</div>
+        </div>
     </div>
 
+    <!-- FULL SCREEN ALERT -->
     <div id="fullscreen-alert">
-        <img id="alert-image" src="" alt="Incoming Image"><div id="alert-text"></div><div class="alert-hint">Double Tap to dismiss</div>
+        <img id="alert-image" src="" alt="Incoming Image">
+        <div id="alert-text"></div>
+        <div class="alert-hint">Double Tap to dismiss</div>
     </div>
 
     <!-- COMMUTE TRACKER OVERLAY -->
@@ -211,6 +452,7 @@
         <div id="commute-arrived-msg">
             <h1 id="commute-title">Welcome Home Sambhaji!</h1>
             <div id="commute-stats">Leave Office: <span class="stat-highlight">17:02</span> &nbsp;|&nbsp; Arrive Home: <span class="stat-highlight">19:23</span> &nbsp;|&nbsp; Travel Time: <span class="stat-highlight">30 min</span></div>
+            <div class="dismiss-hint">Tap anywhere to dismiss</div>
         </div>
 
         <div id="commute-timeline-container">
@@ -228,32 +470,54 @@
         </div>
     </div>
 
+    <!-- Advanced Floating Editor Panel -->
     <div class="layout-panel advanced-panel" id="layout-panel">
-        <div class="panel-header" id="panel-drag-handle"><h3 id="layout-title">EDITING: CLOCK</h3><span class="drag-icon">⋮⋮</span></div>
+        <div class="panel-header" id="panel-drag-handle">
+            <h3 id="layout-title">EDITING: CLOCK</h3>
+            <span class="drag-icon">⋮⋮</span>
+        </div>
+        
         <div class="panel-body">
-            <div class="slider-group"><label>Typography</label>
-                <select id="layout-font-select" class="custom-select"><option value="'Teko Local', sans-serif">Teko (Local)</option><option value="'Orbitron', sans-serif">Orbitron</option><option value="'Bebas Neue', sans-serif">Bebas Neue</option><option value="'Oswald', sans-serif">Oswald</option><option value="'Rajdhani', sans-serif">Rajdhani</option><option value="'Share Tech Mono', monospace">Share Tech Mono</option></select>
+            <div class="slider-group">
+                <label>Typography</label>
+                <select id="layout-font-select" class="custom-select">
+                    <option value="'Teko Local', sans-serif">Teko (Local)</option>
+                    <option value="'Orbitron', sans-serif">Orbitron</option>
+                    <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
+                    <option value="'Oswald', sans-serif">Oswald</option>
+                    <option value="'Rajdhani', sans-serif">Rajdhani</option>
+                    <option value="'Share Tech Mono', monospace">Share Tech Mono</option>
+                </select>
             </div>
+            
             <div class="slider-row">
                 <div class="slider-group"><label>Width (X)</label><input type="range" id="scale-x" min="0.5" max="1.5" step="0.01" value="1"></div>
                 <div class="slider-group"><label>Height (Y)</label><input type="range" id="scale-y" min="0.5" max="1.5" step="0.01" value="1"></div>
             </div>
+            
             <div class="slider-row">
                 <div class="slider-group"><label>Rotation (°)</label><input type="range" id="rotate-val" min="-180" max="180" step="1" value="0"></div>
                 <div class="slider-group"><label>Opacity</label><input type="range" id="opacity-val" min="0.1" max="1" step="0.05" value="1"></div>
             </div>
-            <div class="layout-actions"><button class="btn-reset" id="layout-reset">Reset Element</button><button class="btn-save" id="layout-save">Exit Editor</button></div>
+            
+            <div class="layout-actions">
+                <button class="btn-reset" id="layout-reset">Reset Element</button>
+                <button class="btn-save" id="layout-save">Exit Editor</button>
+            </div>
         </div>
     </div>
 
     <script>
+        // --------------------------------------------------------
+        // --- MASTER STORAGE INTERFACE ---
+        // --------------------------------------------------------
         const safeStorage = {
             get: function(key, fallback) { try { let val = localStorage.getItem(key); return val !== null ? val : fallback; } catch(e) { return fallback; } },
             set: function(key, value) { try { localStorage.setItem(key, value); } catch(e) {} }
         };
 
         // --------------------------------------------------------
-        // --- COMMUTE TRACKER LOGIC (INTERNAL STOPWATCH EDITION) ---
+        // --- COMMUTE TRACKER LOGIC (STRICT TIMESTAMP EDITION) ---
         // --------------------------------------------------------
         
         const COMMUTE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyevrcmR88aEx0RfXa2tO8AL6t0DV4MbVlFA-QWyMwG80YN4V7yam4dQgYlLQidgcXV/exec"; 
@@ -263,7 +527,19 @@
         const timelineBox = document.getElementById('commute-timeline-container');
         const progressBar = document.getElementById('commute-progress-bar');
         
-        let activeCommuteState = { active: false, type: 'none', startMins: 0, avgTravelTimeMins: 30 };
+        let activeCommuteState = { active: false, type: 'none', startMins: 0, avgTravelTimeMins: 30, currentArrival: null, currentArrivalTime: null };
+
+        // Touch to dismiss logic
+        commuteOverlay.addEventListener('click', function(e) {
+            if (arrivedMsgBox.style.display === 'flex') {
+                commuteOverlay.style.display = 'none';
+                if (activeCommuteState.currentArrival === 'home') {
+                    safeStorage.set('dismissed_hA', String(activeCommuteState.currentArrivalTime));
+                } else if (activeCommuteState.currentArrival === 'office') {
+                    safeStorage.set('dismissed_oA', String(activeCommuteState.currentArrivalTime));
+                }
+            }
+        });
 
         function safeGet(row, keywords) {
             if(!row) return null;
@@ -354,34 +630,12 @@
                     const todayRow = validData[validData.length - 1];
                     const avgs = calculateCommuteAverages(validData);
                     const now = new Date();
+                    const currentMins = now.getHours() * 60 + now.getMinutes();
 
                     const hL = safeGet(todayRow, ['leavehome', 'homeleave']);
                     const oA = safeGet(todayRow, ['arriveoffice', 'officearrive']);
                     const oL = safeGet(todayRow, ['leaveoffice', 'officeleave']);
                     const hA = safeGet(todayRow, ['arrivehome', 'homearrive']);
-                    let rowDate = todayRow.Date || '';
-
-                    // 1. Reset Internal Timers if the Date changes (New Day)
-                    let stored_date = safeStorage.get('stored_date', '');
-                    if (String(rowDate) !== stored_date) {
-                        safeStorage.set('stored_date', String(rowDate));
-                        safeStorage.set('stored_oA', 'reset');
-                        safeStorage.set('stored_hA', 'reset');
-                    }
-
-                    // 2. Start exact 15-minute stopwatch the second it sees Arrive Home
-                    let stored_hA = safeStorage.get('stored_hA', '');
-                    if (hasData(hA) && String(hA) !== stored_hA) {
-                        safeStorage.set('stored_hA', String(hA));
-                        safeStorage.set('hA_timestamp', new Date().getTime().toString());
-                    }
-
-                    // 3. Start exact 15-minute stopwatch the second it sees Arrive Office
-                    let stored_oA = safeStorage.get('stored_oA', '');
-                    if (hasData(oA) && String(oA) !== stored_oA) {
-                        safeStorage.set('stored_oA', String(oA));
-                        safeStorage.set('oA_timestamp', new Date().getTime().toString());
-                    }
 
                     const tLeaveHome = timeStrToMinutes(hL);
                     const tArriveOffice = timeStrToMinutes(oA);
@@ -395,22 +649,25 @@
 
                     // CONDITION 4: AT HOME
                     if (hasData(hA)) {
-                        let detectTime = parseInt(safeStorage.get('hA_timestamp', '0'));
-                        let elapsedMinutes = (new Date().getTime() - detectTime) / 60000;
+                        let diffMins = currentMins - tArriveHome;
+                        if (diffMins < -720) diffMins += 1440; 
                         
-                        // Exact 15-Minute Rules applied to internal stopwatch
-                        if (elapsedMinutes < 15) {
+                        let isDismissed = safeStorage.get('dismissed_hA') === String(tArriveHome);
+                        
+                        // Strict Time Check: Diff must be between -10 mins and exactly 15 mins based on SHEET time
+                        if (!isDismissed && diffMins >= -10 && diffMins <= 15) {
                             showArrivedMessage("Welcome Home Sambhaji!", "Leave Office", formatTimeForCommute(oL), "Arrive Home", formatTimeForCommute(hA), getDuration(tLeaveOffice, tArriveHome));
+                            activeCommuteState.currentArrival = 'home';
+                            activeCommuteState.currentArrivalTime = tArriveHome;
                         }
-                        return; // Always stops timeline from showing if hA is filled
+                        return; // Auto-hides immediately after 15 mins or if dismissed
                     }
 
                     // CONDITION 3: MOVING TO HOME
                     if (hasData(oL) && !hasData(hA)) {
-                        const currentMins = now.getHours() * 60 + now.getMinutes();
                         let diffMins = currentMins - tLeaveOffice;
                         if (diffMins < -720) diffMins += 1440; 
-                        if (diffMins > 180) return; // Failsafe
+                        if (diffMins > 180) return; 
 
                         showMovingTimeline('office', 'home', formatTimeForCommute(oL));
                         activeCommuteState = { active: true, type: 'evening', startMins: tLeaveOffice, avgTravelTimeMins: avgs.avgEvening };
@@ -419,22 +676,25 @@
 
                     // CONDITION 2: AT OFFICE
                     if (hasData(oA)) {
-                        let detectTime = parseInt(safeStorage.get('oA_timestamp', '0'));
-                        let elapsedMinutes = (new Date().getTime() - detectTime) / 60000;
+                        let diffMins = currentMins - tArriveOffice;
+                        if (diffMins < -720) diffMins += 1440; 
                         
-                        // Exact 15-Minute Rules applied to internal stopwatch
-                        if (elapsedMinutes < 15) {
+                        let isDismissed = safeStorage.get('dismissed_oA') === String(tArriveOffice);
+                        
+                        // Strict Time Check: Diff must be between -10 mins and exactly 15 mins based on SHEET time
+                        if (!isDismissed && diffMins >= -10 && diffMins <= 15) {
                             showArrivedMessage("Sambhaji is now in Office", "Leave Home", formatTimeForCommute(hL), "Arrive Office", formatTimeForCommute(oA), getDuration(tLeaveHome, tArriveOffice));
+                            activeCommuteState.currentArrival = 'office';
+                            activeCommuteState.currentArrivalTime = tArriveOffice;
                         }
-                        return; // Always stops timeline from showing if oA is filled
+                        return; // Auto-hides immediately after 15 mins or if dismissed
                     }
 
                     // CONDITION 1: MOVING TO OFFICE
                     if (hasData(hL) && !hasData(oA)) {
-                        const currentMins = now.getHours() * 60 + now.getMinutes();
                         let diffMins = currentMins - tLeaveHome;
                         if (diffMins < -720) diffMins += 1440; 
-                        if (diffMins > 180) return; // Failsafe
+                        if (diffMins > 180) return; 
 
                         showMovingTimeline('home', 'office', formatTimeForCommute(hL));
                         activeCommuteState = { active: true, type: 'morning', startMins: tLeaveHome, avgTravelTimeMins: avgs.avgMorning };
