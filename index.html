@@ -8,7 +8,8 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@700&family=Oswald:wght@700&family=Rajdhani:wght@700&family=Righteous&family=Rubik+Mono+One&family=Share+Tech+Mono&display=swap');
     </style>
-    <!-- Added FontAwesome for Timeline Icons -->
+    
+    <!-- Added FontAwesome for Commute Timeline Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -311,30 +312,20 @@
         .btn-reset { background: #555; color: #fff; }
 
         /* --- COMMUTE TRACKER OVERLAY --- */
-        #commute-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 15, 25, 0.95); z-index: 6000; flex-direction: column;
-            justify-content: center; align-items: center; color: white;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-        }
-
+        #commute-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 25, 0.95); z-index: 6000; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
         #commute-arrived-msg { display: none; text-align: center; flex-direction: column; align-items: center; }
         #commute-title { font-size: clamp(40px, 8vw, 80px); font-weight: 900; margin-bottom: 20px; color: #ffffff; letter-spacing: -1px; text-align: center; line-height: 1.1; }
         #commute-stats { font-size: clamp(20px, 4vw, 40px); font-weight: bold; color: #94a3b8; background: rgba(255,255,255,0.1); padding: 15px 30px; border-radius: 100px; text-align: center; }
         .stat-highlight { color: #38bdf8; }
-
         #commute-timeline-container { display: none; width: 90%; max-width: 1200px; }
         .timeline-row { display: flex; width: 100%; align-items: flex-start; justify-content: center; position: relative; }
-        
-        .t-node { display: flex; flex-direction: column; items-center; justify-content: center; width: 120px; shrink-0; z-index: 10; text-align: center; }
+        .t-node { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 120px; flex-shrink: 0; z-index: 10; text-align: center; }
         .t-circle { width: 80px; height: 80px; border-radius: 50%; background: #38bdf8; color: white; display: flex; align-items: center; justify-content: center; font-size: 35px; margin: 0 auto; box-shadow: 0 10px 30px rgba(56, 189, 248, 0.4); }
         .t-label { font-size: 24px; font-weight: 800; color: #ffffff; margin-top: 15px; line-height: 1; }
         .t-divider { width: 60px; height: 2px; background: #475569; margin: 10px auto; }
         .t-sub { font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
         .t-sub.leave { color: #f43f5e; } .t-sub.arrive { color: #10b981; }
         .t-time { font-size: 32px; font-weight: 900; color: #ffffff; margin-top: 5px; font-variant-numeric: tabular-nums; }
-
         .t-segment { flex: 1; position: relative; margin: 0 -20px; margin-top: 40px; z-index: 0; }
         .t-line-bg { position: absolute; left: 0; right: 0; top: 0; transform: translateY(-50%); height: 12px; background: #334155; border-radius: 10px; }
         .t-line-fill { position: absolute; left: 0; top: 0; transform: translateY(-50%); height: 12px; background: #38bdf8; border-radius: 10px; width: 0%; box-shadow: 0 0 20px rgba(56,189,248,0.5); transition: width 0.3s linear;}
@@ -457,38 +448,22 @@
 
     <!-- COMMUTE TRACKER OVERLAY -->
     <div id="commute-overlay">
-        
-        <!-- State 1: Arrived Message -->
         <div id="commute-arrived-msg">
             <h1 id="commute-title">Welcome Home Sambhaji!</h1>
             <div id="commute-stats">Leave Office: <span class="stat-highlight">17:02</span> &nbsp;|&nbsp; Arrive Home: <span class="stat-highlight">19:23</span> &nbsp;|&nbsp; Travel Time: <span class="stat-highlight">30 min</span></div>
         </div>
 
-        <!-- State 2: Moving Timeline -->
         <div id="commute-timeline-container">
             <div class="timeline-row">
-                
                 <div class="t-node">
                     <div class="t-circle" id="node-1-icon"><i class="fa fa-home"></i></div>
-                    <p class="t-label" id="node-1-lbl">Home</p>
-                    <div class="t-divider"></div>
-                    <p class="t-sub leave">Leave At</p>
-                    <p class="t-time" id="tl-start-time">08:22</p>
+                    <p class="t-label" id="node-1-lbl">Home</p><div class="t-divider"></div><p class="t-sub leave">Leave At</p><p class="t-time" id="tl-start-time">08:22</p>
                 </div>
-
-                <div class="t-segment">
-                    <div class="t-line-bg"></div>
-                    <div class="t-line-fill" id="commute-progress-bar"></div>
-                </div>
-
+                <div class="t-segment"><div class="t-line-bg"></div><div class="t-line-fill" id="commute-progress-bar"></div></div>
                 <div class="t-node">
                     <div class="t-circle" id="node-2-icon"><i class="fa fa-building"></i></div>
-                    <p class="t-label" id="node-2-lbl">Office</p>
-                    <div class="t-divider"></div>
-                    <p class="t-sub arrive">Arrive At</p>
-                    <p class="t-time">--:--</p>
+                    <p class="t-label" id="node-2-lbl">Office</p><div class="t-divider"></div><p class="t-sub arrive">Arrive At</p><p class="t-time">--:--</p>
                 </div>
-
             </div>
         </div>
     </div>
@@ -540,10 +515,9 @@
         };
 
         // --------------------------------------------------------
-        // --- COMMUTE TRACKER LOGIC ---
+        // --- COMMUTE TRACKER LOGIC (BULLETPROOF EDITION) ---
         // --------------------------------------------------------
         
-        // YOUR INJECTED APP SCRIPT URL
         const COMMUTE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyevrcmR88aEx0RfXa2tO8AL6t0DV4MbVlFA-QWyMwG80YN4V7yam4dQgYlLQidgcXV/exec"; 
         
         const commuteOverlay = document.getElementById('commute-overlay');
@@ -553,36 +527,67 @@
         
         let activeCommuteState = { active: false, type: 'none', startMins: 0, avgTravelTimeMins: 30 };
 
-        function formatTimeForCommute(timeStr) {
-            if (!timeStr || String(timeStr).trim() === "") return "--:--";
-            let str = String(timeStr).split(':').slice(0,2).join(':');
-            if (String(timeStr).includes('T')) {
-                str = new Date(timeStr).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
+        function safeGet(row, keywords) {
+            if(!row) return null;
+            const keys = Object.keys(row);
+            for(let k of keys) {
+                let cleanKey = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+                for(let word of keywords) {
+                    if(cleanKey.includes(word)) return row[k];
+                }
             }
-            return str;
+            return null;
+        }
+
+        function hasData(val) {
+            return val !== null && val !== undefined && String(val).trim() !== "" && String(val).trim() !== "--:--";
+        }
+
+        function formatTimeForCommute(timeStr) {
+            let mins = timeStrToMinutes(timeStr);
+            if (mins === null) return "--:--";
+            let h = Math.floor(mins / 60);
+            let m = mins % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
         }
 
         function timeStrToMinutes(timeStr) {
-            if (!timeStr || String(timeStr).trim() === "") return null;
-            let str = String(timeStr);
-            if (str.includes('T')) {
-                let d = new Date(str); return d.getHours() * 60 + d.getMinutes();
-            }
+            if (!hasData(timeStr)) return null;
+            let str = String(timeStr).trim();
+            if (str.includes('T')) { let d = new Date(str); return d.getHours() * 60 + d.getMinutes(); }
+            
+            let isPM = str.toLowerCase().includes('pm');
+            let isAM = str.toLowerCase().includes('am');
+            str = str.replace(/[^0-9:]/g, ''); 
             let parts = str.split(':'); 
-            if (parts.length < 2) return null;
-            return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            
+            if (parts.length < 2) {
+                 if(parts.length === 1 && str.length > 0) {
+                     let h = parseInt(parts[0], 10);
+                     if (isPM && h !== 12) h += 12;
+                     if (isAM && h === 12) h = 0;
+                     return h * 60;
+                 }
+                 return null;
+            }
+            
+            let h = parseInt(parts[0], 10);
+            let m = parseInt(parts[1], 10);
+            if (isPM && h !== 12) h += 12;
+            if (isAM && h === 12) h = 0;
+            return h * 60 + m;
         }
 
         function calculateCommuteAverages(data) {
             let mTotal = 0, mCount = 0;
             let eTotal = 0, eCount = 0;
             data.forEach(row => {
-                let hL = timeStrToMinutes(row['Leave Home']);
-                let oA = timeStrToMinutes(row['Arrive Office']);
-                let oL = timeStrToMinutes(row['Leave Office']);
-                let hA = timeStrToMinutes(row['Arrive Home']);
-                if(hL && oA && (oA - hL) > 0) { mTotal += (oA - hL); mCount++; }
-                if(oL && hA && (hA - oL) > 0) { eTotal += (hA - oL); eCount++; }
+                let hL = timeStrToMinutes(safeGet(row, ['leavehome', 'homeleave']));
+                let oA = timeStrToMinutes(safeGet(row, ['arriveoffice', 'officearrive']));
+                let oL = timeStrToMinutes(safeGet(row, ['leaveoffice', 'officeleave']));
+                let hA = timeStrToMinutes(safeGet(row, ['arrivehome', 'homearrive']));
+                if(hL !== null && oA !== null && (oA - hL) > 0) { mTotal += (oA - hL); mCount++; }
+                if(oL !== null && hA !== null && (hA - oL) > 0) { eTotal += (hA - oL); eCount++; }
             });
             return {
                 avgMorning: mCount > 0 ? (mTotal / mCount) : 30,
@@ -593,10 +598,9 @@
         function checkCommuteStatus() {
             if(!COMMUTE_WEB_APP_URL || COMMUTE_WEB_APP_URL.includes("YOUR_COMMUTE")) return;
 
-            // FIX: Aggressive Cache-Busting so the browser never uses old data
             const fetchUrl = COMMUTE_WEB_APP_URL + (COMMUTE_WEB_APP_URL.includes('?') ? '&' : '?') + "nocache=" + new Date().getTime() + "&rnd=" + Math.random();
 
-            fetch(fetchUrl, { cache: 'no-store' }) // Force network fetch
+            fetch(fetchUrl, { cache: 'no-store' })
                 .then(res => res.json())
                 .then(data => {
                     const validData = data.filter(r => r.Date && String(r.Date).trim() !== "");
@@ -607,62 +611,61 @@
                     const now = new Date();
                     const currentMins = now.getHours() * 60 + now.getMinutes();
 
-                    // Parse times safely
-                    const tLeaveHome = timeStrToMinutes(todayRow['Leave Home']);
-                    const tArriveOffice = timeStrToMinutes(todayRow['Arrive Office']);
-                    const tLeaveOffice = timeStrToMinutes(todayRow['Leave Office']);
-                    const tArriveHome = timeStrToMinutes(todayRow['Arrive Home']);
+                    const hL = safeGet(todayRow, ['leavehome', 'homeleave']);
+                    const oA = safeGet(todayRow, ['arriveoffice', 'officearrive']);
+                    const oL = safeGet(todayRow, ['leaveoffice', 'officeleave']);
+                    const hA = safeGet(todayRow, ['arrivehome', 'homearrive']);
 
-                    // Reset State
+                    const tLeaveHome = timeStrToMinutes(hL);
+                    const tArriveOffice = timeStrToMinutes(oA);
+                    const tLeaveOffice = timeStrToMinutes(oL);
+                    const tArriveHome = timeStrToMinutes(hA);
+
                     activeCommuteState.active = false;
                     commuteOverlay.style.display = 'none';
                     arrivedMsgBox.style.display = 'none';
                     timelineBox.style.display = 'none';
 
-                    // CONDITION 4: AT HOME (Extended to 30 min window)
-                    if (tArriveHome && tLeaveOffice) {
+                    // CONDITION 4: AT HOME
+                    if (hasData(hA) && hasData(oL)) {
                         let diffMins = currentMins - tArriveHome;
-                        if (diffMins < -720) diffMins += 1440; // Fix for crossing midnight
+                        if (diffMins < -720) diffMins += 1440; 
                         
-                        // Fix: Expanded window to 30 mins so it never gets skipped by a delay
                         if (diffMins >= -10 && diffMins < 30) {
-                            showArrivedMessage("Welcome Home Sambhaji!", "Leave Office", formatTimeForCommute(todayRow['Leave Office']), "Arrive Home", formatTimeForCommute(todayRow['Arrive Home']), (tArriveHome - tLeaveOffice));
+                            showArrivedMessage("Welcome Home Sambhaji!", "Leave Office", formatTimeForCommute(oL), "Arrive Home", formatTimeForCommute(hA), (tArriveHome - tLeaveOffice));
                         }
-                        return; // Exits logic completely so it doesn't get stuck in timeline mode
+                        return; 
                     }
 
                     // CONDITION 3: MOVING TO HOME
-                    if (tLeaveOffice && !tArriveHome) {
+                    if (hasData(oL) && !hasData(hA)) {
                         let diffMins = currentMins - tLeaveOffice;
                         if (diffMins < -720) diffMins += 1440; 
-                        
-                        // Failsafe: Hide timeline if it's been over 3 hours and you forgot to log
                         if (diffMins > 180) return; 
 
-                        showMovingTimeline('office', 'home', formatTimeForCommute(todayRow['Leave Office']));
+                        showMovingTimeline('office', 'home', formatTimeForCommute(oL));
                         activeCommuteState = { active: true, type: 'evening', startMins: tLeaveOffice, avgTravelTimeMins: avgs.avgEvening };
                         return;
                     }
 
-                    // CONDITION 2: AT OFFICE (Extended to 30 min window)
-                    if (tArriveOffice && tLeaveHome) {
+                    // CONDITION 2: AT OFFICE
+                    if (hasData(oA) && hasData(hL)) {
                         let diffMins = currentMins - tArriveOffice;
                         if (diffMins < -720) diffMins += 1440; 
                         
                         if (diffMins >= -10 && diffMins < 30) {
-                            showArrivedMessage("Sambhaji is now in Office", "Leave Home", formatTimeForCommute(todayRow['Leave Home']), "Arrive Office", formatTimeForCommute(todayRow['Arrive Office']), (tArriveOffice - tLeaveHome));
+                            showArrivedMessage("Sambhaji is now in Office", "Leave Home", formatTimeForCommute(hL), "Arrive Office", formatTimeForCommute(oA), (tArriveOffice - tLeaveHome));
                         }
                         return;
                     }
 
                     // CONDITION 1: MOVING TO OFFICE
-                    if (tLeaveHome && !tArriveOffice) {
+                    if (hasData(hL) && !hasData(oA)) {
                         let diffMins = currentMins - tLeaveHome;
                         if (diffMins < -720) diffMins += 1440; 
-                        
-                        if (diffMins > 180) return; // Failsafe
+                        if (diffMins > 180) return; 
 
-                        showMovingTimeline('home', 'office', formatTimeForCommute(todayRow['Leave Home']));
+                        showMovingTimeline('home', 'office', formatTimeForCommute(hL));
                         activeCommuteState = { active: true, type: 'morning', startMins: tLeaveHome, avgTravelTimeMins: avgs.avgMorning };
                         return;
                     }
@@ -695,9 +698,8 @@
             commuteOverlay.style.display = 'flex';
         }
 
-        setInterval(checkCommuteStatus, 30000); // Check sheet every 30 seconds
+        setInterval(checkCommuteStatus, 30000); 
         setTimeout(checkCommuteStatus, 2000);
-
 
         // --------------------------------------------------------
         // --- BACKGROUND ANIMATION ENGINE ---
@@ -872,7 +874,6 @@
 
         switchAnimation(currentAnimType);
 
-
         // --------------------------------------------------------
         // --- CLOCK & SYSTEM SCRIPTS ---
         // --------------------------------------------------------
@@ -881,7 +882,6 @@
 
         const DIGIT_HEIGHT = 380; 
         
-        // --- INDEPENDENT FONT LOADING ---
         let is12Hour = safeStorage.get('is12Hour', 'false') === 'true';
         let headerFont = safeStorage.get('headerFont', "'Teko Local', sans-serif");
         let timeFont = safeStorage.get('timeFont', "'Teko Local', sans-serif");
@@ -892,7 +892,6 @@
         let nightColor = safeStorage.get('nightColor', "#00aaff");
         let autoNightMode = safeStorage.get('autoNightMode', 'true') !== 'false';
         
-        // Apply independent fonts
         document.getElementById('header-positioner').style.fontFamily = headerFont;
         document.getElementById('clock-positioner').style.fontFamily = timeFont;
         document.getElementById('ping-positioner').style.fontFamily = pingFont; 
@@ -903,7 +902,6 @@
         document.getElementById('night-color').value = nightColor;
         document.getElementById('night-toggle').checked = autoNightMode;
 
-        // --- TRUE PING LOGIC ---
         const networkDot = document.getElementById('network-dot');
         const pingBox = document.getElementById('ping-box');
         const pingText = document.getElementById('stat-ping');
@@ -954,7 +952,6 @@
         setInterval(checkNetwork, 5000); 
         checkNetwork();
 
-        // --- LIVE EXCHANGE RATE LOGIC ---
         const rateText = document.getElementById('stat-rate');
         let cachedRate = safeStorage.get('usd_inr_rate', '--');
         let lastRateFetch = safeStorage.get('last_rate_fetch', 0);
@@ -1045,7 +1042,7 @@
                 updateDateHeader(now);
 
                 // --- UPDATE COMMUTE PROGRESS BAR ---
-                if (activeCommuteState.active) {
+                if (typeof activeCommuteState !== 'undefined' && activeCommuteState.active) {
                     const currentMins = now.getHours() * 60 + now.getMinutes();
                     let elapsedMins = currentMins - activeCommuteState.startMins;
                     if (elapsedMins < -720) elapsedMins += 1440; // Midnight fix
@@ -1055,9 +1052,10 @@
                         progress = (elapsedMins / activeCommuteState.avgTravelTimeMins) * 100;
                         if (progress > 98) progress = 98; // Clamp at 98% until official arrive log
                     }
-                    progressBar.style.width = progress + "%";
+                    if(document.getElementById('commute-progress-bar')) {
+                        document.getElementById('commute-progress-bar').style.width = progress + "%";
+                    }
                 }
-
             } catch(e) {}
             requestAnimationFrame(updateClock);
         }
