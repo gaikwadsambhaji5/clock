@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Scrolling Clock - Rock Solid Edition</title>
+    <title>Scrolling Clock - Advanced Editor Edition</title>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@700&family=Oswald:wght@700&family=Rajdhani:wght@700&family=Righteous&family=Rubik+Mono+One&family=Share+Tech+Mono&display=swap');
@@ -23,62 +22,41 @@
         }
 
         * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
+            box-sizing: border-box; margin: 0; padding: 0;
+            -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
         }
 
         body {
-            background-color: #000000;
             color: var(--clock-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-            user-select: none; 
-            -webkit-user-select: none;
-            padding: 0 45px; 
-            transition: color 1s ease;
-            touch-action: manipulation; /* Helps optimize double tap on mobile */
+            display: flex; flex-direction: column; align-items: center;
+            height: 100vh; overflow: hidden; user-select: none; 
+            -webkit-user-select: none; padding: 0 45px; 
+            transition: color 1s ease; touch-action: manipulation;
+        }
+
+        /* --- ANIMATED BACKGROUND CANVAS --- */
+        canvas#c {
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; pointer-events: none; 
+            background-color: #000000;
         }
 
         /* --- HEADER LAYOUT --- */
         #header-positioner {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 20px;
-            transform-origin: top center;
-            z-index: 10;
-            padding: 10px;
-            border: 2px solid transparent;
-            cursor: grab;
-            transition: font-family 0.3s ease;
+            width: 100%; display: flex; flex-direction: column; align-items: center;
+            margin-top: 20px; transform-origin: top center; z-index: 10; padding: 10px;
+            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
+            position: relative;
         }
 
         .date-header {
-            width: 86%; 
-            display: flex;
-            justify-content: space-between; 
-            align-items: baseline;
-            letter-spacing: 1px;
-            line-height: 1;
-            margin-bottom: 0px;
-            font-variant-numeric: tabular-nums; 
-            font-size: clamp(35px, 5.5vw, 55px); 
-            white-space: nowrap; 
+            width: 86%; display: flex; justify-content: space-between; align-items: baseline;
+            letter-spacing: 1px; line-height: 1; margin-bottom: 0px;
+            font-variant-numeric: tabular-nums; font-size: clamp(35px, 5.5vw, 55px); white-space: nowrap; 
         }
 
-        .pipe {
-            font-size: 0.8em; 
-            transform: translateY(-2px);
-            opacity: 0.8; 
-        }
-
+        .pipe { font-size: 0.8em; transform: translateY(-2px); opacity: 0.8; }
         #date-num { display: inline-block; text-align: center; }
         #sec-wrapper { display: flex; align-items: center; gap: 8px; }
         #sec-num { display: inline-block; width: 1.2em; text-align: right; }
@@ -103,13 +81,7 @@
             display: flex; justify-content: center; align-items: center;
             transform-origin: top center; margin-top: 25px; padding: 10px;
             border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
-        }
-
-        .edit-mode #header-positioner, .edit-mode #clock-positioner {
-            border: 2px dashed rgba(255, 255, 255, 0.3); border-radius: 20px;
-        }
-        .edit-mode #header-positioner.active-target, .edit-mode #clock-positioner.active-target {
-            border: 2px dashed rgba(0, 255, 170, 0.8); background: rgba(0, 255, 170, 0.05);
+            position: relative;
         }
 
         .time-container { display: flex; align-items: center; justify-content: center; pointer-events: none; }
@@ -126,11 +98,76 @@
             text-align: center; display: flex; justify-content: center; align-items: center;
         }
 
+        .center-col {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 380px; margin: 0 15px; transform: translateY(-15px); width: 60px; 
+        }
+
         .separator {
-            font-size: 300px; line-height: 380px; font-weight: bold; margin: 0 10px;
-            transform: translateY(-35px); animation: blink 1s step-end infinite;
+            font-size: 250px; line-height: 1; font-weight: bold;
+            animation: blink 1s step-end infinite;
         }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* --- FLOATING PING & RATE ANCHORS --- */
+        .ping-wrapper, .rate-wrapper {
+            position: absolute; top: 50%; left: 50%;
+            width: 0; height: 0; 
+            display: flex; justify-content: center; align-items: center;
+            z-index: 50; pointer-events: none; 
+        }
+
+        #ping-positioner, #rate-positioner {
+            pointer-events: auto;
+            display: flex; justify-content: center; align-items: center;
+            transform-origin: center; padding: 10px; position: relative;
+            border: 2px solid transparent; cursor: grab; transition: font-family 0.3s ease;
+        }
+
+        .ping-box, .rate-box {
+            border: 5px solid #000000; 
+            border-radius: 12px;
+            font-family: inherit; 
+            font-weight: bold;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center; 
+            justify-content: center;
+        }
+
+        .ping-box {
+            padding: 0px 15px 5px 15px;
+            color: #000000; 
+            background-color: #00ffaa; 
+        }
+
+        .rate-box {
+            padding: 5px 15px 2px 15px;
+            color: #000000; 
+            background-color: #ffffff; 
+            flex-direction: column; 
+            line-height: 1;
+        }
+
+        .rate-label {
+            font-size: 24px; 
+            color: #000000; 
+            letter-spacing: 0px;
+            margin-bottom: -10px; 
+        }
+
+        .big-val {
+            font-size: 90px; 
+            line-height: 0.9;
+            letter-spacing: -2px;
+        }
+
+        .small-unit {
+            font-size: 40px;
+            line-height: 1;
+            margin-left: 2px;
+            margin-top: 30px; 
+        }
 
         /* --- MENUS --- */
         .settings-overlay {
@@ -138,7 +175,7 @@
             background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             border: 2px solid rgba(255, 255, 255, 0.2); padding: 30px; border-radius: 20px;
             z-index: 1000; flex-direction: column; align-items: center; gap: 15px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.9); font-family: -apple-system, sans-serif; min-width: 320px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9); font-family: -apple-system, sans-serif; min-width: 340px;
         }
 
         .close-btn {
@@ -151,6 +188,7 @@
             font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%;
         }
         .settings-btn.accent { background: #00ffaa; color: #000; }
+        .settings-btn.message-btn { background: #ffcc00; color: #000; margin-bottom: 10px; }
 
         .toggle-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 15px; font-size: 16px; font-weight: bold; }
         .custom-select, .color-picker { background: #333; color: #fff; border: 1px solid #555; padding: 6px; border-radius: 8px; font-size: 14px; font-weight: bold; outline: none; }
@@ -163,18 +201,108 @@
         input:checked + .slider { background-color: #00ffaa; }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        /* --- LAYOUT CONTROL PANEL --- */
-        .layout-panel {
-            display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(10, 10, 10, 0.95); border: 2px solid #00ffaa; border-radius: 15px;
-            padding: 15px 20px; width: 90%; max-width: 500px; z-index: 2000;
-            font-family: -apple-system, sans-serif; flex-direction: column; gap: 12px;
-            box-shadow: 0 10px 30px rgba(0,255,170,0.2);
+        /* --- MESSAGE BOARD & ALERT OVERLAYS --- */
+        .message-board {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 10, 10, 0.98); z-index: 4000; flex-direction: column;
+            padding: 40px 20px; font-family: -apple-system, sans-serif; overflow-y: auto; color: white;
         }
-        .layout-panel h3 { margin: 0; text-align: center; color: #00ffaa; font-size: 14px; }
-        .slider-group { display: flex; flex-direction: column; gap: 5px; }
+        .message-board-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .message-board-title { font-size: 24px; font-weight: bold; color: #00ffaa; }
+        .close-msg-btn { background: none; border: none; color: white; font-size: 28px; cursor: pointer; }
+        #message-list { display: flex; flex-direction: column; gap: 15px; }
+        .msg-card { background: #1a1a1a; padding: 15px; border-radius: 12px; border-left: 6px solid #555; display: flex; flex-direction: column; gap: 8px; }
+        .msg-card.High { border-left-color: #ff3333; }
+        .msg-card.Low { border-left-color: #00ffaa; }
+        .msg-text { font-size: 18px; font-weight: bold; }
+        .msg-img-preview { max-width: 100%; max-height: 150px; border-radius: 8px; margin-top: 10px; object-fit: contain; background: #000; }
+        .msg-meta { font-size: 13px; color: #888; display: flex; justify-content: space-between; }
+        .loading-text { text-align: center; color: #aaa; font-style: italic; margin-top: 20px; }
+
+        #fullscreen-alert {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 5000; flex-direction: column; justify-content: center;
+            align-items: center; padding: 20px 15px 75px 15px; 
+            text-align: center; font-family: -apple-system, sans-serif;
+            cursor: pointer; box-sizing: border-box;
+        }
+
+        #alert-image {
+            display: none; max-width: 95vw; max-height: 50vh; 
+            object-fit: contain; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        #alert-text { font-weight: bold; line-height: 1.35; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; max-height: 100%; overflow-y: auto; text-wrap: balance; }
+        .alert-hint { position: absolute; bottom: 30px; font-size: 16px; color: rgba(150,150,150,0.8); font-weight: bold; transition: all 0.3s ease; }
+
+        #fullscreen-alert.has-image { padding: 0; }
+        #fullscreen-alert.has-image #alert-image { max-width: 100vw; max-height: 100vh; width: 100%; height: 100%; border-radius: 0; margin-bottom: 0; box-shadow: none; object-fit: contain; }
+        #fullscreen-alert.has-image #alert-text {
+            position: absolute; bottom: 8%; max-width: 90vw; max-height: 30vh;
+            background: rgba(0, 0, 0, 0.55); color: #ffffff !important; padding: 10px 25px;
+            border-radius: 30px; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            text-shadow: 0px 1px 3px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1);
+        }
+        #fullscreen-alert.has-image .alert-hint { bottom: 10px; z-index: 5005; text-shadow: 0px 1px 4px rgba(0,0,0,0.8); }
+
+        .normal-alert { background-color: #000000; }
+        .normal-alert #alert-text { color: #ffffff; }
+        .blink-red { animation: alert-blink-rbw 1.5s infinite; }
+        .blink-red #alert-text { animation: text-color-sync 1.5s infinite; }
+        .blink-red.has-image #alert-text { animation: none !important; color: #ffffff !important; }
+        
+        @keyframes alert-blink-rbw { 0%, 32% { background-color: #FF0000; } 33%, 65% { background-color: #000000; } 66%, 99% { background-color: #FFFFFF; } 100% { background-color: #FF0000; } }
+        @keyframes text-color-sync { 0%, 32% { color: #FFFFFF; } 33%, 65% { color: #FFFFFF; } 66%, 99% { color: #FF0000; } 100% { color: #FFFFFF; } }
+
+
+        /* --- ADVANCED LAYOUT CONTROL PANEL & GRID --- */
+        #grid-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5;
+            background-image: 
+                linear-gradient(rgba(0, 255, 170, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 170, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px; pointer-events: none;
+        }
+        .edit-mode #grid-overlay { display: block; }
+
+        .edit-mode #header-positioner, .edit-mode #clock-positioner, .edit-mode #ping-positioner, .edit-mode #rate-positioner {
+            border: 2px dashed rgba(255, 255, 255, 0.3); border-radius: 20px;
+        }
+
+        .edit-mode .active-target {
+            border: 2px solid #00ffaa !important;
+            background: rgba(0, 255, 170, 0.1);
+            box-shadow: 0 0 25px rgba(0,255,170,0.5);
+        }
+        .edit-mode .active-target::after, .edit-mode .active-target::before {
+            content: ''; position: absolute; width: 8px; height: 8px; background: #00ffaa; border: 1px solid #000;
+        }
+        .edit-mode .active-target::before { top: -4px; left: -4px; }
+        .edit-mode .active-target::after { bottom: -4px; right: -4px; }
+
+        .layout-panel { display: none; position: fixed; z-index: 2000; font-family: -apple-system, sans-serif; }
+        
+        .advanced-panel {
+            top: 20px; left: 20px; transform: none; width: 320px; background: rgba(15, 15, 15, 0.98);
+            border: 1px solid rgba(0,255,170,0.5); backdrop-filter: blur(10px); padding: 0;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8); transition: none; border-radius: 13px;
+        }
+        
+        .panel-header {
+            background: rgba(0, 255, 170, 0.1); padding: 12px 15px; border-bottom: 1px solid rgba(0,255,170,0.3);
+            display: flex; justify-content: space-between; align-items: center; cursor: grab; border-radius: 13px 13px 0 0;
+        }
+        .panel-header:active { cursor: grabbing; }
+        .panel-header h3 { margin: 0; color: #00ffaa; font-size: 14px; }
+        .drag-icon { color: #00ffaa; font-size: 18px; line-height: 1; }
+        
+        .panel-body { padding: 15px; display: flex; flex-direction: column; gap: 15px; }
+        .slider-group { display: flex; flex-direction: column; gap: 5px; width: 100%; }
         .slider-group label { font-weight: bold; font-size: 12px; color: #ccc; }
+        .slider-row { display: flex; gap: 15px; }
+        .slider-row .slider-group { flex: 1; }
         input[type=range] { width: 100%; accent-color: #00ffaa; }
+        
         .layout-actions { display: flex; gap: 10px; margin-top: 5px; }
         .layout-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .btn-save { background: #00ffaa; color: #000; }
@@ -183,6 +311,12 @@
     </style>
 </head>
 <body>
+
+    <!-- Animated Canvas Background -->
+    <canvas id="c"></canvas>
+
+    <!-- Alignment Grid Overlay -->
+    <div id="grid-overlay"></div>
 
     <!-- Header Block -->
     <div id="header-positioner" data-target="header">
@@ -206,17 +340,54 @@
         <div class="time-container" id="clock">
             <div class="digit-window tens-window"><div class="digit-strip" id="h-tens"></div></div>
             <div class="digit-window"><div class="digit-strip" id="h-units"></div></div>
-            <div class="separator">:</div>
+            
+            <div class="center-col"><div class="separator">:</div></div>
+
             <div class="digit-window tens-window"><div class="digit-strip" id="m-tens"></div></div>
             <div class="digit-window"><div class="digit-strip" id="m-units"></div></div>
+        </div>
+    </div>
+
+    <!-- PING BLOCK -->
+    <div class="ping-wrapper">
+        <div id="ping-positioner" data-target="ping">
+            <div class="ping-box" id="ping-box">
+                <span id="stat-ping" class="big-val">--</span><span class="small-unit">ms</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- RATE BLOCK (Live Exchange Rate) -->
+    <div class="rate-wrapper">
+        <div id="rate-positioner" data-target="rate">
+            <div class="rate-box" id="rate-box">
+                <div class="rate-label">1 Doller</div>
+                <div class="rate-value"><span id="stat-rate" class="big-val">--</span></div>
+            </div>
         </div>
     </div>
 
     <!-- Main Settings Menu -->
     <div class="settings-overlay" id="settings-menu">
         <button class="close-btn" id="close-settings">✕</button>
-        <button class="settings-btn" id="fullscreen-btn">Toggle Full Screen</button>
-        <button class="settings-btn accent" id="edit-layout-btn">Edit Layout (Restricted Boundaries)</button>
+        
+        <button class="settings-btn message-btn" id="open-messages-btn">View Incoming Messages</button>
+        
+        <div class="toggle-row" style="margin-top: 5px;">
+            <span>Background Visuals</span>
+            <select id="bg-anim-select" class="custom-select" style="width: 140px;">
+                <option value="none">Off (Black)</option>
+                <option value="trails">Light Trails</option>
+                <option value="matrix">Matrix Rain</option>
+                <option value="particles">Nexus Network</option>
+                <option value="starfield">Warp Speed</option>
+                <option value="waves">Neon Waves</option>
+                <option value="bokeh">Floating Orbs</option>
+            </select>
+        </div>
+
+        <button class="settings-btn" id="fullscreen-btn" style="margin-top: 5px;">Toggle Full Screen</button>
+        <button class="settings-btn accent" id="edit-layout-btn">Edit Layout</button>
 
         <div class="toggle-row">
             <span>Day Color</span>
@@ -226,154 +397,388 @@
             <span>Night Color (10 PM - 6 AM)</span>
             <input type="color" id="night-color" class="color-picker" value="#00aaff">
         </div>
-
         <div class="toggle-row">
             <span>Auto Night Color Mode</span>
-            <label class="switch">
-                <input type="checkbox" id="night-toggle" checked>
-                <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" id="night-toggle" checked><span class="slider"></span></label>
         </div>
-
         <div class="toggle-row">
             <span>12-Hour Format</span>
-            <label class="switch">
-                <input type="checkbox" id="format-toggle">
-                <span class="slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" id="format-toggle"><span class="slider"></span></label>
         </div>
     </div>
 
-    <!-- Layout Editor Panel -->
-    <div class="layout-panel" id="layout-panel">
-        <h3 id="layout-title">EDITING: CLOCK (Tap Header to edit text)</h3>
-        
-        <div class="slider-group">
-            <label>Selected Element Font</label>
-            <select id="layout-font-select" class="custom-select" style="width: 100%;">
-                <option value="'Teko Local', sans-serif">Teko (Local)</option>
-                <option value="'Orbitron', sans-serif">Orbitron</option>
-                <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
-                <option value="'Oswald', sans-serif">Oswald</option>
-                <option value="'Rajdhani', sans-serif">Rajdhani</option>
-                <option value="'Righteous', cursive">Righteous</option>
-                <option value="'Share Tech Mono', monospace">Share Tech Mono</option>
-                <option value="'Rubik Mono One', sans-serif">Rubik Mono</option>
-            </select>
+    <!-- Message Board Overlay -->
+    <div class="message-board" id="message-board">
+        <div class="message-board-header">
+            <span class="message-board-title">Incoming Messages</span>
+            <button class="close-msg-btn" id="close-messages">✕</button>
         </div>
+        <div id="message-list">
+            <div class="loading-text">Loading messages securely...</div>
+        </div>
+    </div>
 
-        <div class="slider-group">
-            <label>Stretch Width (Max Limit Applied)</label>
-            <input type="range" id="scale-x" min="0.5" max="1.2" step="0.01" value="1">
+    <!-- FULL SCREEN ALERT -->
+    <div id="fullscreen-alert">
+        <img id="alert-image" src="" alt="Incoming Image">
+        <div id="alert-text"></div>
+        <div class="alert-hint">Double Tap to dismiss</div>
+    </div>
+
+    <!-- Advanced Floating Editor Panel -->
+    <div class="layout-panel advanced-panel" id="layout-panel">
+        <div class="panel-header" id="panel-drag-handle">
+            <h3 id="layout-title">EDITING: CLOCK</h3>
+            <span class="drag-icon">⋮⋮</span>
         </div>
         
-        <div class="slider-group">
-            <label>Stretch Height (Top/Bottom)</label>
-            <input type="range" id="scale-y" min="0.5" max="1.5" step="0.01" value="1">
-        </div>
-
-        <div class="layout-actions">
-            <button class="btn-reset" id="layout-reset">Reset Default</button>
-            <button class="btn-save" id="layout-save">Close Editor</button>
+        <div class="panel-body">
+            <div class="slider-group">
+                <label>Typography</label>
+                <select id="layout-font-select" class="custom-select">
+                    <option value="'Teko Local', sans-serif">Teko (Local)</option>
+                    <option value="'Orbitron', sans-serif">Orbitron</option>
+                    <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
+                    <option value="'Oswald', sans-serif">Oswald</option>
+                    <option value="'Rajdhani', sans-serif">Rajdhani</option>
+                    <option value="'Share Tech Mono', monospace">Share Tech Mono</option>
+                </select>
+            </div>
+            
+            <div class="slider-row">
+                <div class="slider-group"><label>Width (X)</label><input type="range" id="scale-x" min="0.5" max="1.5" step="0.01" value="1"></div>
+                <div class="slider-group"><label>Height (Y)</label><input type="range" id="scale-y" min="0.5" max="1.5" step="0.01" value="1"></div>
+            </div>
+            
+            <div class="slider-row">
+                <div class="slider-group"><label>Rotation (°)</label><input type="range" id="rotate-val" min="-180" max="180" step="1" value="0"></div>
+                <div class="slider-group"><label>Opacity</label><input type="range" id="opacity-val" min="0.1" max="1" step="0.05" value="1"></div>
+            </div>
+            
+            <div class="layout-actions">
+                <button class="btn-reset" id="layout-reset">Reset Element</button>
+                <button class="btn-save" id="layout-save">Exit Editor</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // --- BULLETPROOF LOCAL STORAGE WRAPPER ---
-        // This ensures NO external databases are used and saves locally to the browser
+        // --------------------------------------------------------
+        // --- MASTER STORAGE INTERFACE ---
+        // --------------------------------------------------------
         const safeStorage = {
-            get: function(key, fallback) {
-                try {
-                    let val = localStorage.getItem(key);
-                    return val !== null ? val : fallback;
-                } catch(e) { return fallback; }
-            },
-            set: function(key, value) {
-                try { localStorage.setItem(key, value); } catch(e) {}
+            get: function(key, fallback) { try { let val = localStorage.getItem(key); return val !== null ? val : fallback; } catch(e) { return fallback; } },
+            set: function(key, value) { try { localStorage.setItem(key, value); } catch(e) {} }
+        };
+
+        // --------------------------------------------------------
+        // --- BACKGROUND ANIMATION ENGINE ---
+        // --------------------------------------------------------
+        const c = document.getElementById('c');
+        const ctx = c.getContext('2d');
+        let w = c.width = window.innerWidth;
+        let h = c.height = window.innerHeight;
+        let bgAnimId = null;
+        let currentAnimType = safeStorage.get('bgAnim', 'trails');
+
+        document.getElementById('bg-anim-select').value = currentAnimType;
+
+        window.addEventListener('resize', () => {
+            w = c.width = window.innerWidth;
+            h = c.height = window.innerHeight;
+            switchAnimation(currentAnimType); 
+        });
+
+        document.getElementById('bg-anim-select').addEventListener('change', (e) => {
+            currentAnimType = e.target.value;
+            safeStorage.set('bgAnim', currentAnimType);
+            switchAnimation(currentAnimType);
+        });
+
+        function switchAnimation(type) {
+            if(bgAnimId) { cancelAnimationFrame(bgAnimId); bgAnimId = null; }
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.shadowBlur = 0;
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, w, h);
+
+            if (type === 'trails') startTrails();
+            else if (type === 'matrix') startMatrix();
+            else if (type === 'particles') startParticles();
+            else if (type === 'starfield') startStarfield();
+            else if (type === 'waves') startWaves();
+            else if (type === 'bokeh') startBokeh();
+        }
+
+        function startTrails() {
+            let opts = {
+                len: 20, count: 50, baseTime: 10, addedTime: 10, dieChance: .05, spawnChance: 1, sparkChance: .1,
+                sparkDist: 10, sparkSize: 2, color: 'hsl(hue,100%,light%)', baseLight: 50, addedLight: 10, shadowToTimePropMult: 6,
+                baseLightInputMultiplier: .01, addedLightInputMultiplier: .02, cx: w / 2, cy: h / 2, repaintAlpha: .04, hueChange: .1
+            };
+            let tick = 0, lines = [], dieX = w / 2 / opts.len, dieY = h / 2 / opts.len, baseRad = Math.PI * 2 / 6;
+
+            function Line(){ this.reset(); }
+            Line.prototype.reset = function(){
+                this.x = 0; this.y = 0; this.addedX = 0; this.addedY = 0; this.rad = 0;
+                this.lightInputMultiplier = opts.baseLightInputMultiplier + opts.addedLightInputMultiplier * Math.random();
+                this.color = opts.color.replace( 'hue', tick * opts.hueChange );
+                this.cumulativeTime = 0; this.beginPhase();
             }
-        };
+            Line.prototype.beginPhase = function(){
+                this.x += this.addedX; this.y += this.addedY; this.time = 0;
+                this.targetTime = ( opts.baseTime + opts.addedTime * Math.random() ) |0;
+                this.rad += baseRad * ( Math.random() < .5 ? 1 : -1 );
+                this.addedX = Math.cos( this.rad ); this.addedY = Math.sin( this.rad );
+                if( Math.random() < opts.dieChance || this.x > dieX || this.x < -dieX || this.y > dieY || this.y < -dieY ) this.reset();
+            }
+            Line.prototype.step = function(){
+                ++this.time; ++this.cumulativeTime;
+                if( this.time >= this.targetTime ) this.beginPhase();
+                var prop = this.time / this.targetTime, wave = Math.sin( prop * Math.PI / 2 ), x = this.addedX * wave, y = this.addedY * wave;
+                ctx.shadowBlur = prop * opts.shadowToTimePropMult;
+                ctx.fillStyle = ctx.shadowColor = this.color.replace( 'light', opts.baseLight + opts.addedLight * Math.sin( this.cumulativeTime * this.lightInputMultiplier ) );
+                ctx.fillRect( opts.cx + ( this.x + x ) * opts.len, opts.cy + ( this.y + y ) * opts.len, 2, 2 );
+                if( Math.random() < opts.sparkChance ) ctx.fillRect( opts.cx + ( this.x + x ) * opts.len + Math.random() * opts.sparkDist * ( Math.random() < .5 ? 1 : -1 ) - opts.sparkSize / 2, opts.cy + ( this.y + y ) * opts.len + Math.random() * opts.sparkDist * ( Math.random() < .5 ? 1 : -1 ) - opts.sparkSize / 2, opts.sparkSize, opts.sparkSize )
+            }
+            function loop() {
+                bgAnimId = window.requestAnimationFrame( loop );
+                ++tick;
+                ctx.globalCompositeOperation = 'source-over'; ctx.shadowBlur = 0;
+                ctx.fillStyle = 'rgba(0,0,0,alp)'.replace( 'alp', opts.repaintAlpha ); ctx.fillRect( 0, 0, w, h );
+                ctx.globalCompositeOperation = 'lighter';
+                if( lines.length < opts.count && Math.random() < opts.spawnChance ) lines.push( new Line );
+                lines.map( function( line ){ line.step(); } );
+            }
+            loop();
+        }
 
-        // --- DISABLE BROWSER MENUS ---
-        window.oncontextmenu = function(e) {
-            e.preventDefault(); e.stopPropagation(); return false;
-        };
+        function startMatrix() {
+            let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*'.split('');
+            let fontSize = 16; let columns = w / fontSize; let drops = [];
+            for(let x = 0; x < columns; x++) drops[x] = Math.random() * -100; 
+            function loop() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; ctx.fillRect(0, 0, w, h);
+                ctx.fillStyle = '#00ffaa'; ctx.font = fontSize + 'px monospace';
+                for(let i = 0; i < drops.length; i++) {
+                    let text = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                    if(drops[i] * fontSize > h && Math.random() > 0.975) drops[i] = 0;
+                    drops[i]++;
+                }
+                bgAnimId = requestAnimationFrame(loop);
+            }
+            loop();
+        }
 
-        // --- DATA & SETTINGS LOAD ---
+        function startParticles() {
+            let particles = []; let count = Math.floor(w / 20); 
+            for(let i=0; i<count; i++) particles.push({x: Math.random()*w, y: Math.random()*h, vx: Math.random()*1-0.5, vy: Math.random()*1-0.5});
+            function loop() {
+                ctx.fillStyle = 'black'; ctx.fillRect(0,0,w,h);
+                ctx.fillStyle = '#00ffaa'; ctx.strokeStyle = 'rgba(0, 255, 170, 0.15)';
+                for(let i=0; i<particles.length; i++) {
+                    let p = particles[i]; p.x += p.vx; p.y += p.vy;
+                    if(p.x<0 || p.x>w) p.vx*=-1; if(p.y<0 || p.y>h) p.vy*=-1;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
+                    for(let j=i+1; j<particles.length; j++) {
+                        let p2 = particles[j]; let dist = Math.hypot(p.x-p2.x, p.y-p2.y);
+                        if(dist < 120) { ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); }
+                    }
+                }
+                bgAnimId = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        function startStarfield() {
+            let stars = []; for(let i=0; i<200; i++) stars.push({x: Math.random()*w-w/2, y: Math.random()*h-h/2, z: Math.random()*w});
+            function loop() {
+                ctx.fillStyle = 'black'; ctx.fillRect(0,0,w,h); ctx.fillStyle = 'white';
+                let cx = w/2, cy = h/2;
+                for(let i=0; i<stars.length; i++) {
+                    let s = stars[i]; s.z -= 5;
+                    if(s.z <= 0) { s.x = Math.random()*w-w/2; s.y = Math.random()*h-h/2; s.z = w; }
+                    let sx = cx + (s.x / s.z) * w, sy = cy + (s.y / s.z) * w;
+                    let size = (1 - s.z / w) * 3;
+                    ctx.beginPath(); ctx.arc(sx, sy, size, 0, Math.PI*2); ctx.fill();
+                }
+                bgAnimId = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        function startWaves() {
+            let tick = 0;
+            function loop() {
+                ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(0,0,w,h);
+                tick += 0.05; ctx.beginPath(); ctx.moveTo(0, h/2);
+                for(let i=0; i<w; i+=10) {
+                    let y = h/2 + Math.sin(i*0.01 + tick) * 50 + Math.sin(i*0.02 + tick*0.8) * 30;
+                    ctx.lineTo(i, y);
+                }
+                ctx.strokeStyle = 'rgba(0, 255, 170, 0.5)'; ctx.lineWidth = 2; ctx.stroke();
+                bgAnimId = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        function startBokeh() {
+            let orbs = []; for(let i=0; i<30; i++) orbs.push({x: Math.random()*w, y: Math.random()*h, r: Math.random()*50+20, vx: Math.random()-0.5, vy: Math.random()-0.5, hue: Math.random()*360});
+            function loop() {
+                ctx.fillStyle = 'black'; ctx.fillRect(0,0,w,h); ctx.globalCompositeOperation = 'lighter';
+                for(let i=0; i<orbs.length; i++) {
+                    let o = orbs[i]; o.x += o.vx; o.y += o.vy;
+                    if(o.x < -o.r) o.x = w+o.r; else if(o.x > w+o.r) o.x = -o.r;
+                    if(o.y < -o.r) o.y = h+o.r; else if(o.y > h+o.r) o.y = -o.r;
+                    ctx.beginPath(); let grad = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+                    grad.addColorStop(0, `hsla(${o.hue}, 100%, 50%, 0.3)`); grad.addColorStop(1, `hsla(${o.hue}, 100%, 50%, 0)`);
+                    ctx.fillStyle = grad; ctx.arc(o.x, o.y, o.r, 0, Math.PI*2); ctx.fill(); o.hue += 0.5;
+                }
+                ctx.globalCompositeOperation = 'source-over';
+                bgAnimId = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        switchAnimation(currentAnimType);
+
+
+        // --------------------------------------------------------
+        // --- CLOCK & SYSTEM SCRIPTS ---
+        // --------------------------------------------------------
+
+        window.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
+
         const DIGIT_HEIGHT = 380; 
         
+        // --- INDEPENDENT FONT LOADING ---
         let is12Hour = safeStorage.get('is12Hour', 'false') === 'true';
         let headerFont = safeStorage.get('headerFont', "'Teko Local', sans-serif");
         let timeFont = safeStorage.get('timeFont', "'Teko Local', sans-serif");
+        let pingFont = safeStorage.get('pingFont', "'Teko Local', sans-serif");
+        let rateFont = safeStorage.get('rateFont', "'Teko Local', sans-serif");
+        
         let dayColor = safeStorage.get('dayColor', "#ffffff");
         let nightColor = safeStorage.get('nightColor', "#00aaff");
         let autoNightMode = safeStorage.get('autoNightMode', 'true') !== 'false';
         
+        // Apply independent fonts
         document.getElementById('header-positioner').style.fontFamily = headerFont;
         document.getElementById('clock-positioner').style.fontFamily = timeFont;
+        document.getElementById('ping-positioner').style.fontFamily = pingFont; 
+        document.getElementById('rate-positioner').style.fontFamily = rateFont; 
+        
         document.getElementById('format-toggle').checked = is12Hour;
         document.getElementById('day-color').value = dayColor;
         document.getElementById('night-color').value = nightColor;
         document.getElementById('night-toggle').checked = autoNightMode;
 
-        // --- NETWORK STATUS LOGIC ---
+        // --- TRUE PING LOGIC ---
         const networkDot = document.getElementById('network-dot');
+        const pingBox = document.getElementById('ping-box');
+        const pingText = document.getElementById('stat-ping');
+
         function checkNetwork() {
             try {
-                if (!navigator.onLine) {
-                    networkDot.className = 'network-dot red';
-                } else {
-                    fetch('https://1.1.1.1/cdn-cgi/trace', { mode: 'no-cors', cache: 'no-store' })
-                    .then(() => { networkDot.className = 'network-dot green'; })
-                    .catch(() => { networkDot.className = 'network-dot yellow'; });
-                }
+                if (!navigator.onLine) { 
+                    networkDot.className = 'network-dot red'; 
+                    pingText.textContent = 'ERR';
+                    pingBox.style.backgroundColor = '#ff3333';
+                    pingBox.style.color = '#ffffff';
+                    return; 
+                } 
+
+                const startTime = performance.now();
+                fetch('https://1.1.1.1/cdn-cgi/trace', { mode: 'no-cors', cache: 'no-store' })
+                .then(() => { 
+                    let pingTime = Math.round(performance.now() - startTime);
+                    if (pingTime > 1000) pingTime = 1000;
+                    if (pingTime < 0) pingTime = 0;
+
+                    pingText.textContent = pingTime;
+
+                    if (pingTime < 150) {
+                        pingBox.style.backgroundColor = '#00ffaa'; 
+                        pingBox.style.color = '#000000'; 
+                        networkDot.className = 'network-dot green'; 
+                    } else if (pingTime < 350) {
+                        pingBox.style.backgroundColor = '#ffcc00'; 
+                        pingBox.style.color = '#000000'; 
+                        networkDot.className = 'network-dot yellow'; 
+                    } else {
+                        pingBox.style.backgroundColor = '#ff3333'; 
+                        pingBox.style.color = '#ffffff'; 
+                        networkDot.className = 'network-dot red'; 
+                    }
+                })
+                .catch(() => { 
+                    networkDot.className = 'network-dot red'; 
+                    pingText.textContent = 'ERR';
+                    pingBox.style.backgroundColor = '#ff3333';
+                    pingBox.style.color = '#ffffff';
+                });
             } catch(e) {}
         }
-        window.addEventListener('online', checkNetwork);
+        window.addEventListener('online', checkNetwork); 
         window.addEventListener('offline', checkNetwork);
-        setInterval(checkNetwork, 10000); 
+        setInterval(checkNetwork, 5000); 
         checkNetwork();
 
-        // --- COLOR LOGIC ---
+        // --- LIVE EXCHANGE RATE LOGIC ---
+        const rateText = document.getElementById('stat-rate');
+        let cachedRate = safeStorage.get('usd_inr_rate', '--');
+        let lastRateFetch = safeStorage.get('last_rate_fetch', 0);
+        
+        if (cachedRate !== '--') {
+            rateText.textContent = cachedRate;
+        }
+
+        function fetchExchangeRate() {
+            const now = new Date().getTime();
+            if (now - lastRateFetch < 600000 && cachedRate !== '--') {
+                return;
+            }
+            
+            fetch('https://open.er-api.com/v6/latest/USD')
+                .then(res => res.json())
+                .then(data => {
+                    if(data && data.rates && data.rates.INR) {
+                        const inrRate = data.rates.INR.toFixed(2);
+                        rateText.textContent = inrRate;
+                        cachedRate = inrRate;
+                        safeStorage.set('usd_inr_rate', inrRate);
+                        safeStorage.set('last_rate_fetch', now.toString());
+                    }
+                })
+                .catch(e => {
+                    console.log('Failed to fetch exchange rate', e);
+                });
+        }
+        
+        fetchExchangeRate();
+        setInterval(fetchExchangeRate, 60000);
+
         function updateColors() {
             try {
                 const hour = new Date().getHours();
-                if (autoNightMode && (hour >= 22 || hour < 6)) {
-                    document.documentElement.style.setProperty('--clock-color', nightColor);
-                } else {
-                    document.documentElement.style.setProperty('--clock-color', dayColor);
-                }
+                if (autoNightMode && (hour >= 22 || hour < 6)) { document.documentElement.style.setProperty('--clock-color', nightColor); } 
+                else { document.documentElement.style.setProperty('--clock-color', dayColor); }
             } catch(e) {}
         }
-        setInterval(updateColors, 60000); 
-        updateColors(); 
+        setInterval(updateColors, 60000); updateColors(); 
 
-        document.getElementById('day-color').addEventListener('input', (e) => {
-            dayColor = e.target.value;
-            safeStorage.set('dayColor', dayColor);
-            updateColors();
-            resetHideTimer();
-        });
-        document.getElementById('night-color').addEventListener('input', (e) => {
-            nightColor = e.target.value;
-            safeStorage.set('nightColor', nightColor);
-            updateColors();
-            resetHideTimer();
-        });
-        document.getElementById('night-toggle').addEventListener('change', (e) => {
-            autoNightMode = e.target.checked;
-            safeStorage.set('autoNightMode', autoNightMode);
-            updateColors();
-            resetHideTimer();
-        });
+        document.getElementById('day-color').addEventListener('input', (e) => { dayColor = e.target.value; safeStorage.set('dayColor', dayColor); updateColors(); resetHideTimer(); });
+        document.getElementById('night-color').addEventListener('input', (e) => { nightColor = e.target.value; safeStorage.set('nightColor', nightColor); updateColors(); resetHideTimer(); });
+        document.getElementById('night-toggle').addEventListener('change', (e) => { autoNightMode = e.target.checked; safeStorage.set('autoNightMode', autoNightMode); updateColors(); resetHideTimer(); });
 
-        // --- CLOCK ENGINE ---
         const marathiDays = ["रविवार", "सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
         const marathiMonths = ["जानेवारी", "फेब्रुवारी", "मार्च", "एप्रिल", "मे", "जून", "जुलै", "ऑगस्ट", "सप्टेंबर", "ऑक्टोबर", "नोव्हेंबर", "डिसेंबर"];
 
         function buildStrip(id, maxNumber) {
             try {
-                const strip = document.getElementById(id);
-                let html = '';
+                const strip = document.getElementById(id); let html = '';
                 for (let i = 0; i <= maxNumber; i++) { html += `<div class="digit">${i}</div>`; }
                 strip.innerHTML = html;
             } catch(e) {}
@@ -383,8 +788,7 @@
         function updateStrip(id, value) {
             try {
                 const strip = document.getElementById(id);
-                const translateY = -(value * DIGIT_HEIGHT);
-                strip.style.transform = `translate3d(0, ${translateY}px, 0)`;
+                strip.style.transform = `translate3d(0, ${-(value * DIGIT_HEIGHT)}px, 0)`;
             } catch(e) {}
         }
 
@@ -393,287 +797,388 @@
                 document.getElementById('day-marathi').textContent = "WWWWW";
                 document.getElementById('month-marathi').textContent = "MMMM";
                 document.getElementById('date-num').textContent = "DD/MM/YYYY";
-                document.getElementById('sec-num').textContent = "SS";
-                return; 
+                document.getElementById('sec-num').textContent = "SS"; return; 
             }
             try {
-                const day = marathiDays[now.getDay()];
-                const month = marathiMonths[now.getMonth()];
-                const dd = String(now.getDate()).padStart(2, '0');
-                const mm = String(now.getMonth() + 1).padStart(2, '0');
-                const yyyy = now.getFullYear();
-                const ss = String(now.getSeconds()).padStart(2, '0');
-
-                document.getElementById('day-marathi').textContent = day;
-                document.getElementById('month-marathi').textContent = month;
-                document.getElementById('date-num').textContent = `${dd}/${mm}/${yyyy}`;
-                document.getElementById('sec-num').textContent = ss;
+                document.getElementById('day-marathi').textContent = marathiDays[now.getDay()];
+                document.getElementById('month-marathi').textContent = marathiMonths[now.getMonth()];
+                document.getElementById('date-num').textContent = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+                document.getElementById('sec-num').textContent = String(now.getSeconds()).padStart(2, '0');
             } catch (err) {}
         }
 
         function updateClock() {
             try {
-                const now = new Date();
-                let rawHours = now.getHours();
-                
-                if (is12Hour) {
-                    rawHours = rawHours % 12;
-                    rawHours = rawHours ? rawHours : 12; 
-                }
-
-                const hours = String(rawHours).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-
-                updateStrip('h-tens', parseInt(hours[0]));
-                updateStrip('h-units', parseInt(hours[1]));
-                updateStrip('m-tens', parseInt(minutes[0]));
-                updateStrip('m-units', parseInt(minutes[1]));
-
+                const now = new Date(); let rawHours = now.getHours();
+                if (is12Hour) { rawHours = rawHours % 12; rawHours = rawHours ? rawHours : 12; }
+                const hours = String(rawHours).padStart(2, '0'); const minutes = String(now.getMinutes()).padStart(2, '0');
+                updateStrip('h-tens', parseInt(hours[0])); updateStrip('h-units', parseInt(hours[1]));
+                updateStrip('m-tens', parseInt(minutes[0])); updateStrip('m-units', parseInt(minutes[1]));
                 updateDateHeader(now);
             } catch(e) {}
             requestAnimationFrame(updateClock);
         }
-        
-        // Start the clock safely
         try { updateClock(); } catch(e) {}
 
-        // --- BOUNDED LAYOUT DRAG, STRETCH & AUTO-SAVE ENGINE ---
-        const timePos = document.getElementById('clock-positioner');
+        // --- ADVANCED LAYOUT EDITOR ---
+        const timePos = document.getElementById('clock-positioner'); 
         const headerPos = document.getElementById('header-positioner');
-        const layoutPanel = document.getElementById('layout-panel');
+        const pingPos = document.getElementById('ping-positioner'); 
+        const ratePos = document.getElementById('rate-positioner'); 
+        const layoutPanel = document.getElementById('layout-panel'); 
         const layoutTitle = document.getElementById('layout-title');
-        const scaleXSlider = document.getElementById('scale-x');
+        
+        const scaleXSlider = document.getElementById('scale-x'); 
         const scaleYSlider = document.getElementById('scale-y');
+        const rotateSlider = document.getElementById('rotate-val');
+        const opacitySlider = document.getElementById('opacity-val');
         const layoutFontSelect = document.getElementById('layout-font-select');
         
-        let isEditMode = false;
-        let activeTarget = 'time'; 
-
-        const DEFAULT_LAYOUT = {
-            time:   { x: 15, y: -11, sx: 1.05, sy: 0.9 },
-            header: { x: 0, y: 15, sx: 1.05, sy: 1 }
+        let isEditMode = false; let activeTarget = 'time'; 
+        
+        const DEFAULT_LAYOUT = { 
+            time: { x: 15, y: -11, sx: 1.05, sy: 0.9, rot: 0, alpha: 1 }, 
+            header: { x: 0, y: 15, sx: 1.05, sy: 1, rot: 0, alpha: 1 },
+            ping: { x: 0, y: 140, sx: 1, sy: 1, rot: 0, alpha: 1 },
+            rate: { x: 0, y: 250, sx: 1, sy: 1, rot: 0, alpha: 1 } 
         };
-
         let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
-        try {
-            const savedStr = safeStorage.get('dualLayout', null);
+        
+        try { 
+            const savedStr = safeStorage.get('dualLayout', null); 
             if (savedStr) { 
-                let parsed = JSON.parse(savedStr);
-                if(parsed && parsed.time && parsed.header) layout = parsed; 
-            }
+                let parsed = JSON.parse(savedStr); 
+                if(parsed && parsed.time && parsed.header) {
+                    layout.time = {...DEFAULT_LAYOUT.time, ...parsed.time};
+                    layout.header = {...DEFAULT_LAYOUT.header, ...parsed.header};
+                    if(parsed.ping) layout.ping = {...DEFAULT_LAYOUT.ping, ...parsed.ping}; 
+                    if(parsed.rate) layout.rate = {...DEFAULT_LAYOUT.rate, ...parsed.rate}; 
+                } 
+            } 
         } catch(e) {}
 
-        function autoSaveLayout() {
-            safeStorage.set('dualLayout', JSON.stringify(layout));
-        }
-
+        function autoSaveLayout() { safeStorage.set('dualLayout', JSON.stringify(layout)); }
+        
         function applyTransforms() {
             try {
-                timePos.style.transform = `translate(${layout.time.x}px, ${layout.time.y}px) scale(${layout.time.sx}, ${layout.time.sy})`;
-                headerPos.style.transform = `translate(${layout.header.x}px, ${layout.header.y}px) scale(${layout.header.sx}, ${layout.header.sy})`;
+                ['time', 'header', 'ping', 'rate'].forEach(key => {
+                    const el = key === 'time' ? timePos : (key === 'header' ? headerPos : (key === 'ping' ? pingPos : ratePos));
+                    const data = layout[key] || DEFAULT_LAYOUT[key];
+                    el.style.transform = `translate(${data.x}px, ${data.y}px) scale(${data.sx}, ${data.sy}) rotate(${data.rot || 0}deg)`;
+                    el.style.opacity = data.alpha !== undefined ? data.alpha : 1;
+                });
             } catch(e) {}
         }
         applyTransforms();
 
         function loadTargetToSliders() {
-            scaleXSlider.value = layout[activeTarget].sx;
-            scaleYSlider.value = layout[activeTarget].sy;
+            const data = layout[activeTarget];
+            scaleXSlider.value = data.sx; 
+            scaleYSlider.value = data.sy;
+            rotateSlider.value = data.rot || 0;
+            opacitySlider.value = data.alpha !== undefined ? data.alpha : 1;
             
-            timePos.classList.remove('active-target');
+            timePos.classList.remove('active-target'); 
             headerPos.classList.remove('active-target');
-            
-            if(activeTarget === 'time') {
-                timePos.classList.add('active-target');
-                layoutTitle.textContent = "EDITING: CLOCK (Tap Header to edit)";
-                scaleXSlider.max = 1.3; 
-                layoutFontSelect.value = timeFont; 
-            } else {
-                headerPos.classList.add('active-target');
-                layoutTitle.textContent = "EDITING: HEADER (Tap Clock to edit)";
-                scaleXSlider.max = 1.15; 
-                layoutFontSelect.value = headerFont; 
+            pingPos.classList.remove('active-target');
+            ratePos.classList.remove('active-target');
+
+            // Map the correct independent font to the dropdown
+            if(activeTarget === 'time') { 
+                timePos.classList.add('active-target'); layoutTitle.textContent = "CLOCK PROPERTIES"; scaleXSlider.max = 1.3; layoutFontSelect.value = timeFont; 
+            } else if (activeTarget === 'header') { 
+                headerPos.classList.add('active-target'); layoutTitle.textContent = "HEADER PROPERTIES"; scaleXSlider.max = 1.15; layoutFontSelect.value = headerFont; 
+            } else if (activeTarget === 'ping') { 
+                pingPos.classList.add('active-target'); layoutTitle.textContent = "PING PROPERTIES"; scaleXSlider.max = 2.0; layoutFontSelect.value = pingFont; 
+            } else if (activeTarget === 'rate') { 
+                ratePos.classList.add('active-target'); layoutTitle.textContent = "RATE PROPERTIES"; scaleXSlider.max = 2.0; layoutFontSelect.value = rateFont; 
             }
         }
 
+        // Apply font exclusively to the actively selected target
         layoutFontSelect.addEventListener('change', (e) => {
-            if (activeTarget === 'header') {
-                headerFont = e.target.value;
-                document.getElementById('header-positioner').style.fontFamily = headerFont;
-                safeStorage.set('headerFont', headerFont);
-            } else {
-                timeFont = e.target.value;
-                document.getElementById('clock-positioner').style.fontFamily = timeFont;
-                safeStorage.set('timeFont', timeFont);
+            const selectedFont = e.target.value;
+            if (activeTarget === 'header') { 
+                headerFont = selectedFont; 
+                headerPos.style.fontFamily = selectedFont; 
+                safeStorage.set('headerFont', selectedFont); 
+            } else if (activeTarget === 'ping') { 
+                pingFont = selectedFont; 
+                pingPos.style.fontFamily = selectedFont; 
+                safeStorage.set('pingFont', selectedFont); 
+            } else if (activeTarget === 'rate') { 
+                rateFont = selectedFont; 
+                ratePos.style.fontFamily = selectedFont; 
+                safeStorage.set('rateFont', selectedFont); 
+            } else if (activeTarget === 'time') { 
+                timeFont = selectedFont; 
+                timePos.style.fontFamily = selectedFont; 
+                safeStorage.set('timeFont', selectedFont); 
             }
         });
 
-        scaleXSlider.addEventListener('input', (e) => { 
-            layout[activeTarget].sx = parseFloat(e.target.value); 
-            applyTransforms(); 
-            autoSaveLayout(); 
-        });
-        scaleYSlider.addEventListener('input', (e) => { 
-            layout[activeTarget].sy = parseFloat(e.target.value); 
-            applyTransforms(); 
-            autoSaveLayout(); 
-        });
+        scaleXSlider.addEventListener('input', (e) => { layout[activeTarget].sx = parseFloat(e.target.value); applyTransforms(); autoSaveLayout(); });
+        scaleYSlider.addEventListener('input', (e) => { layout[activeTarget].sy = parseFloat(e.target.value); applyTransforms(); autoSaveLayout(); });
+        rotateSlider.addEventListener('input', (e) => { layout[activeTarget].rot = parseInt(e.target.value); applyTransforms(); autoSaveLayout(); });
+        opacitySlider.addEventListener('input', (e) => { layout[activeTarget].alpha = parseFloat(e.target.value); applyTransforms(); autoSaveLayout(); });
 
-        let isDragging = false;
-        let startX, startY, initialX, initialY;
-        let dragTarget = null; 
-
+        let isDragging = false; let startX, startY, initialX, initialY; let dragTarget = null; 
         function startDrag(e, targetStr) {
-            if (!isEditMode) return;
-            isDragging = true;
-            dragTarget = targetStr;
-            activeTarget = targetStr; 
-            loadTargetToSliders();    
-
-            let touchX = e.touches ? e.touches[0].clientX : e.clientX;
-            let touchY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            startX = touchX;
-            startY = touchY;
-            initialX = layout[dragTarget].x;
-            initialY = layout[dragTarget].y;
+            if (!isEditMode) return; isDragging = true; dragTarget = targetStr; activeTarget = targetStr; loadTargetToSliders();    
+            let touchX = e.touches ? e.touches[0].clientX : e.clientX; let touchY = e.touches ? e.touches[0].clientY : e.clientY;
+            startX = touchX; startY = touchY; initialX = layout[dragTarget].x; initialY = layout[dragTarget].y;
         }
-
         function moveDrag(e) {
-            if (!isDragging || !isEditMode || !dragTarget) return;
-            e.preventDefault(); 
-            let touchX = e.touches ? e.touches[0].clientX : e.clientX;
-            let touchY = e.touches ? e.touches[0].clientY : e.clientY;
+            if (!isDragging || !isEditMode || !dragTarget) return; e.preventDefault(); 
+            let touchX = e.touches ? e.touches[0].clientX : e.clientX; let touchY = e.touches ? e.touches[0].clientY : e.clientY;
             
-            const dx = touchX - startX;
-            const dy = touchY - startY;
-            
-            let newX = initialX + dx;
-            let newY = initialY + dy;
-            
-            const maxMoveX = window.innerWidth / 3;
-            const maxMoveY = window.innerHeight / 3;
-            
-            layout[dragTarget].x = Math.max(-maxMoveX, Math.min(maxMoveX, newX));
-            layout[dragTarget].y = Math.max(-maxMoveY, Math.min(maxMoveY, newY));
+            layout[dragTarget].x = initialX + (touchX - startX);
+            layout[dragTarget].y = initialY + (touchY - startY);
             
             applyTransforms();
         }
+        function endDrag() { if (isDragging) { isDragging = false; dragTarget = null; autoSaveLayout(); } }
 
-        function endDrag() {
-            if (isDragging) {
-                isDragging = false;
-                dragTarget = null;
-                autoSaveLayout(); 
-            }
-        }
+        timePos.addEventListener('touchstart', (e) => startDrag(e, 'time')); timePos.addEventListener('mousedown', (e) => startDrag(e, 'time'));
+        headerPos.addEventListener('touchstart', (e) => startDrag(e, 'header')); headerPos.addEventListener('mousedown', (e) => startDrag(e, 'header'));
+        pingPos.addEventListener('touchstart', (e) => startDrag(e, 'ping')); pingPos.addEventListener('mousedown', (e) => startDrag(e, 'ping'));
+        ratePos.addEventListener('touchstart', (e) => startDrag(e, 'rate')); ratePos.addEventListener('mousedown', (e) => startDrag(e, 'rate'));
+        
+        window.addEventListener('touchmove', moveDrag, {passive: false}); window.addEventListener('mousemove', moveDrag);
+        window.addEventListener('touchend', endDrag); window.addEventListener('mouseup', endDrag);
 
-        timePos.addEventListener('touchstart', (e) => startDrag(e, 'time'));
-        timePos.addEventListener('mousedown', (e) => startDrag(e, 'time'));
-        headerPos.addEventListener('touchstart', (e) => startDrag(e, 'header'));
-        headerPos.addEventListener('mousedown', (e) => startDrag(e, 'header'));
-        window.addEventListener('touchmove', moveDrag, {passive: false});
-        window.addEventListener('mousemove', moveDrag);
-        window.addEventListener('touchend', endDrag);
-        window.addEventListener('mouseup', endDrag);
+        // Make the Panel Itself Draggable
+        const panelHeader = document.getElementById('panel-drag-handle');
+        let isPanelDragging = false, panelStartX, panelStartY, panelInitialX, panelInitialY;
 
-        // --- MENUS & OVERLAYS ---
+        panelHeader.addEventListener('mousedown', (e) => {
+            isPanelDragging = true;
+            panelStartX = e.clientX; panelStartY = e.clientY;
+            const rect = layoutPanel.getBoundingClientRect();
+            panelInitialX = rect.left; panelInitialY = rect.top;
+        });
+        panelHeader.addEventListener('touchstart', (e) => {
+            isPanelDragging = true;
+            panelStartX = e.touches[0].clientX; panelStartY = e.touches[0].clientY;
+            const rect = layoutPanel.getBoundingClientRect();
+            panelInitialX = rect.left; panelInitialY = rect.top;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isPanelDragging) return;
+            const dx = e.clientX - panelStartX;
+            const dy = e.clientY - panelStartY;
+            layoutPanel.style.left = `${panelInitialX + dx}px`;
+            layoutPanel.style.top = `${panelInitialY + dy}px`;
+            layoutPanel.style.transform = 'none';
+        });
+        window.addEventListener('touchmove', (e) => {
+            if (!isPanelDragging) return;
+            const dx = e.touches[0].clientX - panelStartX;
+            const dy = e.touches[0].clientY - panelStartY;
+            layoutPanel.style.left = `${panelInitialX + dx}px`;
+            layoutPanel.style.top = `${panelInitialY + dy}px`;
+            layoutPanel.style.transform = 'none';
+        });
+
+        window.addEventListener('mouseup', () => { isPanelDragging = false; });
+        window.addEventListener('touchend', () => { isPanelDragging = false; });
+
         document.getElementById('edit-layout-btn').addEventListener('click', () => {
-            hideSettings();
-            isEditMode = true;
-            document.body.classList.add('edit-mode');
-            layoutPanel.style.display = 'flex';
-            activeTarget = 'time'; 
-            loadTargetToSliders();
+            hideSettings(); isEditMode = true; document.body.classList.add('edit-mode');
+            layoutPanel.style.display = 'flex'; activeTarget = 'time'; loadTargetToSliders();
         });
-
         document.getElementById('layout-save').addEventListener('click', () => {
-            isEditMode = false;
-            document.body.classList.remove('edit-mode');
-            layoutPanel.style.display = 'none';
-            timePos.classList.remove('active-target');
-            headerPos.classList.remove('active-target');
-            autoSaveLayout();
+            isEditMode = false; document.body.classList.remove('edit-mode'); layoutPanel.style.display = 'none';
+            timePos.classList.remove('active-target'); headerPos.classList.remove('active-target'); pingPos.classList.remove('active-target'); ratePos.classList.remove('active-target'); autoSaveLayout();
         });
+        document.getElementById('layout-reset').addEventListener('click', () => { layout[activeTarget] = JSON.parse(JSON.stringify(DEFAULT_LAYOUT[activeTarget])); loadTargetToSliders(); applyTransforms(); autoSaveLayout(); });
 
-        document.getElementById('layout-reset').addEventListener('click', () => {
-            layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
-            loadTargetToSliders();
-            applyTransforms();
-            autoSaveLayout();
-        });
+        const settingsMenu = document.getElementById('settings-menu'); const fullscreenBtn = document.getElementById('fullscreen-btn');
+        let hideTimeout; let wakeLock = null;
 
-        // --- SETTINGS & FULLSCREEN LOGIC ---
-        const settingsMenu = document.getElementById('settings-menu');
-        const fullscreenBtn = document.getElementById('fullscreen-btn');
-        let hideTimeout;
-        let wakeLock = null;
+        async function requestWakeLock() { if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} } }
+        function releaseWakeLock() { if (wakeLock !== null) { wakeLock.release().then(() => { wakeLock = null; }); } }
 
-        async function requestWakeLock() {
-            if ('wakeLock' in navigator) {
-                try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
-            }
-        }
-        function releaseWakeLock() {
-            if (wakeLock !== null) { wakeLock.release().then(() => { wakeLock = null; }); }
-        }
-
-        function showSettings() {
-            if(isEditMode) return; 
-            settingsMenu.style.display = 'flex';
-            resetHideTimer();
-        }
-        function hideSettings() {
-            settingsMenu.style.display = 'none';
-            clearTimeout(hideTimeout);
-        }
-        function resetHideTimer() {
-            clearTimeout(hideTimeout);
-            hideTimeout = setTimeout(hideSettings, 10000); 
-        }
+        function showSettings() { if(isEditMode || document.getElementById('message-board').style.display === 'flex' || document.getElementById('fullscreen-alert').style.display === 'flex') return; settingsMenu.style.display = 'flex'; resetHideTimer(); }
+        function hideSettings() { settingsMenu.style.display = 'none'; clearTimeout(hideTimeout); }
+        function resetHideTimer() { clearTimeout(hideTimeout); hideTimeout = setTimeout(hideSettings, 10000); }
 
         document.getElementById('close-settings').addEventListener('click', hideSettings);
-
-        document.getElementById('format-toggle').addEventListener('change', function(e) {
-            is12Hour = e.target.checked;
-            safeStorage.set('is12Hour', is12Hour);
-            resetHideTimer(); 
-        });
+        document.getElementById('format-toggle').addEventListener('change', function(e) { is12Hour = e.target.checked; safeStorage.set('is12Hour', is12Hour); resetHideTimer(); });
 
         fullscreenBtn.addEventListener('click', function() {
             try {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().then(() => {
-                        requestWakeLock();
-                    }).catch(err => { console.log(err); });
-                } else {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen().then(() => { releaseWakeLock(); });
-                    }
-                }
+                if (!document.fullscreenElement) { document.documentElement.requestFullscreen().then(() => { requestWakeLock(); }).catch(err => {}); } 
+                else { if (document.exitFullscreen) { document.exitFullscreen().then(() => { releaseWakeLock(); }); } }
             } catch(e) {}
             hideSettings();
         });
+        document.addEventListener('visibilitychange', async () => { if (wakeLock !== null && document.visibilityState === 'visible') { requestWakeLock(); } });
 
-        document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible') { requestWakeLock(); }
-        });
-
-        // --- DOUBLE TAP TO OPEN SETTINGS ---
+        // --- GLOBAL DOUBLE TAP LOGIC ---
         let lastTapTime = 0;
         document.body.addEventListener('click', function(e) {
-            // Ignore if clicking inside a menu, or if we are currently editing the layout
-            if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || isEditMode) return;
+            const tapLength = new Date().getTime() - lastTapTime;
             
-            const currentTime = new Date().getTime();
-            const tapLength = currentTime - lastTapTime;
+            if (e.target.closest('#fullscreen-alert')) {
+                if (tapLength < 300 && tapLength > 0) { dismissFullscreenAlert(); }
+                lastTapTime = new Date().getTime();
+                return;
+            }
+
+            if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || e.target.closest('#message-board') || isEditMode) return;
             
-            // If the time between taps is less than 300ms (standard double tap speed)
-            if (tapLength < 300 && tapLength > 0) {
-                showSettings();
+            if (tapLength < 300 && tapLength > 0) { showSettings(); }
+            lastTapTime = new Date().getTime();
+        });
+
+        // --- LIVE MESSAGING LOGIC ---
+        const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbwnGUMYmNW0gidnQFyHVFIzyRWRTZPwiquQZ9aYkIlT9x6VQ7cIrlfQiV5COSO05mv5/exec";
+        const messageBoard = document.getElementById('message-board');
+        const messageList = document.getElementById('message-list');
+        const alertOverlay = document.getElementById('fullscreen-alert');
+        const alertText = document.getElementById('alert-text');
+        const alertImage = document.getElementById('alert-image');
+        
+        let lastSeenMessageId = null;
+        let alertTimeout = null;
+
+        document.getElementById('open-messages-btn').addEventListener('click', () => {
+            hideSettings();
+            messageBoard.style.display = 'flex';
+            fetchMessagesForBoard();
+        });
+        document.getElementById('close-messages').addEventListener('click', () => { messageBoard.style.display = 'none'; });
+
+        function fetchMessagesForBoard() {
+            messageList.innerHTML = `<div class="loading-text">Fetching latest messages...</div>`;
+            fetch(GOOGLE_APP_URL)
+                .then(response => response.json())
+                .then(data => {
+                    messageList.innerHTML = ''; 
+                    if (data.length === 0) { messageList.innerHTML = `<div class="loading-text">No messages right now.</div>`; return; }
+
+                    data.forEach(msg => {
+                        if(!msg.message && !msg.date && !msg.image) return;
+                        
+                        let safePriority = (msg.priority || "Normal").trim();
+                        let safeMsg = msg.message || "";
+                        let safeDate = msg.date || "";
+                        let safeImg = msg.image ? `<img class="msg-img-preview" src="data:image/jpeg;base64,${msg.image}">` : "";
+
+                        let card = document.createElement('div');
+                        card.className = `msg-card ${safePriority}`;
+                        card.innerHTML = `
+                            ${safeImg}
+                            <div class="msg-text">${safeMsg}</div>
+                            <div class="msg-meta"><span>Priority: ${safePriority}</span><span>${safeDate}</span></div>
+                        `;
+                        messageList.appendChild(card);
+                    });
+                })
+                .catch(error => { messageList.innerHTML = `<div class="loading-text" style="color:red;">Failed to load messages.</div>`; });
+        }
+
+        function checkLatestMessage() {
+            fetch(GOOGLE_APP_URL)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length === 0) return;
+                    
+                    const newestMsg = data[0];
+                    if(!newestMsg.message && !newestMsg.date && !newestMsg.image) return; 
+
+                    const imgSnippet = newestMsg.image ? newestMsg.image.substring(0, 20) : "";
+                    const currentMessageId = newestMsg.date + newestMsg.message + imgSnippet;
+
+                    if (lastSeenMessageId === null) {
+                        lastSeenMessageId = currentMessageId;
+                        return;
+                    }
+
+                    if (currentMessageId !== lastSeenMessageId) {
+                        lastSeenMessageId = currentMessageId;
+                        triggerFullscreenAlert(newestMsg.message, newestMsg.priority, newestMsg.image);
+                    }
+                })
+                .catch(e => console.log("Background check error", e));
+        }
+
+        function triggerFullscreenAlert(msg, priority, imageStr) {
+            clearTimeout(alertTimeout);
+            
+            try { if (typeof fully !== 'undefined') fully.setScreenBrightness(255); } catch(e) {}
+
+            if (imageStr && imageStr.trim() !== "") {
+                let cleanBase64 = imageStr.replace(/\r?\n|\r/g, ''); 
+                alertImage.src = `data:image/jpeg;base64,${cleanBase64}`;
+                alertImage.style.display = 'block';
+                alertOverlay.classList.add('has-image'); 
+            } else {
+                alertImage.src = "";
+                alertImage.style.display = 'none';
+                alertOverlay.classList.remove('has-image'); 
+                
+                let hasManualBreak = msg.includes('\n');
+                if (!hasManualBreak && msg.length >= 12 && msg.length < 65) {
+                    let middle = Math.floor(msg.length / 2);
+                    let before = msg.lastIndexOf(' ', middle);
+                    let after = msg.indexOf(' ', middle + 1);
+                    
+                    let splitIndex = -1;
+                    if (before === -1 && after === -1) { splitIndex = -1; } 
+                    else if (before === -1) { splitIndex = after; } 
+                    else if (after === -1) { splitIndex = before; } 
+                    else { splitIndex = (middle - before < after - middle) ? before : after; }
+                    
+                    if (splitIndex !== -1) { msg = msg.substring(0, splitIndex) + "<br>" + msg.substring(splitIndex + 1); }
+                }
+            }
+
+            alertText.innerHTML = msg;
+            const charCount = msg.length;
+
+            if (imageStr && imageStr.trim() !== "") {
+                if (charCount === 0) { 
+                    alertText.style.display = "none"; 
+                } else { 
+                    alertText.style.display = "block";
+                    alertText.style.fontSize = "clamp(18px, 5vmin, 45px)"; 
+                }
+            } else {
+                alertText.style.display = "block";
+                if (charCount < 20) { alertText.style.fontSize = "clamp(50px, 26vmin, 300px)"; } 
+                else if (charCount < 65) { alertText.style.fontSize = "clamp(35px, 18vmin, 200px)"; } 
+                else if (charCount < 120) { alertText.style.fontSize = "clamp(25px, 11vmin, 120px)"; } 
+                else { alertText.style.fontSize = "clamp(18px, 7vmin, 80px)"; }
             }
             
-            lastTapTime = currentTime;
-        });
+            const isHighPriority = (priority || "").toLowerCase() === 'high';
+            
+            if (isHighPriority) {
+                alertOverlay.classList.add('blink-red');
+                alertOverlay.classList.remove('normal-alert');
+                alertOverlay.style.display = 'flex';
+                alertTimeout = setTimeout(dismissFullscreenAlert, 600000); 
+            } else {
+                alertOverlay.classList.remove('blink-red');
+                alertOverlay.classList.add('normal-alert');
+                alertOverlay.style.display = 'flex';
+                alertTimeout = setTimeout(dismissFullscreenAlert, 300000); 
+            }
+        }
+
+        function dismissFullscreenAlert() {
+            clearTimeout(alertTimeout);
+            alertOverlay.style.display = 'none';
+            alertOverlay.classList.remove('blink-red', 'normal-alert', 'has-image');
+            alertImage.src = "";
+            try { if (typeof fully !== 'undefined') fully.setScreenBrightness(-1); } catch(e) {}
+        }
+
+        setInterval(checkLatestMessage, 5000);
+        setTimeout(checkLatestMessage, 3000);
 
     </script>
 </body>
