@@ -317,6 +317,7 @@
         #commute-title { font-size: clamp(40px, 8vw, 80px); font-weight: 900; margin-bottom: 20px; color: #ffffff; letter-spacing: -1px; text-align: center; line-height: 1.1; }
         #commute-stats { font-size: clamp(20px, 4vw, 40px); font-weight: bold; color: #94a3b8; background: rgba(255,255,255,0.1); padding: 15px 30px; border-radius: 100px; text-align: center; }
         .stat-highlight { color: #38bdf8; }
+        
         #commute-timeline-container { display: none; width: 90%; max-width: 1200px; }
         .timeline-row { display: flex; width: 100%; align-items: flex-start; justify-content: center; position: relative; }
         .t-node { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 120px; flex-shrink: 0; z-index: 10; text-align: center; }
@@ -530,10 +531,10 @@
         function safeGet(row, keywords) {
             if(!row) return null;
             const keys = Object.keys(row);
-            for(let k of keys) {
-                let cleanKey = k.toLowerCase().replace(/[^a-z0-9]/g, '');
-                for(let word of keywords) {
-                    if(cleanKey.includes(word)) return row[k];
+            for(let i = 0; i < keys.length; i++) {
+                let cleanKey = keys[i].toLowerCase().replace(/[^a-z0-9]/g, '');
+                for(let j = 0; j < keywords.length; j++) {
+                    if(cleanKey.indexOf(keywords[j]) !== -1) return row[keys[i]];
                 }
             }
             return null;
@@ -548,16 +549,16 @@
             if (mins === null) return "--:--";
             let h = Math.floor(mins / 60);
             let m = mins % 60;
-            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
         }
 
         function timeStrToMinutes(timeStr) {
             if (!hasData(timeStr)) return null;
             let str = String(timeStr).trim();
-            if (str.includes('T')) { let d = new Date(str); return d.getHours() * 60 + d.getMinutes(); }
+            if (str.indexOf('T') !== -1) { let d = new Date(str); return d.getHours() * 60 + d.getMinutes(); }
             
-            let isPM = str.toLowerCase().includes('pm');
-            let isAM = str.toLowerCase().includes('am');
+            let isPM = str.toLowerCase().indexOf('pm') !== -1;
+            let isAM = str.toLowerCase().indexOf('am') !== -1;
             str = str.replace(/[^0-9:]/g, ''); 
             let parts = str.split(':'); 
             
@@ -578,6 +579,14 @@
             return h * 60 + m;
         }
 
+        // Safe subtraction across midnight
+        function getDuration(startMins, endMins) {
+            if (startMins === null || endMins === null) return "--";
+            let diff = endMins - startMins;
+            if (diff < -720) diff += 1440;
+            return diff;
+        }
+
         function calculateCommuteAverages(data) {
             let mTotal = 0, mCount = 0;
             let eTotal = 0, eCount = 0;
@@ -590,17 +599,18 @@
                 if(oL !== null && hA !== null && (hA - oL) > 0) { eTotal += (hA - oL); eCount++; }
             });
             return {
-                avgMorning: mCount > 0 ? (mTotal / mCount) : 30,
-                avgEvening: eCount > 0 ? (eTotal / eCount) : 30
+                avgMorning: mCount > 0 ? Math.round(mTotal / mCount) : 30,
+                avgEvening: eCount > 0 ? Math.round(eTotal / eCount) : 30
             };
         }
 
         function checkCommuteStatus() {
-            if(!COMMUTE_WEB_APP_URL || COMMUTE_WEB_APP_URL.includes("YOUR_COMMUTE")) return;
+            if(!COMMUTE_WEB_APP_URL || COMMUTE_WEB_APP_URL.indexOf("YOUR_COMMUTE") !== -1) return;
 
-            const fetchUrl = COMMUTE_WEB_APP_URL + (COMMUTE_WEB_APP_URL.includes('?') ? '&' : '?') + "nocache=" + new Date().getTime() + "&rnd=" + Math.random();
+            // Legacy-safe Cache Buster
+            const fetchUrl = COMMUTE_WEB_APP_URL + (COMMUTE_WEB_APP_URL.indexOf('?') !== -1 ? '&' : '?') + "nocache=" + new Date().getTime() + "&rnd=" + Math.random();
 
-            fetch(fetchUrl, { cache: 'no-store' })
+            fetch(fetchUrl)
                 .then(res => res.json())
                 .then(data => {
                     const validData = data.filter(r => r.Date && String(r.Date).trim() !== "");
@@ -626,15 +636,16 @@
                     arrivedMsgBox.style.display = 'none';
                     timelineBox.style.display = 'none';
 
-                    // CONDITION 4: AT HOME
+                    // CONDITION 4: AT HOME (Exactly 15 mins rule)
                     if (hasData(hA) && hasData(oL)) {
                         let diffMins = currentMins - tArriveHome;
                         if (diffMins < -720) diffMins += 1440; 
                         
-                        if (diffMins >= -10 && diffMins < 30) {
-                            showArrivedMessage("Welcome Home Sambhaji!", "Leave Office", formatTimeForCommute(oL), "Arrive Home", formatTimeForCommute(hA), (tArriveHome - tLeaveOffice));
+                        // Exact 15-minute display rule
+                        if (diffMins >= -5 && diffMins < 15) {
+                            showArrivedMessage("Welcome Home Sambhaji!", "Leave Office", formatTimeForCommute(oL), "Arrive Home", formatTimeForCommute(hA), getDuration(tLeaveOffice, tArriveHome));
                         }
-                        return; 
+                        return; // Auto-hides overlay if >= 15 mins
                     }
 
                     // CONDITION 3: MOVING TO HOME
@@ -648,15 +659,16 @@
                         return;
                     }
 
-                    // CONDITION 2: AT OFFICE
+                    // CONDITION 2: AT OFFICE (Exactly 15 mins rule)
                     if (hasData(oA) && hasData(hL)) {
                         let diffMins = currentMins - tArriveOffice;
                         if (diffMins < -720) diffMins += 1440; 
                         
-                        if (diffMins >= -10 && diffMins < 30) {
-                            showArrivedMessage("Sambhaji is now in Office", "Leave Home", formatTimeForCommute(hL), "Arrive Office", formatTimeForCommute(oA), (tArriveOffice - tLeaveHome));
+                        // Exact 15-minute display rule
+                        if (diffMins >= -5 && diffMins < 15) {
+                            showArrivedMessage("Sambhaji is now in Office", "Leave Home", formatTimeForCommute(hL), "Arrive Office", formatTimeForCommute(oA), getDuration(tLeaveHome, tArriveOffice));
                         }
-                        return;
+                        return; // Auto-hides overlay if >= 15 mins
                     }
 
                     // CONDITION 1: MOVING TO OFFICE
@@ -693,7 +705,7 @@
             }
             
             document.getElementById('tl-start-time').innerText = startTime;
-            progressBar.style.width = "0%";
+            if(progressBar) progressBar.style.width = "0%";
             timelineBox.style.display = 'block';
             commuteOverlay.style.display = 'flex';
         }
@@ -909,81 +921,43 @@
         function checkNetwork() {
             try {
                 if (!navigator.onLine) { 
-                    networkDot.className = 'network-dot red'; 
-                    pingText.textContent = 'ERR';
-                    pingBox.style.backgroundColor = '#ff3333';
-                    pingBox.style.color = '#ffffff';
-                    return; 
+                    networkDot.className = 'network-dot red'; pingText.textContent = 'ERR'; pingBox.style.backgroundColor = '#ff3333'; pingBox.style.color = '#ffffff'; return; 
                 } 
-
                 const startTime = performance.now();
                 fetch('https://1.1.1.1/cdn-cgi/trace', { mode: 'no-cors', cache: 'no-store' })
                 .then(() => { 
                     let pingTime = Math.round(performance.now() - startTime);
-                    if (pingTime > 1000) pingTime = 1000;
-                    if (pingTime < 0) pingTime = 0;
-
+                    if (pingTime > 1000) pingTime = 1000; if (pingTime < 0) pingTime = 0;
                     pingText.textContent = pingTime;
-
-                    if (pingTime < 150) {
-                        pingBox.style.backgroundColor = '#00ffaa'; 
-                        pingBox.style.color = '#000000'; 
-                        networkDot.className = 'network-dot green'; 
-                    } else if (pingTime < 350) {
-                        pingBox.style.backgroundColor = '#ffcc00'; 
-                        pingBox.style.color = '#000000'; 
-                        networkDot.className = 'network-dot yellow'; 
-                    } else {
-                        pingBox.style.backgroundColor = '#ff3333'; 
-                        pingBox.style.color = '#ffffff'; 
-                        networkDot.className = 'network-dot red'; 
-                    }
+                    if (pingTime < 150) { pingBox.style.backgroundColor = '#00ffaa'; pingBox.style.color = '#000000'; networkDot.className = 'network-dot green'; }
+                    else if (pingTime < 350) { pingBox.style.backgroundColor = '#ffcc00'; pingBox.style.color = '#000000'; networkDot.className = 'network-dot yellow'; }
+                    else { pingBox.style.backgroundColor = '#ff3333'; pingBox.style.color = '#ffffff'; networkDot.className = 'network-dot red'; }
                 })
-                .catch(() => { 
-                    networkDot.className = 'network-dot red'; 
-                    pingText.textContent = 'ERR';
-                    pingBox.style.backgroundColor = '#ff3333';
-                    pingBox.style.color = '#ffffff';
-                });
+                .catch(() => { networkDot.className = 'network-dot red'; pingText.textContent = 'ERR'; pingBox.style.backgroundColor = '#ff3333'; pingBox.style.color = '#ffffff'; });
             } catch(e) {}
         }
-        window.addEventListener('online', checkNetwork); 
-        window.addEventListener('offline', checkNetwork);
-        setInterval(checkNetwork, 5000); 
-        checkNetwork();
+        window.addEventListener('online', checkNetwork); window.addEventListener('offline', checkNetwork); setInterval(checkNetwork, 5000); checkNetwork();
 
         const rateText = document.getElementById('stat-rate');
         let cachedRate = safeStorage.get('usd_inr_rate', '--');
         let lastRateFetch = safeStorage.get('last_rate_fetch', 0);
         
-        if (cachedRate !== '--') {
-            rateText.textContent = cachedRate;
-        }
+        if (cachedRate !== '--') { rateText.textContent = cachedRate; }
 
         function fetchExchangeRate() {
             const now = new Date().getTime();
-            if (now - lastRateFetch < 600000 && cachedRate !== '--') {
-                return;
-            }
-            
+            if (now - lastRateFetch < 600000 && cachedRate !== '--') return;
             fetch('https://open.er-api.com/v6/latest/USD')
                 .then(res => res.json())
                 .then(data => {
                     if(data && data.rates && data.rates.INR) {
                         const inrRate = data.rates.INR.toFixed(2);
-                        rateText.textContent = inrRate;
-                        cachedRate = inrRate;
-                        safeStorage.set('usd_inr_rate', inrRate);
-                        safeStorage.set('last_rate_fetch', now.toString());
+                        rateText.textContent = inrRate; cachedRate = inrRate;
+                        safeStorage.set('usd_inr_rate', inrRate); safeStorage.set('last_rate_fetch', now.toString());
                     }
-                })
-                .catch(e => {
-                    console.log('Failed to fetch exchange rate', e);
-                });
+                }).catch(e => console.log('Failed to fetch exchange rate', e));
         }
-        
-        fetchExchangeRate();
-        setInterval(fetchExchangeRate, 60000);
+        fetchExchangeRate(); setInterval(fetchExchangeRate, 60000);
 
         function updateColors() {
             try {
@@ -1002,27 +976,16 @@
         const marathiMonths = ["जानेवारी", "फेब्रुवारी", "मार्च", "एप्रिल", "मे", "जून", "जुलै", "ऑगस्ट", "सप्टेंबर", "ऑक्टोबर", "नोव्हेंबर", "डिसेंबर"];
 
         function buildStrip(id, maxNumber) {
-            try {
-                const strip = document.getElementById(id); let html = '';
-                for (let i = 0; i <= maxNumber; i++) { html += `<div class="digit">${i}</div>`; }
-                strip.innerHTML = html;
-            } catch(e) {}
+            try { const strip = document.getElementById(id); let html = ''; for (let i = 0; i <= maxNumber; i++) { html += `<div class="digit">${i}</div>`; } strip.innerHTML = html; } catch(e) {}
         }
         buildStrip('h-tens', 2); buildStrip('h-units', 9); buildStrip('m-tens', 5); buildStrip('m-units', 9);
 
-        function updateStrip(id, value) {
-            try {
-                const strip = document.getElementById(id);
-                strip.style.transform = `translate3d(0, ${-(value * DIGIT_HEIGHT)}px, 0)`;
-            } catch(e) {}
-        }
+        function updateStrip(id, value) { try { document.getElementById(id).style.transform = `translate3d(0, ${-(value * DIGIT_HEIGHT)}px, 0)`; } catch(e) {} }
 
         function updateDateHeader(now) {
             if (isEditMode) {
-                document.getElementById('day-marathi').textContent = "WWWWW";
-                document.getElementById('month-marathi').textContent = "MMMM";
-                document.getElementById('date-num').textContent = "DD/MM/YYYY";
-                document.getElementById('sec-num').textContent = "SS"; return; 
+                document.getElementById('day-marathi').textContent = "WWWWW"; document.getElementById('month-marathi').textContent = "MMMM";
+                document.getElementById('date-num').textContent = "DD/MM/YYYY"; document.getElementById('sec-num').textContent = "SS"; return; 
             }
             try {
                 document.getElementById('day-marathi').textContent = marathiDays[now.getDay()];
@@ -1041,48 +1004,38 @@
                 updateStrip('m-tens', parseInt(minutes[0])); updateStrip('m-units', parseInt(minutes[1]));
                 updateDateHeader(now);
 
-                // --- UPDATE COMMUTE PROGRESS BAR ---
+                // --- SMOOTH EXACT MATH ANIMATION ---
                 if (typeof activeCommuteState !== 'undefined' && activeCommuteState.active) {
                     const currentMins = now.getHours() * 60 + now.getMinutes();
-                    let elapsedMins = currentMins - activeCommuteState.startMins;
-                    if (elapsedMins < -720) elapsedMins += 1440; // Midnight fix
+                    const currentSecs = now.getSeconds();
+                    
+                    let elapsedMins = (currentMins - activeCommuteState.startMins) + (currentSecs / 60);
+                    if (elapsedMins < -720) elapsedMins += 1440; 
                     
                     let progress = 0;
                     if (elapsedMins > 0) {
                         progress = (elapsedMins / activeCommuteState.avgTravelTimeMins) * 100;
-                        if (progress > 98) progress = 98; // Clamp at 98% until official arrive log
+                        if (progress > 99) progress = 99; // Holds just before end until you officially arrive
                     }
-                    if(document.getElementById('commute-progress-bar')) {
-                        document.getElementById('commute-progress-bar').style.width = progress + "%";
-                    }
+                    if(progressBar) progressBar.style.width = progress + "%";
                 }
+
             } catch(e) {}
             requestAnimationFrame(updateClock);
         }
         try { updateClock(); } catch(e) {}
 
-        // --- ADVANCED LAYOUT EDITOR ---
-        const timePos = document.getElementById('clock-positioner'); 
-        const headerPos = document.getElementById('header-positioner');
-        const pingPos = document.getElementById('ping-positioner'); 
-        const ratePos = document.getElementById('rate-positioner'); 
-        const layoutPanel = document.getElementById('layout-panel'); 
-        const layoutTitle = document.getElementById('layout-title');
+        const timePos = document.getElementById('clock-positioner'); const headerPos = document.getElementById('header-positioner');
+        const pingPos = document.getElementById('ping-positioner'); const ratePos = document.getElementById('rate-positioner'); 
+        const layoutPanel = document.getElementById('layout-panel'); const layoutTitle = document.getElementById('layout-title');
         
-        const scaleXSlider = document.getElementById('scale-x'); 
-        const scaleYSlider = document.getElementById('scale-y');
-        const rotateSlider = document.getElementById('rotate-val');
-        const opacitySlider = document.getElementById('opacity-val');
+        const scaleXSlider = document.getElementById('scale-x'); const scaleYSlider = document.getElementById('scale-y');
+        const rotateSlider = document.getElementById('rotate-val'); const opacitySlider = document.getElementById('opacity-val');
         const layoutFontSelect = document.getElementById('layout-font-select');
         
         let isEditMode = false; let activeTarget = 'time'; 
         
-        const DEFAULT_LAYOUT = { 
-            time: { x: 15, y: -11, sx: 1.05, sy: 0.9, rot: 0, alpha: 1 }, 
-            header: { x: 0, y: 15, sx: 1.05, sy: 1, rot: 0, alpha: 1 },
-            ping: { x: 0, y: 140, sx: 1, sy: 1, rot: 0, alpha: 1 },
-            rate: { x: 0, y: 250, sx: 1, sy: 1, rot: 0, alpha: 1 } 
-        };
+        const DEFAULT_LAYOUT = { time: { x: 15, y: -11, sx: 1.05, sy: 0.9, rot: 0, alpha: 1 }, header: { x: 0, y: 15, sx: 1.05, sy: 1, rot: 0, alpha: 1 }, ping: { x: 0, y: 140, sx: 1, sy: 1, rot: 0, alpha: 1 }, rate: { x: 0, y: 250, sx: 1, sy: 1, rot: 0, alpha: 1 } };
         let layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); 
         
         try { 
@@ -1090,10 +1043,8 @@
             if (savedStr) { 
                 let parsed = JSON.parse(savedStr); 
                 if(parsed && parsed.time && parsed.header) {
-                    layout.time = {...DEFAULT_LAYOUT.time, ...parsed.time};
-                    layout.header = {...DEFAULT_LAYOUT.header, ...parsed.header};
-                    if(parsed.ping) layout.ping = {...DEFAULT_LAYOUT.ping, ...parsed.ping}; 
-                    if(parsed.rate) layout.rate = {...DEFAULT_LAYOUT.rate, ...parsed.rate}; 
+                    layout.time = {...DEFAULT_LAYOUT.time, ...parsed.time}; layout.header = {...DEFAULT_LAYOUT.header, ...parsed.header};
+                    if(parsed.ping) layout.ping = {...DEFAULT_LAYOUT.ping, ...parsed.ping}; if(parsed.rate) layout.rate = {...DEFAULT_LAYOUT.rate, ...parsed.rate}; 
                 } 
             } 
         } catch(e) {}
@@ -1114,48 +1065,22 @@
 
         function loadTargetToSliders() {
             const data = layout[activeTarget];
-            scaleXSlider.value = data.sx; 
-            scaleYSlider.value = data.sy;
-            rotateSlider.value = data.rot || 0;
-            opacitySlider.value = data.alpha !== undefined ? data.alpha : 1;
+            scaleXSlider.value = data.sx; scaleYSlider.value = data.sy; rotateSlider.value = data.rot || 0; opacitySlider.value = data.alpha !== undefined ? data.alpha : 1;
             
-            timePos.classList.remove('active-target'); 
-            headerPos.classList.remove('active-target');
-            pingPos.classList.remove('active-target');
-            ratePos.classList.remove('active-target');
+            timePos.classList.remove('active-target'); headerPos.classList.remove('active-target'); pingPos.classList.remove('active-target'); ratePos.classList.remove('active-target');
 
-            // Map the correct independent font to the dropdown
-            if(activeTarget === 'time') { 
-                timePos.classList.add('active-target'); layoutTitle.textContent = "CLOCK PROPERTIES"; scaleXSlider.max = 1.3; layoutFontSelect.value = timeFont; 
-            } else if (activeTarget === 'header') { 
-                headerPos.classList.add('active-target'); layoutTitle.textContent = "HEADER PROPERTIES"; scaleXSlider.max = 1.15; layoutFontSelect.value = headerFont; 
-            } else if (activeTarget === 'ping') { 
-                pingPos.classList.add('active-target'); layoutTitle.textContent = "PING PROPERTIES"; scaleXSlider.max = 2.0; layoutFontSelect.value = pingFont; 
-            } else if (activeTarget === 'rate') { 
-                ratePos.classList.add('active-target'); layoutTitle.textContent = "RATE PROPERTIES"; scaleXSlider.max = 2.0; layoutFontSelect.value = rateFont; 
-            }
+            if(activeTarget === 'time') { timePos.classList.add('active-target'); layoutTitle.textContent = "CLOCK PROPERTIES"; scaleXSlider.max = 1.3; layoutFontSelect.value = timeFont; } 
+            else if (activeTarget === 'header') { headerPos.classList.add('active-target'); layoutTitle.textContent = "HEADER PROPERTIES"; scaleXSlider.max = 1.15; layoutFontSelect.value = headerFont; } 
+            else if (activeTarget === 'ping') { pingPos.classList.add('active-target'); layoutTitle.textContent = "PING PROPERTIES"; scaleXSlider.max = 2.0; layoutFontSelect.value = pingFont; } 
+            else if (activeTarget === 'rate') { ratePos.classList.add('active-target'); layoutTitle.textContent = "RATE PROPERTIES"; scaleXSlider.max = 2.0; layoutFontSelect.value = rateFont; }
         }
 
-        // Apply font exclusively to the actively selected target
         layoutFontSelect.addEventListener('change', (e) => {
             const selectedFont = e.target.value;
-            if (activeTarget === 'header') { 
-                headerFont = selectedFont; 
-                headerPos.style.fontFamily = selectedFont; 
-                safeStorage.set('headerFont', selectedFont); 
-            } else if (activeTarget === 'ping') { 
-                pingFont = selectedFont; 
-                pingPos.style.fontFamily = selectedFont; 
-                safeStorage.set('pingFont', selectedFont); 
-            } else if (activeTarget === 'rate') { 
-                rateFont = selectedFont; 
-                ratePos.style.fontFamily = selectedFont; 
-                safeStorage.set('rateFont', selectedFont); 
-            } else if (activeTarget === 'time') { 
-                timeFont = selectedFont; 
-                timePos.style.fontFamily = selectedFont; 
-                safeStorage.set('timeFont', selectedFont); 
-            }
+            if (activeTarget === 'header') { headerFont = selectedFont; headerPos.style.fontFamily = selectedFont; safeStorage.set('headerFont', selectedFont); } 
+            else if (activeTarget === 'ping') { pingFont = selectedFont; pingPos.style.fontFamily = selectedFont; safeStorage.set('pingFont', selectedFont); } 
+            else if (activeTarget === 'rate') { rateFont = selectedFont; ratePos.style.fontFamily = selectedFont; safeStorage.set('rateFont', selectedFont); } 
+            else if (activeTarget === 'time') { timeFont = selectedFont; timePos.style.fontFamily = selectedFont; safeStorage.set('timeFont', selectedFont); }
         });
 
         scaleXSlider.addEventListener('input', (e) => { layout[activeTarget].sx = parseFloat(e.target.value); applyTransforms(); autoSaveLayout(); });
@@ -1172,11 +1097,7 @@
         function moveDrag(e) {
             if (!isDragging || !isEditMode || !dragTarget) return; e.preventDefault(); 
             let touchX = e.touches ? e.touches[0].clientX : e.clientX; let touchY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            layout[dragTarget].x = initialX + (touchX - startX);
-            layout[dragTarget].y = initialY + (touchY - startY);
-            
-            applyTransforms();
+            layout[dragTarget].x = initialX + (touchX - startX); layout[dragTarget].y = initialY + (touchY - startY); applyTransforms();
         }
         function endDrag() { if (isDragging) { isDragging = false; dragTarget = null; autoSaveLayout(); } }
 
@@ -1188,51 +1109,22 @@
         window.addEventListener('touchmove', moveDrag, {passive: false}); window.addEventListener('mousemove', moveDrag);
         window.addEventListener('touchend', endDrag); window.addEventListener('mouseup', endDrag);
 
-        // Make the Panel Itself Draggable
         const panelHeader = document.getElementById('panel-drag-handle');
         let isPanelDragging = false, panelStartX, panelStartY, panelInitialX, panelInitialY;
 
         panelHeader.addEventListener('mousedown', (e) => {
-            isPanelDragging = true;
-            panelStartX = e.clientX; panelStartY = e.clientY;
-            const rect = layoutPanel.getBoundingClientRect();
-            panelInitialX = rect.left; panelInitialY = rect.top;
+            isPanelDragging = true; panelStartX = e.clientX; panelStartY = e.clientY; const rect = layoutPanel.getBoundingClientRect(); panelInitialX = rect.left; panelInitialY = rect.top;
         });
         panelHeader.addEventListener('touchstart', (e) => {
-            isPanelDragging = true;
-            panelStartX = e.touches[0].clientX; panelStartY = e.touches[0].clientY;
-            const rect = layoutPanel.getBoundingClientRect();
-            panelInitialX = rect.left; panelInitialY = rect.top;
+            isPanelDragging = true; panelStartX = e.touches[0].clientX; panelStartY = e.touches[0].clientY; const rect = layoutPanel.getBoundingClientRect(); panelInitialX = rect.left; panelInitialY = rect.top;
         });
 
-        window.addEventListener('mousemove', (e) => {
-            if (!isPanelDragging) return;
-            const dx = e.clientX - panelStartX;
-            const dy = e.clientY - panelStartY;
-            layoutPanel.style.left = `${panelInitialX + dx}px`;
-            layoutPanel.style.top = `${panelInitialY + dy}px`;
-            layoutPanel.style.transform = 'none';
-        });
-        window.addEventListener('touchmove', (e) => {
-            if (!isPanelDragging) return;
-            const dx = e.touches[0].clientX - panelStartX;
-            const dy = e.touches[0].clientY - panelStartY;
-            layoutPanel.style.left = `${panelInitialX + dx}px`;
-            layoutPanel.style.top = `${panelInitialY + dy}px`;
-            layoutPanel.style.transform = 'none';
-        });
+        window.addEventListener('mousemove', (e) => { if (!isPanelDragging) return; const dx = e.clientX - panelStartX; const dy = e.clientY - panelStartY; layoutPanel.style.left = `${panelInitialX + dx}px`; layoutPanel.style.top = `${panelInitialY + dy}px`; layoutPanel.style.transform = 'none'; });
+        window.addEventListener('touchmove', (e) => { if (!isPanelDragging) return; const dx = e.touches[0].clientX - panelStartX; const dy = e.touches[0].clientY - panelStartY; layoutPanel.style.left = `${panelInitialX + dx}px`; layoutPanel.style.top = `${panelInitialY + dy}px`; layoutPanel.style.transform = 'none'; });
+        window.addEventListener('mouseup', () => { isPanelDragging = false; }); window.addEventListener('touchend', () => { isPanelDragging = false; });
 
-        window.addEventListener('mouseup', () => { isPanelDragging = false; });
-        window.addEventListener('touchend', () => { isPanelDragging = false; });
-
-        document.getElementById('edit-layout-btn').addEventListener('click', () => {
-            hideSettings(); isEditMode = true; document.body.classList.add('edit-mode');
-            layoutPanel.style.display = 'flex'; activeTarget = 'time'; loadTargetToSliders();
-        });
-        document.getElementById('layout-save').addEventListener('click', () => {
-            isEditMode = false; document.body.classList.remove('edit-mode'); layoutPanel.style.display = 'none';
-            timePos.classList.remove('active-target'); headerPos.classList.remove('active-target'); pingPos.classList.remove('active-target'); ratePos.classList.remove('active-target'); autoSaveLayout();
-        });
+        document.getElementById('edit-layout-btn').addEventListener('click', () => { hideSettings(); isEditMode = true; document.body.classList.add('edit-mode'); layoutPanel.style.display = 'flex'; activeTarget = 'time'; loadTargetToSliders(); });
+        document.getElementById('layout-save').addEventListener('click', () => { isEditMode = false; document.body.classList.remove('edit-mode'); layoutPanel.style.display = 'none'; timePos.classList.remove('active-target'); headerPos.classList.remove('active-target'); pingPos.classList.remove('active-target'); ratePos.classList.remove('active-target'); autoSaveLayout(); });
         document.getElementById('layout-reset').addEventListener('click', () => { layout[activeTarget] = JSON.parse(JSON.stringify(DEFAULT_LAYOUT[activeTarget])); loadTargetToSliders(); applyTransforms(); autoSaveLayout(); });
 
         const settingsMenu = document.getElementById('settings-menu'); const fullscreenBtn = document.getElementById('fullscreen-btn');
@@ -1249,47 +1141,26 @@
         document.getElementById('format-toggle').addEventListener('change', function(e) { is12Hour = e.target.checked; safeStorage.set('is12Hour', is12Hour); resetHideTimer(); });
 
         fullscreenBtn.addEventListener('click', function() {
-            try {
-                if (!document.fullscreenElement) { document.documentElement.requestFullscreen().then(() => { requestWakeLock(); }).catch(err => {}); } 
-                else { if (document.exitFullscreen) { document.exitFullscreen().then(() => { releaseWakeLock(); }); } }
-            } catch(e) {}
+            try { if (!document.fullscreenElement) { document.documentElement.requestFullscreen().then(() => { requestWakeLock(); }).catch(err => {}); } else { if (document.exitFullscreen) { document.exitFullscreen().then(() => { releaseWakeLock(); }); } } } catch(e) {}
             hideSettings();
         });
         document.addEventListener('visibilitychange', async () => { if (wakeLock !== null && document.visibilityState === 'visible') { requestWakeLock(); } });
 
-        // --- GLOBAL DOUBLE TAP LOGIC ---
         let lastTapTime = 0;
         document.body.addEventListener('click', function(e) {
             const tapLength = new Date().getTime() - lastTapTime;
-            
-            if (e.target.closest('#fullscreen-alert')) {
-                if (tapLength < 300 && tapLength > 0) { dismissFullscreenAlert(); }
-                lastTapTime = new Date().getTime();
-                return;
-            }
-
+            if (e.target.closest('#fullscreen-alert')) { if (tapLength < 300 && tapLength > 0) { dismissFullscreenAlert(); } lastTapTime = new Date().getTime(); return; }
             if (e.target.closest('#settings-menu') || e.target.closest('#layout-panel') || e.target.closest('#message-board') || isEditMode) return;
-            
             if (tapLength < 300 && tapLength > 0) { showSettings(); }
             lastTapTime = new Date().getTime();
         });
 
-        // --- LIVE MESSAGING LOGIC ---
         const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbwnGUMYmNW0gidnQFyHVFIzyRWRTZPwiquQZ9aYkIlT9x6VQ7cIrlfQiV5COSO05mv5/exec";
-        const messageBoard = document.getElementById('message-board');
-        const messageList = document.getElementById('message-list');
-        const alertOverlay = document.getElementById('fullscreen-alert');
-        const alertText = document.getElementById('alert-text');
-        const alertImage = document.getElementById('alert-image');
-        
-        let lastSeenMessageId = null;
-        let alertTimeout = null;
+        const messageBoard = document.getElementById('message-board'); const messageList = document.getElementById('message-list');
+        const alertOverlay = document.getElementById('fullscreen-alert'); const alertText = document.getElementById('alert-text'); const alertImage = document.getElementById('alert-image');
+        let lastSeenMessageId = null; let alertTimeout = null;
 
-        document.getElementById('open-messages-btn').addEventListener('click', () => {
-            hideSettings();
-            messageBoard.style.display = 'flex';
-            fetchMessagesForBoard();
-        });
+        document.getElementById('open-messages-btn').addEventListener('click', () => { hideSettings(); messageBoard.style.display = 'flex'; fetchMessagesForBoard(); });
         document.getElementById('close-messages').addEventListener('click', () => { messageBoard.style.display = 'none'; });
 
         function fetchMessagesForBoard() {
@@ -1297,28 +1168,15 @@
             fetch(GOOGLE_APP_URL)
                 .then(response => response.json())
                 .then(data => {
-                    messageList.innerHTML = ''; 
-                    if (data.length === 0) { messageList.innerHTML = `<div class="loading-text">No messages right now.</div>`; return; }
-
+                    messageList.innerHTML = ''; if (data.length === 0) { messageList.innerHTML = `<div class="loading-text">No messages right now.</div>`; return; }
                     data.forEach(msg => {
                         if(!msg.message && !msg.date && !msg.image) return;
-                        
-                        let safePriority = (msg.priority || "Normal").trim();
-                        let safeMsg = msg.message || "";
-                        let safeDate = msg.date || "";
-                        let safeImg = msg.image ? `<img class="msg-img-preview" src="data:image/jpeg;base64,${msg.image}">` : "";
-
-                        let card = document.createElement('div');
-                        card.className = `msg-card ${safePriority}`;
-                        card.innerHTML = `
-                            ${safeImg}
-                            <div class="msg-text">${safeMsg}</div>
-                            <div class="msg-meta"><span>Priority: ${safePriority}</span><span>${safeDate}</span></div>
-                        `;
+                        let safePriority = (msg.priority || "Normal").trim(); let safeMsg = msg.message || ""; let safeDate = msg.date || ""; let safeImg = msg.image ? `<img class="msg-img-preview" src="data:image/jpeg;base64,${msg.image}">` : "";
+                        let card = document.createElement('div'); card.className = `msg-card ${safePriority}`;
+                        card.innerHTML = `${safeImg}<div class="msg-text">${safeMsg}</div><div class="msg-meta"><span>Priority: ${safePriority}</span><span>${safeDate}</span></div>`;
                         messageList.appendChild(card);
                     });
-                })
-                .catch(error => { messageList.innerHTML = `<div class="loading-text" style="color:red;">Failed to load messages.</div>`; });
+                }).catch(error => { messageList.innerHTML = `<div class="loading-text" style="color:red;">Failed to load messages.</div>`; });
         }
 
         function checkLatestMessage() {
@@ -1326,101 +1184,46 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.length === 0) return;
-                    
-                    const newestMsg = data[0];
-                    if(!newestMsg.message && !newestMsg.date && !newestMsg.image) return; 
-
+                    const newestMsg = data[0]; if(!newestMsg.message && !newestMsg.date && !newestMsg.image) return; 
                     const imgSnippet = newestMsg.image ? newestMsg.image.substring(0, 20) : "";
                     const currentMessageId = newestMsg.date + newestMsg.message + imgSnippet;
-
-                    if (lastSeenMessageId === null) {
-                        lastSeenMessageId = currentMessageId;
-                        return;
-                    }
-
-                    if (currentMessageId !== lastSeenMessageId) {
-                        lastSeenMessageId = currentMessageId;
-                        triggerFullscreenAlert(newestMsg.message, newestMsg.priority, newestMsg.image);
-                    }
-                })
-                .catch(e => console.log("Background check error", e));
+                    if (lastSeenMessageId === null) { lastSeenMessageId = currentMessageId; return; }
+                    if (currentMessageId !== lastSeenMessageId) { lastSeenMessageId = currentMessageId; triggerFullscreenAlert(newestMsg.message, newestMsg.priority, newestMsg.image); }
+                }).catch(e => console.log("Background check error", e));
         }
 
         function triggerFullscreenAlert(msg, priority, imageStr) {
             clearTimeout(alertTimeout);
-            
             try { if (typeof fully !== 'undefined') fully.setScreenBrightness(255); } catch(e) {}
-
             if (imageStr && imageStr.trim() !== "") {
-                let cleanBase64 = imageStr.replace(/\r?\n|\r/g, ''); 
-                alertImage.src = `data:image/jpeg;base64,${cleanBase64}`;
-                alertImage.style.display = 'block';
-                alertOverlay.classList.add('has-image'); 
+                let cleanBase64 = imageStr.replace(/\r?\n|\r/g, ''); alertImage.src = `data:image/jpeg;base64,${cleanBase64}`; alertImage.style.display = 'block'; alertOverlay.classList.add('has-image'); 
             } else {
-                alertImage.src = "";
-                alertImage.style.display = 'none';
-                alertOverlay.classList.remove('has-image'); 
-                
+                alertImage.src = ""; alertImage.style.display = 'none'; alertOverlay.classList.remove('has-image'); 
                 let hasManualBreak = msg.includes('\n');
                 if (!hasManualBreak && msg.length >= 12 && msg.length < 65) {
-                    let middle = Math.floor(msg.length / 2);
-                    let before = msg.lastIndexOf(' ', middle);
-                    let after = msg.indexOf(' ', middle + 1);
-                    
+                    let middle = Math.floor(msg.length / 2); let before = msg.lastIndexOf(' ', middle); let after = msg.indexOf(' ', middle + 1);
                     let splitIndex = -1;
-                    if (before === -1 && after === -1) { splitIndex = -1; } 
-                    else if (before === -1) { splitIndex = after; } 
-                    else if (after === -1) { splitIndex = before; } 
-                    else { splitIndex = (middle - before < after - middle) ? before : after; }
-                    
+                    if (before === -1 && after === -1) { splitIndex = -1; } else if (before === -1) { splitIndex = after; } else if (after === -1) { splitIndex = before; } else { splitIndex = (middle - before < after - middle) ? before : after; }
                     if (splitIndex !== -1) { msg = msg.substring(0, splitIndex) + "<br>" + msg.substring(splitIndex + 1); }
                 }
             }
 
-            alertText.innerHTML = msg;
-            const charCount = msg.length;
-
+            alertText.innerHTML = msg; const charCount = msg.length;
             if (imageStr && imageStr.trim() !== "") {
-                if (charCount === 0) { 
-                    alertText.style.display = "none"; 
-                } else { 
-                    alertText.style.display = "block";
-                    alertText.style.fontSize = "clamp(18px, 5vmin, 45px)"; 
-                }
+                if (charCount === 0) { alertText.style.display = "none"; } else { alertText.style.display = "block"; alertText.style.fontSize = "clamp(18px, 5vmin, 45px)"; }
             } else {
                 alertText.style.display = "block";
-                if (charCount < 20) { alertText.style.fontSize = "clamp(50px, 26vmin, 300px)"; } 
-                else if (charCount < 65) { alertText.style.fontSize = "clamp(35px, 18vmin, 200px)"; } 
-                else if (charCount < 120) { alertText.style.fontSize = "clamp(25px, 11vmin, 120px)"; } 
-                else { alertText.style.fontSize = "clamp(18px, 7vmin, 80px)"; }
+                if (charCount < 20) { alertText.style.fontSize = "clamp(50px, 26vmin, 300px)"; } else if (charCount < 65) { alertText.style.fontSize = "clamp(35px, 18vmin, 200px)"; } else if (charCount < 120) { alertText.style.fontSize = "clamp(25px, 11vmin, 120px)"; } else { alertText.style.fontSize = "clamp(18px, 7vmin, 80px)"; }
             }
             
             const isHighPriority = (priority || "").toLowerCase() === 'high';
-            
-            if (isHighPriority) {
-                alertOverlay.classList.add('blink-red');
-                alertOverlay.classList.remove('normal-alert');
-                alertOverlay.style.display = 'flex';
-                alertTimeout = setTimeout(dismissFullscreenAlert, 600000); 
-            } else {
-                alertOverlay.classList.remove('blink-red');
-                alertOverlay.classList.add('normal-alert');
-                alertOverlay.style.display = 'flex';
-                alertTimeout = setTimeout(dismissFullscreenAlert, 300000); 
-            }
+            if (isHighPriority) { alertOverlay.classList.add('blink-red'); alertOverlay.classList.remove('normal-alert'); alertOverlay.style.display = 'flex'; alertTimeout = setTimeout(dismissFullscreenAlert, 600000); } 
+            else { alertOverlay.classList.remove('blink-red'); alertOverlay.classList.add('normal-alert'); alertOverlay.style.display = 'flex'; alertTimeout = setTimeout(dismissFullscreenAlert, 300000); }
         }
 
-        function dismissFullscreenAlert() {
-            clearTimeout(alertTimeout);
-            alertOverlay.style.display = 'none';
-            alertOverlay.classList.remove('blink-red', 'normal-alert', 'has-image');
-            alertImage.src = "";
-            try { if (typeof fully !== 'undefined') fully.setScreenBrightness(-1); } catch(e) {}
-        }
+        function dismissFullscreenAlert() { clearTimeout(alertTimeout); alertOverlay.style.display = 'none'; alertOverlay.classList.remove('blink-red', 'normal-alert', 'has-image'); alertImage.src = ""; try { if (typeof fully !== 'undefined') fully.setScreenBrightness(-1); } catch(e) {} }
 
-        setInterval(checkLatestMessage, 5000);
-        setTimeout(checkLatestMessage, 3000);
-
+        setInterval(checkLatestMessage, 5000); setTimeout(checkLatestMessage, 3000);
     </script>
 </body>
 </html>
