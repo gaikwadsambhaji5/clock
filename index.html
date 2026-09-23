@@ -337,7 +337,7 @@
 
         .t-segment { flex: 1; position: relative; margin: 0 -20px; margin-top: 40px; z-index: 0; }
         .t-line-bg { position: absolute; left: 0; right: 0; top: 0; transform: translateY(-50%); height: 12px; background: #334155; border-radius: 10px; }
-        .t-line-fill { position: absolute; left: 0; top: 0; transform: translateY(-50%); height: 12px; background: #38bdf8; border-radius: 10px; width: 0%; box-shadow: 0 0 20px rgba(56,189,248,0.5); }
+        .t-line-fill { position: absolute; left: 0; top: 0; transform: translateY(-50%); height: 12px; background: #38bdf8; border-radius: 10px; width: 0%; box-shadow: 0 0 20px rgba(56,189,248,0.5); transition: width 0.3s linear;}
     </style>
 </head>
 <body>
@@ -543,7 +543,7 @@
         // --- COMMUTE TRACKER LOGIC ---
         // --------------------------------------------------------
         
-        // PASTE YOUR APP SCRIPT URL HERE
+        // YOUR INJECTED APP SCRIPT URL
         const COMMUTE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyevrcmR88aEx0RfXa2tO8AL6t0DV4MbVlFA-QWyMwG80YN4V7yam4dQgYlLQidgcXV/exec"; 
         
         const commuteOverlay = document.getElementById('commute-overlay');
@@ -554,7 +554,7 @@
         let activeCommuteState = { active: false, type: 'none', startMins: 0, avgTravelTimeMins: 30 };
 
         function formatTimeForCommute(timeStr) {
-            if (!timeStr) return "--:--";
+            if (!timeStr || String(timeStr).trim() === "") return "--:--";
             let str = String(timeStr).split(':').slice(0,2).join(':');
             if (String(timeStr).includes('T')) {
                 str = new Date(timeStr).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
@@ -563,12 +563,14 @@
         }
 
         function timeStrToMinutes(timeStr) {
-            if (!timeStr) return null;
+            if (!timeStr || String(timeStr).trim() === "") return null;
             let str = String(timeStr);
             if (str.includes('T')) {
                 let d = new Date(str); return d.getHours() * 60 + d.getMinutes();
             }
-            let parts = str.split(':'); return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            let parts = str.split(':'); 
+            if (parts.length < 2) return null;
+            return parseInt(parts[0]) * 60 + parseInt(parts[1]);
         }
 
         function calculateCommuteAverages(data) {
@@ -589,9 +591,12 @@
         }
 
         function checkCommuteStatus() {
-            if(COMMUTE_WEB_APP_URL === "YOUR_COMMUTE_GOOGLE_APPS_SCRIPT_URL") return;
+            if(!COMMUTE_WEB_APP_URL || COMMUTE_WEB_APP_URL.includes("YOUR_COMMUTE")) return;
 
-            fetch(COMMUTE_WEB_APP_URL)
+            // CRITICAL FIX: Append a timestamp to the URL to prevent the browser from caching old data
+            const fetchUrl = COMMUTE_WEB_APP_URL + (COMMUTE_WEB_APP_URL.includes('?') ? '&' : '?') + 'nocache=' + new Date().getTime();
+
+            fetch(fetchUrl)
                 .then(res => res.json())
                 .then(data => {
                     const validData = data.filter(r => r.Date && r.Date.trim() !== "");
@@ -617,7 +622,10 @@
                     // CONDITION 4: AT HOME (15 min window)
                     if (tArriveHome && tLeaveOffice) {
                         let diffMins = currentMins - tArriveHome;
-                        if (diffMins >= 0 && diffMins < 15) {
+                        if (diffMins < -720) diffMins += 1440; // Fix for crossing midnight
+                        
+                        // Fix: Allow for slight device clock delay (e.g., -5 mins) to guarantee message shows
+                        if (diffMins >= -5 && diffMins < 15) {
                             showArrivedMessage("Welcome Home Sambhaji!", "Leave Office", formatTimeForCommute(todayRow['Leave Office']), "Arrive Home", formatTimeForCommute(todayRow['Arrive Home']), (tArriveHome - tLeaveOffice));
                         }
                         return;
@@ -633,7 +641,10 @@
                     // CONDITION 2: AT OFFICE (15 min window)
                     if (tArriveOffice && tLeaveHome) {
                         let diffMins = currentMins - tArriveOffice;
-                        if (diffMins >= 0 && diffMins < 15) {
+                        if (diffMins < -720) diffMins += 1440; // Fix for crossing midnight
+                        
+                        // Fix: Allow for slight device clock delay (e.g., -5 mins) to guarantee message shows
+                        if (diffMins >= -5 && diffMins < 15) {
                             showArrivedMessage("Sambhaji is now in Office", "Leave Home", formatTimeForCommute(todayRow['Leave Home']), "Arrive Office", formatTimeForCommute(todayRow['Arrive Office']), (tArriveOffice - tLeaveHome));
                         }
                         return;
@@ -1027,6 +1038,8 @@
                 if (activeCommuteState.active) {
                     const currentMins = now.getHours() * 60 + now.getMinutes();
                     let elapsedMins = currentMins - activeCommuteState.startMins;
+                    if (elapsedMins < -720) elapsedMins += 1440; // Midnight fix
+                    
                     let progress = 0;
                     if (elapsedMins > 0) {
                         progress = (elapsedMins / activeCommuteState.avgTravelTimeMins) * 100;
